@@ -8,7 +8,7 @@ const BrandLogo = ({ className = "w-8 h-8" }: { className?: string }) => {
   if (!imgError) {
     return (
       <img 
-        src="/logo.png" 
+        src={`${import.meta.env.BASE_URL}logo.png`}
         alt="Opsrelic Logo" 
         className={`${className} object-contain drop-shadow-[0_0_15px_rgba(69,243,255,0.3)]`}
         onError={() => setImgError(true)}
@@ -57,6 +57,18 @@ const NoiseOverlay = () => (
     }}
   />
 );
+
+const TopBanner = () => {
+  return (
+    <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white text-sm font-medium py-2.5 px-4 text-center relative z-50 flex items-center justify-center gap-2">
+      <span className="relative flex h-3 w-3">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+        <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+      </span>
+      <span><strong>High Demand:</strong> We only have capacity for <strong>2 new clients</strong> this month. Book your call before spots fill up.</span>
+    </div>
+  );
+};
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -163,7 +175,7 @@ const Hero = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.5 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-5 mb-12 w-full"
+              className="flex flex-col sm:flex-row items-center justify-center gap-5 mb-6 w-full"
             >
               <button 
                 data-cal-link="engmarwan/free-content-strategy-call"
@@ -173,6 +185,19 @@ const Hero = () => {
               >
                 Start scaling today <ArrowRight className="w-5 h-5" />
               </button>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+              className="flex items-center justify-center gap-2 mb-12 text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-full"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+              Only 2 onboarding spots remaining for this month
             </motion.div>
 
             {/* Trust Indicators */}
@@ -325,14 +350,14 @@ const FeaturesBento = () => {
           <p className="text-xl text-zinc-400 max-w-2xl mx-auto font-light">We don't just cut videos. We engineer them for maximum retention and algorithmic success.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[350px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[420px] md:auto-rows-[350px]">
           {/* Feature 1: AI Hook Extraction */}
           <motion.div 
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.7, ease: "easeOut" }}
-            className="md:col-span-2 relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-cyan-500/30"
+            className="md:col-span-2 relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-8 md:p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-cyan-500/30"
           >
             <motion.div 
               animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }}
@@ -346,7 +371,7 @@ const FeaturesBento = () => {
             <motion.div 
               animate={{ y: [0, -10, 0], x: [0, -5, 0] }}
               transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -bottom-10 -right-5 w-[85%] sm:w-[60%] h-[60%] sm:h-[70%] bg-zinc-950/80 backdrop-blur-md rounded-tl-2xl border-t border-l border-white/10 p-4 sm:p-6 shadow-2xl"
+              className="absolute -bottom-10 -right-5 w-[85%] sm:w-[60%] h-auto sm:h-[70%] bg-zinc-950/80 backdrop-blur-md rounded-tl-2xl border-t border-l border-white/10 p-4 sm:p-6 shadow-2xl"
             >
                <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-4">
                  <span className="text-sm font-medium text-white">Analysis Complete</span>
@@ -383,7 +408,7 @@ const FeaturesBento = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
-            className="relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-purple-500/30 flex flex-col justify-end"
+            className="relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-8 md:p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-purple-500/30 flex flex-col justify-end"
           >
             <motion.div 
               animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
@@ -411,7 +436,7 @@ const FeaturesBento = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
-            className="relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-blue-500/30 flex flex-col justify-end"
+            className="relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-8 md:p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-blue-500/30 flex flex-col justify-end"
           >
             <motion.div 
               animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.9, 0.5] }}
@@ -439,7 +464,7 @@ const FeaturesBento = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
-            className="md:col-span-2 relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-green-500/30"
+            className="md:col-span-2 relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-8 md:p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-green-500/30"
           >
             <motion.div 
               animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }}
@@ -1109,6 +1134,14 @@ const Pricing = () => {
         <div className="text-center mb-20">
           <h2 className="text-4xl lg:text-5xl font-display font-bold text-white mb-6">Simple, transparent pricing</h2>
           <p className="text-xl text-zinc-400 mb-6 font-light">Choose the plan that fits your content schedule. Cancel anytime.</p>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium shadow-lg mb-4">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
+            Only 2 onboarding spots remaining this month
+          </div>
+          <br />
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900 border border-white/10 text-zinc-300 text-sm font-medium shadow-lg">
             <ShieldCheck className="w-4 h-4 text-cyan-400" />
             14-Day Money-Back Guarantee. No questions asked.
@@ -1127,9 +1160,13 @@ const Pricing = () => {
             >
               {plan.popular && (
                 <>
-                  <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent rounded-[2.5rem] pointer-events-none" />
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-cyan-400 to-blue-500 text-zinc-950 text-xs font-bold uppercase tracking-wider py-1.5 px-4 rounded-full shadow-[0_0_20px_rgba(34,211,238,0.4)]">
-                    Most Popular
+                  <div className="absolute inset-0 bg-gradient-to-b from-red-500/5 to-transparent rounded-[2.5rem] pointer-events-none" />
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs font-bold uppercase tracking-wider py-1.5 px-4 rounded-full shadow-[0_0_20px_rgba(239,68,68,0.4)] flex items-center gap-2 whitespace-nowrap">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    </span>
+                    1 Spot Left
                   </div>
                 </>
               )}
@@ -1276,7 +1313,7 @@ const FinalCTA = () => (
           Stop spending hours editing and start focusing on what you do best: creating. Let our engine handle the rest.
         </p>
         
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-6">
           <button 
             data-cal-link="engmarwan/free-content-strategy-call"
             data-cal-namespace="free-content-strategy-call"
@@ -1286,7 +1323,17 @@ const FinalCTA = () => (
             Book your strategy call <ArrowRight className="w-5 h-5" />
           </button>
         </div>
-        <p className="mt-8 text-sm text-zinc-500 font-medium">No commitment. 100% free consultation.</p>
+        
+        <div className="flex flex-col items-center justify-center gap-2">
+          <p className="text-sm text-red-400 font-medium flex items-center justify-center gap-2 bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-full">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
+            Only 2 onboarding spots remaining this month
+          </p>
+          <p className="mt-4 text-sm text-zinc-500 font-medium">No commitment. 100% free consultation.</p>
+        </div>
       </motion.div>
     </div>
   </section>
@@ -1369,6 +1416,7 @@ export default function App() {
     <div className="min-h-screen bg-zinc-950 font-sans selection:bg-cyan-500/30 selection:text-cyan-200 overflow-x-hidden relative">
       <ScrollProgress />
       <NoiseOverlay />
+      <TopBanner />
       <Navbar />
       <main>
         <Hero />
