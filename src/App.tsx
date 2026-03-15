@@ -182,11 +182,11 @@ const Hero = () => {
               transition={{ delay: 0.2, duration: 0.5 }}
               className="text-5xl lg:text-7xl font-display font-bold text-white leading-[1.05] tracking-tight mb-6"
             >
-              Turn one video into a <br />
+              Dominate your niche <br />
               <span className="relative inline-block mt-2">
                 <span className="absolute -inset-2 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 blur-xl rounded-full" />
                 <span className="relative text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-300">
-                  month of content
+                  without the burnout
                 </span>
               </span>
             </motion.h1>
@@ -197,7 +197,7 @@ const Hero = () => {
               transition={{ delay: 0.3, duration: 0.5 }}
               className="text-xl text-zinc-400 mb-10 max-w-2xl mx-auto leading-relaxed font-light"
             >
-              We transform your long-form videos into highly-engaging, viral-ready clips for Shorts, Reels, and TikTok. <strong className="text-white font-medium">You create. We distribute.</strong>
+              Stop wasting 20 hours a week editing clips. We turn your long-form videos into an automated content machine that drives leads, builds trust, and scales your revenue.
             </motion.p>
             
             <motion.div 
@@ -372,11 +372,11 @@ const FeaturesBento = () => {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold uppercase tracking-wider mb-6 shadow-[0_0_15px_rgba(34,211,238,0.1)]">
             <Zap className="w-4 h-4" /> Powerful Features
           </div>
-          <h2 className="text-4xl lg:text-5xl font-display font-bold text-white mb-6">Engineered for retention</h2>
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto font-light">We don't just cut videos. We engineer them for maximum retention and algorithmic success.</p>
+          <h2 className="text-4xl lg:text-5xl font-display font-bold text-white mb-6">Engineered for revenue</h2>
+          <p className="text-xl text-zinc-400 max-w-2xl mx-auto font-light">We don't just cut videos. We engineer them to capture attention, build deep trust, and convert viewers into high-paying clients.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[420px] md:auto-rows-[350px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(420px,auto)] md:auto-rows-[350px]">
           {/* Feature 1: AI Hook Extraction */}
           <motion.div 
             initial={{ opacity: 0, y: 40 }}
@@ -390,8 +390,10 @@ const FeaturesBento = () => {
               transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
               className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 blur-2xl md:blur-[80px] rounded-full group-hover:bg-cyan-500/20 transition-colors duration-700 pointer-events-none" 
             />
-            <h3 className="text-3xl font-display font-bold text-white mb-4 relative z-10 group-hover:text-cyan-400 transition-colors">Viral Hook Extraction</h3>
-            <p className="text-lg text-zinc-400 max-w-md relative z-10 font-light leading-relaxed">Our AI analyzes your video and identifies the highest-retention moments to use as hooks, ensuring viewers stop scrolling.</p>
+            <h3 className="text-3xl font-display font-bold text-white mb-4 relative z-10 group-hover:text-cyan-400 transition-colors">Stop the Scroll Instantly</h3>
+            <p className="text-lg text-zinc-400 max-w-md relative z-10 font-light leading-relaxed">Never lose a lead in the first 3 seconds. We extract the most psychologically compelling hooks so your ideal clients stop scrolling and start listening.</p>
+            
+            <div className="h-48 md:h-0" />
             
             {/* Visual Mockup */}
             <motion.div 
@@ -451,8 +453,8 @@ const FeaturesBento = () => {
             </motion.div>
 
             <div className="relative z-10">
-              <h3 className="text-2xl font-display font-bold text-white mb-3 group-hover:text-purple-400 transition-colors">Dynamic Captions</h3>
-              <p className="text-zinc-400 leading-relaxed font-light">Bold, animated captions that highlight keywords and keep viewers glued to the screen.</p>
+              <h3 className="text-2xl font-display font-bold text-white mb-3 group-hover:text-purple-400 transition-colors">Skyrocket Watch Time</h3>
+              <p className="text-zinc-400 leading-relaxed font-light">Keep viewers glued to the screen with dynamic, animated captions that boost retention and train the algorithm to push your content further.</p>
             </div>
           </motion.div>
 
@@ -479,8 +481,8 @@ const FeaturesBento = () => {
             </motion.div>
 
             <div className="relative z-10">
-              <h3 className="text-2xl font-display font-bold text-white mb-3 group-hover:text-blue-400 transition-colors">B-Roll & Sound FX</h3>
-              <p className="text-zinc-400 leading-relaxed font-light">We add relevant B-roll, sound effects, and visual hooks to maintain pacing and eliminate dead air.</p>
+              <h3 className="text-2xl font-display font-bold text-white mb-3 group-hover:text-blue-400 transition-colors">Look Like a Top 1% Authority</h3>
+              <p className="text-zinc-400 leading-relaxed font-light">We add premium B-roll, sound design, and visual effects so your brand looks expensive, authoritative, and impossible to ignore.</p>
             </div>
           </motion.div>
 
@@ -497,8 +499,10 @@ const FeaturesBento = () => {
               transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
               className="absolute top-0 right-0 w-[500px] h-[500px] bg-green-500/10 blur-2xl md:blur-[80px] rounded-full group-hover:bg-green-500/20 transition-colors duration-700 pointer-events-none" 
             />
-            <h3 className="text-3xl font-display font-bold text-white mb-4 relative z-10 group-hover:text-green-400 transition-colors">Multi-Platform Ready</h3>
-            <p className="text-lg text-zinc-400 max-w-md relative z-10 font-light leading-relaxed">Optimized aspect ratios, safe zones, and metadata for TikTok, Instagram Reels, and YouTube Shorts.</p>
+            <h3 className="text-3xl font-display font-bold text-white mb-4 relative z-10 group-hover:text-green-400 transition-colors">Dominate Every Platform</h3>
+            <p className="text-lg text-zinc-400 max-w-md relative z-10 font-light leading-relaxed">Be everywhere at once. We optimize your content for TikTok, Instagram, and YouTube so you can scale your audience without doing extra work.</p>
+            
+            <div className="h-48 md:h-0" />
             
             {/* Visual Mockup */}
             <motion.div 
@@ -545,8 +549,8 @@ const ContentMultiplier = () => {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider mb-6 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
             <TrendingUp className="w-4 h-4" /> The Multiplier Effect
           </div>
-          <h2 className="text-4xl lg:text-5xl font-display font-bold text-white mb-6">One video. Infinite ROI.</h2>
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto font-light">See how a single long-form podcast transforms into an entire month of high-converting content.</p>
+          <h2 className="text-4xl lg:text-5xl font-display font-bold text-white mb-6">Turn 1 Hour Into 30 Days of Leads</h2>
+          <p className="text-xl text-zinc-400 max-w-2xl mx-auto font-light">Stop creating new content every day. Record once, and let us build an automated engine that books calls while you sleep.</p>
         </div>
 
         <div className="flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-24">
@@ -716,10 +720,10 @@ const CalculatorDashboard = () => {
                 <BarChart3 className="w-4 h-4" /> The Cost of Inaction
               </div>
               <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-6 leading-[1.1]">
-                Calculate the <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">money you're leaving on the table.</span>
+                Calculate the <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">revenue you're leaving on the table.</span>
               </h2>
               <p className="text-zinc-400 text-lg mb-8 leading-relaxed font-light">
-                Short-form content is the highest-leverage marketing asset today. See exactly how many views, subscribers, and paying clients you're losing every month.
+                Short-form content is the highest-leverage client acquisition channel today. See exactly how many leads, subscribers, and paying clients you're losing every month.
               </p>
               
               <div className="flex items-center gap-2 text-sm text-zinc-500 mb-10 bg-zinc-950/50 w-fit px-4 py-2 rounded-lg border border-white/5">
@@ -888,8 +892,8 @@ const BentoHowItWorks = () => {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold uppercase tracking-wider mb-6 shadow-[0_0_15px_rgba(34,211,238,0.1)]">
             <Sparkles className="w-4 h-4" /> The Workflow
           </div>
-          <h2 className="text-4xl lg:text-5xl font-display font-bold text-white mb-6">The Content Engine</h2>
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto font-light">A seamless, hands-off workflow designed for creators who value their time.</p>
+          <h2 className="text-4xl lg:text-5xl font-display font-bold text-white mb-6">Your Automated Client Acquisition System</h2>
+          <p className="text-xl text-zinc-400 max-w-2xl mx-auto font-light">Stop trading hours for views. We handle the heavy lifting so you can focus on closing deals and scaling your business.</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 auto-rows-[350px]">
@@ -1030,21 +1034,21 @@ const Testimonials = () => {
       name: "Sarah Jenkins",
       handle: "@sarahjtech",
       image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80",
-      quote: "Opsrelic completely changed my workflow. I record one 40-minute podcast a week, and they turn it into 15 shorts that drive thousands of new listeners. It feels like I cloned myself.",
+      quote: "Opsrelic completely changed my business. I record one 40-minute podcast a week, and they turn it into an automated lead generation machine. It feels like I cloned myself.",
       metrics: { views: "+145%", watchTime: "+40%" }
     },
     {
       name: "Marcus Chen",
       handle: "@marcusfit",
       image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80",
-      quote: "The quality of the edits is insane. The captions are perfect, the pacing is fast, and I don't have to spend 10 hours a week in Premiere Pro anymore. Best ROI for my channel.",
+      quote: "I stopped trading 15 hours a week editing in Premiere Pro. Now I just record, and Opsrelic handles the entire distribution engine. My revenue has never been higher.",
       metrics: { views: "+210%", subGrowth: "2.5k/mo" }
     },
     {
       name: "Elena Rodriguez",
       handle: "@elenainvests",
       image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80",
-      quote: "I was skeptical about AI editing, but the human touch Opsrelic adds makes the videos feel 100% authentic. My lead generation has doubled since we started.",
+      quote: "I was skeptical about outsourcing, but the quality Opsrelic delivers makes my brand look like a million bucks. My inbound lead generation has doubled since we started.",
       metrics: { leads: "+65%", views: "450k/mo" }
     }
   ];
@@ -1059,8 +1063,8 @@ const Testimonials = () => {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold uppercase tracking-wider mb-6 shadow-[0_0_15px_rgba(34,211,238,0.1)]">
             <ShieldCheck className="w-4 h-4" /> Verified Results
           </div>
-          <h2 className="text-4xl lg:text-5xl font-display font-bold text-white mb-6">Creators are scaling faster</h2>
-          <p className="text-xl text-zinc-400 font-light">Join top creators who automated their growth engine.</p>
+          <h2 className="text-4xl lg:text-5xl font-display font-bold text-white mb-6">Real creators. Real revenue.</h2>
+          <p className="text-xl text-zinc-400 font-light">Join the top 1% of creators who stopped editing and started scaling.</p>
         </div>
         
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
@@ -1158,8 +1162,8 @@ const Pricing = () => {
       
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="text-center mb-20">
-          <h2 className="text-4xl lg:text-5xl font-display font-bold text-white mb-6">Simple, transparent pricing</h2>
-          <p className="text-xl text-zinc-400 mb-6 font-light">Choose the plan that fits your content schedule. Cancel anytime.</p>
+          <h2 className="text-4xl lg:text-5xl font-display font-bold text-white mb-6">Invest in your authority</h2>
+          <p className="text-xl text-zinc-400 mb-6 font-light">Stop paying for "video editing". Start investing in a system that generates predictable attention and revenue.</p>
           <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-medium shadow-[0_0_15px_rgba(239,68,68,0.2)] mb-4">
             <Flame className="w-4 h-4 text-red-500 animate-pulse" />
             Only 2 onboarding spots remaining this month
@@ -1232,24 +1236,24 @@ const Pricing = () => {
 const FAQ = () => {
   const faqs = [
     {
-      question: "How long does it take to get my clips?",
-      answer: "Depending on your plan, turnaround times range from 12 to 48 hours after you upload your raw footage."
+      question: "How fast can I start seeing results?",
+      answer: "We deliver your first batch of high-converting clips within 12 to 48 hours of uploading your raw footage, so you can start generating leads immediately."
     },
     {
-      question: "Do I need to provide timestamps?",
-      answer: "No! Our AI and human editors analyze your entire video to find the most engaging hooks and moments automatically."
+      question: "Do I have to tell you what clips to cut?",
+      answer: "Absolutely not. Our team analyzes your entire video to find the most psychologically compelling hooks that drive retention and conversions. You just upload and walk away."
     },
     {
-      question: "What platforms do you format for?",
-      answer: "We optimize every clip for YouTube Shorts, Instagram Reels, and TikTok, ensuring safe zones and aspect ratios are perfect."
+      question: "Will this work for my specific niche/platform?",
+      answer: "Yes. We optimize every clip specifically for the algorithms of YouTube Shorts, Instagram Reels, and TikTok, ensuring you dominate wherever your ideal clients spend their time."
     },
     {
-      question: "Can I request revisions?",
-      answer: "Yes, all plans include unlimited revisions to ensure the final clips match your brand's voice and style perfectly."
+      question: "What if the clips don't sound like me?",
+      answer: "We offer unlimited revisions. We work closely with you to dial in your exact brand voice, pacing, and style so every video feels 100% authentic to you."
     },
     {
-      question: "Do you post the videos for me?",
-      answer: "Yes! Our Growth and Scale plans include auto-scheduling, meaning we handle the publishing across all your connected platforms."
+      question: "Do I still have to log in and post every day?",
+      answer: "Not if you don't want to. Our Growth and Scale plans include full auto-scheduling. We handle the publishing, captions, and hashtags across all your platforms so you can completely step away."
     }
   ];
 
@@ -1263,7 +1267,7 @@ const FAQ = () => {
             <MessageCircle className="w-4 h-4" /> Got Questions?
           </div>
           <h2 className="text-4xl lg:text-5xl font-display font-bold text-white mb-6">Frequently asked questions</h2>
-          <p className="text-xl text-zinc-400 font-light">Everything you need to know about the product and billing.</p>
+          <p className="text-xl text-zinc-400 font-light">Everything you need to know before you start scaling.</p>
         </div>
 
         <div className="space-y-4">
@@ -1326,11 +1330,11 @@ const FinalCTA = () => (
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
         <h2 className="text-5xl md:text-7xl font-display font-bold text-white mb-8 tracking-tight">
-          Ready to scale your <br/>
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">content empire?</span>
+          Ready to become the <br/>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">authority in your space?</span>
         </h2>
         <p className="text-xl text-zinc-400 mb-12 max-w-2xl mx-auto font-light leading-relaxed">
-          Stop spending hours editing and start focusing on what you do best: creating. Let our engine handle the rest.
+          Stop trading your time for views. Let us build the automated content engine that scales your audience and drives revenue while you sleep.
         </p>
         
         <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-6">
