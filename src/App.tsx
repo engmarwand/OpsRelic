@@ -50,8 +50,11 @@ const BrandLogo = ({ className = "w-8 h-8" }: { className?: string }) => {
 
 const NoiseOverlay = () => (
   <div 
-    className="fixed inset-0 opacity-[0.015] pointer-events-none z-50 mix-blend-overlay" 
-    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}
+    className="fixed inset-0 opacity-[0.03] pointer-events-none z-50 mix-blend-normal" 
+    style={{ 
+      backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")',
+      transform: 'translateZ(0)'
+    }}
   />
 );
 
@@ -90,8 +93,10 @@ const Navbar = () => {
           className="relative group overflow-hidden rounded-full p-[1px] animate-[pulse_3s_ease-in-out_infinite]"
         >
           <span className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 rounded-full opacity-70 group-hover:opacity-100 animate-[spin_3s_linear_infinite]" />
-          <div className="relative bg-zinc-950 text-white font-medium px-6 py-2.5 rounded-full transition-all duration-300 group-hover:bg-zinc-900 flex items-center gap-2 text-sm">
-            Book strategy call <ChevronRight className="w-4 h-4 text-cyan-400 group-hover:translate-x-1 transition-transform" />
+          <div className="relative bg-zinc-950 text-white font-medium px-4 py-2 md:px-6 md:py-2.5 rounded-full transition-all duration-300 group-hover:bg-zinc-900 flex items-center gap-2 text-xs md:text-sm">
+            <span className="hidden sm:inline">Book strategy call</span>
+            <span className="sm:hidden">Book call</span>
+            <ChevronRight className="w-3 h-3 md:w-4 md:h-4 text-cyan-400 group-hover:translate-x-1 transition-transform" />
           </div>
         </button>
       </div>
@@ -104,19 +109,19 @@ const Hero = () => {
     <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-24 overflow-hidden">
       {/* Dynamic Background */}
       <div className="absolute inset-0 bg-zinc-950 -z-20" />
-      <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-cyan-600/15 blur-[120px] rounded-full -z-10 mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-blue-600/15 blur-[120px] rounded-full -z-10 mix-blend-screen animate-pulse" style={{ animationDuration: '10s' }} />
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none -z-10" />
+      <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-cyan-600/15 blur-3xl md:blur-[100px] rounded-full -z-10" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-blue-600/15 blur-3xl md:blur-[100px] rounded-full -z-10" />
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none -z-10" />
       
-      <div className="max-w-7xl mx-auto px-6 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+      <div className="max-w-5xl mx-auto px-6 relative z-10">
+        <div className="flex flex-col items-center text-center">
           
-          {/* Left Column: Copy */}
+          {/* Top Column: Copy */}
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="text-left"
+            className="flex flex-col items-center"
           >
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
@@ -149,7 +154,7 @@ const Hero = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.5 }}
-              className="text-xl text-zinc-400 mb-10 max-w-xl leading-relaxed font-light"
+              className="text-xl text-zinc-400 mb-10 max-w-2xl mx-auto leading-relaxed font-light"
             >
               We transform your long-form videos into highly-engaging, viral-ready clips for Shorts, Reels, and TikTok. <strong className="text-white font-medium">You create. We distribute.</strong>
             </motion.p>
@@ -158,7 +163,7 @@ const Hero = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.5 }}
-              className="flex flex-col sm:flex-row items-center gap-5 mb-12"
+              className="flex flex-col sm:flex-row items-center justify-center gap-5 mb-12 w-full"
             >
               <button 
                 data-cal-link="engmarwan/free-content-strategy-call"
@@ -168,12 +173,6 @@ const Hero = () => {
               >
                 Start scaling today <ArrowRight className="w-5 h-5" />
               </button>
-              <button className="w-full sm:w-auto bg-zinc-900/50 hover:bg-zinc-800/80 backdrop-blur-md text-white font-medium px-8 py-4 rounded-full transition-all duration-300 flex items-center justify-center gap-2 text-lg border border-white/10 hover:border-white/20">
-                <div className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                  <Play className="w-3 h-3 text-cyan-400 fill-cyan-400 ml-0.5" />
-                </div>
-                Watch 2-min demo
-              </button>
             </motion.div>
 
             {/* Trust Indicators */}
@@ -181,7 +180,7 @@ const Hero = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.5 }}
-              className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pt-8 border-t border-white/10"
+              className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8 border-t border-white/10 w-full max-w-2xl mx-auto"
             >
               <div className="flex -space-x-3">
                 {[
@@ -194,8 +193,8 @@ const Hero = () => {
                   <img key={i} src={src} alt={`Creator ${i + 1}`} className="w-10 h-10 rounded-full border-2 border-zinc-950 relative z-10 hover:z-20 transition-transform hover:scale-110 object-cover" />
                 ))}
               </div>
-              <div>
-                <div className="flex items-center gap-1 mb-1">
+              <div className="text-center sm:text-left">
+                <div className="flex items-center justify-center sm:justify-start gap-1 mb-1">
                   {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-cyan-400 text-cyan-400" />)}
                   <span className="text-white font-bold ml-2">4.9/5</span>
                 </div>
@@ -204,132 +203,26 @@ const Hero = () => {
             </motion.div>
           </motion.div>
 
-          {/* Right Column: Clean Dashboard Animation */}
+          {/* Bottom Column: Video Player */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative hidden lg:flex h-[600px] w-full items-center justify-center"
+            className="relative flex w-full items-center justify-center mt-16 lg:mt-24"
           >
-            <motion.div 
-              animate={{ y: [0, -15, 0] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-              className="relative w-full max-w-[500px]"
-            >
-              {/* Main Dashboard Card */}
-              <div className="bg-zinc-900/80 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
-                {/* Header */}
-                <div className="h-12 bg-zinc-950/50 border-b border-white/5 flex items-center px-4 justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                    <div className="w-3 h-3 rounded-full bg-green-500/80" />
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-zinc-400 font-mono bg-zinc-900 px-2 py-1 rounded-md border border-white/5">
-                    <Sparkles className="w-3 h-3 text-cyan-400" />
-                    Auto-Clipping Active
-                  </div>
-                </div>
-                
-                {/* Body */}
-                <div className="p-6">
-                  {/* Source Video */}
-                  <div className="mb-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-zinc-300">Source: Podcast_Ep42.mp4</span>
-                      <span className="text-xs text-zinc-500 font-mono">01:24:05</span>
-                    </div>
-                    <div className="h-16 bg-zinc-950 rounded-lg border border-white/5 relative overflow-hidden flex items-center px-2 gap-1">
-                      {/* Audio Waveform Mockup */}
-                      {Array.from({ length: 40 }).map((_, i) => (
-                        <motion.div 
-                          key={i}
-                          animate={{ height: ['20%', `${Math.random() * 60 + 20}%`, '20%'] }}
-                          transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.05 }}
-                          className="flex-1 bg-cyan-500/30 rounded-full"
-                        />
-                      ))}
-                      {/* Scanning Playhead */}
-                      <motion.div 
-                        animate={{ left: ['0%', '100%'] }}
-                        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                        className="absolute top-0 bottom-0 w-[2px] bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)] z-10"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Extracted Clips */}
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-sm font-medium text-zinc-300">Extracted Viral Clips</span>
-                      <span className="text-xs text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded-full font-medium">3 Ready</span>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {[
-                        { title: "The exact framework for...", score: 98, time: "0:45", color: "text-green-400", bg: "bg-green-400/10" },
-                        { title: "Why most founders fail...", score: 94, time: "0:58", color: "text-green-400", bg: "bg-green-400/10" },
-                        { title: "My biggest mistake in 2025", score: 89, time: "0:32", color: "text-yellow-400", bg: "bg-yellow-400/10" },
-                      ].map((clip, i) => (
-                        <motion.div 
-                          key={i}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 1 + (i * 0.2) }}
-                          className="flex items-center gap-4 p-3 bg-zinc-950 rounded-xl border border-white/5 hover:border-white/10 transition-colors cursor-pointer group"
-                        >
-                          <div className="w-10 h-14 bg-zinc-900 rounded-md border border-white/5 flex items-center justify-center relative overflow-hidden">
-                            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-blue-500/10" />
-                            <Play className="w-4 h-4 text-white/50 group-hover:text-white transition-colors relative z-10" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-sm font-medium text-zinc-200 mb-1">{clip.title}</h4>
-                            <div className="flex items-center gap-3 text-xs">
-                              <span className="text-zinc-500">{clip.time}</span>
-                              <span className="flex items-center gap-1 text-zinc-400">
-                                <CheckCircle2 className="w-3 h-3 text-cyan-400" /> Auto-captioned
-                              </span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className={`text-xs font-bold ${clip.color} ${clip.bg} px-2 py-1 rounded-md mb-1 inline-block`}>
-                              {clip.score} Score
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating decorative elements */}
-              <motion.div 
-                animate={{ y: [-10, 10, -10] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-6 -right-6 bg-zinc-900/90 backdrop-blur-xl border border-white/10 p-3 rounded-xl shadow-2xl flex items-center gap-3"
-              >
-                <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                  <Scissors className="w-4 h-4 text-cyan-400" />
-                </div>
-                <div className="text-xs font-medium text-zinc-300">
-                  B-Roll Added
-                </div>
-              </motion.div>
-
-              <motion.div 
-                animate={{ y: [10, -10, 10] }}
-                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                className="absolute -bottom-6 -left-6 bg-zinc-900/90 backdrop-blur-xl border border-white/10 p-3 rounded-xl shadow-2xl flex items-center gap-3"
-              >
-                <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
-                  <MessageCircle className="w-4 h-4 text-purple-400" />
-                </div>
-                <div className="text-xs font-medium text-zinc-300">
-                  Captions Synced
-                </div>
-              </motion.div>
-            </motion.div>
+            <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(34,211,238,0.15)] border border-cyan-500/20 bg-zinc-950">
+              {/* The Video */}
+              <iframe 
+                src="https://player.vimeo.com/video/1173717978?h=4e306303cf&autoplay=1&loop=1&muted=1" 
+                className="absolute inset-0 w-full h-full z-10 rounded-2xl"
+                frameBorder="0" 
+                allow="autoplay; fullscreen; picture-in-picture" 
+                allowFullScreen
+              ></iframe>
+              
+              {/* Decorative Frame */}
+              <div className="absolute inset-0 border border-white/10 rounded-2xl z-20 pointer-events-none" />
+            </div>
           </motion.div>
         </div>
       </div>
@@ -401,7 +294,7 @@ const SocialProofLogos = () => {
       
       <div className="flex w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
         <motion.div 
-          className="flex flex-none w-max"
+          className="flex flex-none w-max will-change-transform"
           animate={{ x: "-33.333333%" }}
           transition={{ repeat: Infinity, ease: "linear", duration: 20 }}
         >
@@ -421,7 +314,7 @@ const FeaturesBento = () => {
   return (
     <section id="features" className="py-32 relative z-20 overflow-hidden">
       <div className="absolute inset-0 bg-zinc-950" />
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none" />
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="text-center mb-20">
@@ -441,12 +334,20 @@ const FeaturesBento = () => {
             transition={{ duration: 0.7, ease: "easeOut" }}
             className="md:col-span-2 relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-cyan-500/30"
           >
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 blur-[100px] rounded-full group-hover:bg-cyan-500/20 transition-colors duration-700 pointer-events-none" />
+            <motion.div 
+              animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 blur-2xl md:blur-[80px] rounded-full group-hover:bg-cyan-500/20 transition-colors duration-700 pointer-events-none" 
+            />
             <h3 className="text-3xl font-display font-bold text-white mb-4 relative z-10 group-hover:text-cyan-400 transition-colors">Viral Hook Extraction</h3>
             <p className="text-lg text-zinc-400 max-w-md relative z-10 font-light leading-relaxed">Our AI analyzes your video and identifies the highest-retention moments to use as hooks, ensuring viewers stop scrolling.</p>
             
             {/* Visual Mockup */}
-            <div className="absolute bottom-[-10%] right-[-5%] w-[60%] h-[70%] bg-zinc-950/80 backdrop-blur-md rounded-tl-2xl border-t border-l border-white/10 p-6 shadow-2xl transform group-hover:-translate-y-4 group-hover:-translate-x-4 transition-transform duration-700 hidden sm:block">
+            <motion.div 
+              animate={{ y: [0, -10, 0], x: [0, -5, 0] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -bottom-10 -right-5 w-[85%] sm:w-[60%] h-[60%] sm:h-[70%] bg-zinc-950/80 backdrop-blur-md rounded-tl-2xl border-t border-l border-white/10 p-4 sm:p-6 shadow-2xl"
+            >
                <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-4">
                  <span className="text-sm font-medium text-white">Analysis Complete</span>
                  <span className="text-xs text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded-full">3 Hooks Found</span>
@@ -473,7 +374,7 @@ const FeaturesBento = () => {
                    <span className="text-xs font-bold text-white/50">85%</span>
                  </div>
                </div>
-            </div>
+            </motion.div>
           </motion.div>
 
           {/* Feature 2: Dynamic Captions */}
@@ -484,11 +385,19 @@ const FeaturesBento = () => {
             transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
             className="relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-purple-500/30 flex flex-col justify-end"
           >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 blur-[80px] rounded-full group-hover:bg-purple-500/20 transition-colors duration-700 pointer-events-none" />
+            <motion.div 
+              animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 blur-2xl md:blur-[80px] rounded-full group-hover:bg-purple-500/20 transition-colors duration-700 pointer-events-none" 
+            />
             
-            <div className="absolute top-10 right-10 w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(168,85,247,0.1)] group-hover:scale-110 transition-transform duration-500 group-hover:border-purple-500/50">
+            <motion.div 
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute top-10 right-10 w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(168,85,247,0.1)] group-hover:scale-110 transition-transform duration-500 group-hover:border-purple-500/50"
+            >
               <MessageCircle className="w-8 h-8 text-purple-400" />
-            </div>
+            </motion.div>
 
             <div className="relative z-10">
               <h3 className="text-2xl font-display font-bold text-white mb-3 group-hover:text-purple-400 transition-colors">Dynamic Captions</h3>
@@ -504,11 +413,19 @@ const FeaturesBento = () => {
             transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
             className="relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-blue-500/30 flex flex-col justify-end"
           >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[80px] rounded-full group-hover:bg-blue-500/20 transition-colors duration-700 pointer-events-none" />
+            <motion.div 
+              animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.9, 0.5] }}
+              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+              className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-2xl md:blur-[80px] rounded-full group-hover:bg-blue-500/20 transition-colors duration-700 pointer-events-none" 
+            />
             
-            <div className="absolute top-10 right-10 w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.1)] group-hover:scale-110 transition-transform duration-500 group-hover:border-blue-500/50">
+            <motion.div 
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              className="absolute top-10 right-10 w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.1)] group-hover:scale-110 transition-transform duration-500 group-hover:border-blue-500/50"
+            >
               <Video className="w-8 h-8 text-blue-400" />
-            </div>
+            </motion.div>
 
             <div className="relative z-10">
               <h3 className="text-2xl font-display font-bold text-white mb-3 group-hover:text-blue-400 transition-colors">B-Roll & Sound FX</h3>
@@ -524,12 +441,20 @@ const FeaturesBento = () => {
             transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
             className="md:col-span-2 relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-green-500/30"
           >
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-green-500/10 blur-[100px] rounded-full group-hover:bg-green-500/20 transition-colors duration-700 pointer-events-none" />
+            <motion.div 
+              animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }}
+              transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+              className="absolute top-0 right-0 w-[500px] h-[500px] bg-green-500/10 blur-2xl md:blur-[80px] rounded-full group-hover:bg-green-500/20 transition-colors duration-700 pointer-events-none" 
+            />
             <h3 className="text-3xl font-display font-bold text-white mb-4 relative z-10 group-hover:text-green-400 transition-colors">Multi-Platform Ready</h3>
             <p className="text-lg text-zinc-400 max-w-md relative z-10 font-light leading-relaxed">Optimized aspect ratios, safe zones, and metadata for TikTok, Instagram Reels, and YouTube Shorts.</p>
             
             {/* Visual Mockup */}
-            <div className="absolute bottom-[-20%] right-10 flex gap-4 transform group-hover:-translate-y-4 transition-transform duration-700 hidden sm:flex">
+            <motion.div 
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -bottom-10 right-0 sm:right-10 flex gap-2 sm:gap-4 scale-75 sm:scale-100 origin-bottom-right"
+            >
                <div className="w-32 h-48 bg-zinc-950/80 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl flex flex-col items-center justify-center gap-2">
                  <Smartphone className="w-8 h-8 text-zinc-500" />
                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">TikTok</span>
@@ -542,7 +467,7 @@ const FeaturesBento = () => {
                  <Smartphone className="w-8 h-8 text-zinc-500" />
                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Shorts</span>
                </div>
-            </div>
+            </motion.div>
           </motion.div>
         </div>
       </div>
@@ -552,17 +477,17 @@ const FeaturesBento = () => {
 
 const ContentMultiplier = () => {
   const shorts = [
-    { title: "The 1% Rule", views: "842K", subs: "+4.2K", clients: 12, color: "cyan" },
-    { title: "Morning Routine", views: "1.2M", subs: "+8.5K", clients: 28, color: "blue" },
-    { title: "Avoid This Mistake", views: "450K", subs: "+1.8K", clients: 5, color: "purple" },
-    { title: "My $10k Framework", views: "2.1M", subs: "+12K", clients: 45, color: "green" },
-    { title: "Productivity Hack", views: "320K", subs: "+900", clients: 2, color: "yellow" },
-    { title: "Scaling Fast", views: "680K", subs: "+3.1K", clients: 8, color: "pink" },
+    { title: "The 1% Rule", views: "842K", subs: "+4.2K", clients: 12, color: "cyan", thumbnail: "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1080&q=80" },
+    { title: "Morning Routine", views: "1.2M", subs: "+8.5K", clients: 28, color: "blue", thumbnail: "https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=1080&q=80" },
+    { title: "Avoid This Mistake", views: "450K", subs: "+1.8K", clients: 5, color: "purple", thumbnail: "https://images.unsplash.com/photo-1486825586573-7131f7991bdd?auto=format&fit=crop&w=1080&q=80" },
+    { title: "My $10k Framework", views: "2.1M", subs: "+12K", clients: 45, color: "green", thumbnail: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1080&q=80" },
+    { title: "Productivity Hack", views: "320K", subs: "+900", clients: 2, color: "yellow", thumbnail: "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?auto=format&fit=crop&w=1080&q=80" },
+    { title: "Scaling Fast", views: "680K", subs: "+3.1K", clients: 8, color: "pink", thumbnail: "https://images.unsplash.com/photo-1504805572947-34fad45aed93?auto=format&fit=crop&w=1080&q=80" },
   ];
 
   return (
     <section className="py-32 relative z-20 overflow-hidden bg-zinc-950 border-y border-white/5">
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none" />
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="text-center mb-20">
@@ -581,11 +506,13 @@ const ContentMultiplier = () => {
             viewport={{ once: true }}
             className="w-full lg:w-1/3 relative"
           >
-            <div className="absolute inset-0 bg-cyan-500/20 blur-[100px] rounded-full" />
+            <div className="absolute inset-0 bg-cyan-500/20 blur-2xl md:blur-[80px] rounded-full" />
             <div className="relative bg-zinc-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
               <div className="aspect-video bg-zinc-950 rounded-xl mb-6 relative overflow-hidden group flex items-center justify-center border border-white/5">
-                <PlayCircle className="w-16 h-16 text-white/20 group-hover:text-cyan-400 transition-colors duration-300" />
-                <div className="absolute bottom-3 right-3 bg-black/80 px-2 py-1 rounded text-xs font-mono text-white">45:20</div>
+                <img src="https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=1920&q=80" alt="Podcast Thumbnail" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-500" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent" />
+                <PlayCircle className="w-16 h-16 text-white/80 group-hover:text-cyan-400 transition-colors duration-300 relative z-10 drop-shadow-lg group-hover:scale-110 transform" />
+                <div className="absolute bottom-3 right-3 bg-black/80 px-2 py-1 rounded text-xs font-mono text-white z-10">45:20</div>
               </div>
               <h3 className="text-xl font-bold text-white mb-2">Full Podcast Episode #42</h3>
               <p className="text-zinc-400 text-sm mb-6">"How to scale your agency to $1M/ARR"</p>
@@ -620,11 +547,13 @@ const ContentMultiplier = () => {
                 transition={{ delay: i * 0.1 }}
                 className="bg-zinc-900/40 hover:bg-zinc-900/80 border border-white/5 hover:border-white/10 rounded-2xl p-5 transition-all duration-300 group relative overflow-hidden"
               >
-                <div className={`absolute top-0 right-0 w-32 h-32 bg-${short.color}-500/10 blur-[50px] rounded-full group-hover:bg-${short.color}-500/20 transition-colors duration-500`} />
+                <div className={`absolute top-0 right-0 w-32 h-32 bg-${short.color}-500/10 blur-xl md:blur-[50px] rounded-full group-hover:bg-${short.color}-500/20 transition-colors duration-500`} />
                 
                 <div className="flex items-start gap-4 relative z-10">
-                  <div className="w-12 h-16 bg-zinc-950 rounded-lg border border-white/10 flex items-center justify-center shrink-0 group-hover:border-cyan-500/30 transition-colors">
-                    <Smartphone className="w-5 h-5 text-zinc-500 group-hover:text-cyan-400" />
+                  <div className="w-12 h-16 bg-zinc-950 rounded-lg border border-white/10 flex items-center justify-center shrink-0 group-hover:border-cyan-500/30 transition-colors relative overflow-hidden">
+                    <img src={short.thumbnail} alt={short.title} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-300" referrerPolicy="no-referrer" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent" />
+                    <Play className="w-5 h-5 text-white/80 group-hover:text-cyan-400 relative z-10 drop-shadow-md group-hover:scale-110 transition-transform" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-white font-bold truncate mb-1">{short.title}</h4>
@@ -655,7 +584,7 @@ const ContentMultiplier = () => {
           viewport={{ once: true }}
           className="mt-16 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 border border-white/10 rounded-3xl p-8 max-w-4xl mx-auto text-center relative overflow-hidden"
         >
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none" />
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
           <h3 className="text-zinc-400 uppercase tracking-widest text-sm font-bold mb-6">Total Multiplied Impact</h3>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16">
             <div>
@@ -708,6 +637,15 @@ const CalculatorDashboard = () => {
     return num.toString();
   };
 
+  const handleInputChange = (setter: React.Dispatch<React.SetStateAction<number>>, value: string, max: number) => {
+    const num = parseInt(value.replace(/,/g, ''), 10);
+    if (isNaN(num)) {
+      setter(0);
+    } else {
+      setter(Math.min(num, max));
+    }
+  };
+
   return (
     <section id="calculator" className="py-32 relative z-20">
       <div className="max-w-7xl mx-auto px-6">
@@ -718,8 +656,8 @@ const CalculatorDashboard = () => {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="relative rounded-[2.5rem] bg-zinc-900/40 border border-white/10 backdrop-blur-2xl p-8 md:p-12 overflow-hidden shadow-2xl"
         >
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 blur-[120px] rounded-full -z-10 pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-600/10 blur-[120px] rounded-full -z-10 pointer-events-none" />
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 blur-2xl md:blur-[80px] rounded-full -z-10 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-600/10 blur-2xl md:blur-[80px] rounded-full -z-10 pointer-events-none" />
 
           <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-start">
             <div className="lg:col-span-5">
@@ -741,13 +679,18 @@ const CalculatorDashboard = () => {
               <div className="space-y-8 bg-zinc-950/80 p-8 rounded-3xl border border-white/5 shadow-inner relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
                 
-                {/* Sliders */}
+                {/* Sliders and Inputs */}
                 <div className="space-y-5 relative z-10">
                   <div className="flex justify-between items-center">
                     <label className="text-zinc-300 font-medium flex items-center gap-2 text-sm">
                       <Play className="w-4 h-4 text-cyan-500" /> Avg. Views per Long-form
                     </label>
-                    <span className="text-cyan-400 font-mono font-bold bg-cyan-500/10 px-2 py-1 rounded border border-cyan-500/20">{formatNumber(longViews)}</span>
+                    <input 
+                      type="text" 
+                      value={longViews.toLocaleString()} 
+                      onChange={(e) => handleInputChange(setLongViews, e.target.value, 10000000)}
+                      className="w-24 text-right text-cyan-400 font-mono font-bold bg-cyan-500/10 px-2 py-1 rounded border border-cyan-500/20 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all"
+                    />
                   </div>
                   <input type="range" min="1000" max="500000" step="1000" value={longViews} onChange={(e) => setLongViews(Number(e.target.value))} className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-cyan-500 hover:accent-cyan-400 transition-all" />
                 </div>
@@ -757,7 +700,12 @@ const CalculatorDashboard = () => {
                     <label className="text-zinc-300 font-medium flex items-center gap-2 text-sm">
                       <Users className="w-4 h-4 text-cyan-500" /> Total Subscribers
                     </label>
-                    <span className="text-cyan-400 font-mono font-bold bg-cyan-500/10 px-2 py-1 rounded border border-cyan-500/20">{formatNumber(subscribers)}</span>
+                    <input 
+                      type="text" 
+                      value={subscribers.toLocaleString()} 
+                      onChange={(e) => handleInputChange(setSubscribers, e.target.value, 10000000)}
+                      className="w-24 text-right text-cyan-400 font-mono font-bold bg-cyan-500/10 px-2 py-1 rounded border border-cyan-500/20 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all"
+                    />
                   </div>
                   <input type="range" min="1000" max="1000000" step="5000" value={subscribers} onChange={(e) => setSubscribers(Number(e.target.value))} className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-cyan-500 hover:accent-cyan-400 transition-all" />
                 </div>
@@ -767,7 +715,12 @@ const CalculatorDashboard = () => {
                     <label className="text-zinc-300 font-medium flex items-center gap-2 text-sm">
                       <Calendar className="w-4 h-4 text-cyan-500" /> Long-form Videos / Month
                     </label>
-                    <span className="text-cyan-400 font-mono font-bold bg-cyan-500/10 px-2 py-1 rounded border border-cyan-500/20">{videosPerMonth}</span>
+                    <input 
+                      type="text" 
+                      value={videosPerMonth.toString()} 
+                      onChange={(e) => handleInputChange(setVideosPerMonth, e.target.value, 100)}
+                      className="w-16 text-right text-cyan-400 font-mono font-bold bg-cyan-500/10 px-2 py-1 rounded border border-cyan-500/20 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all"
+                    />
                   </div>
                   <input type="range" min="1" max="20" step="1" value={videosPerMonth} onChange={(e) => setVideosPerMonth(Number(e.target.value))} className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-cyan-500 hover:accent-cyan-400 transition-all" />
                 </div>
@@ -779,7 +732,7 @@ const CalculatorDashboard = () => {
               <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 via-blue-600/10 to-transparent blur-2xl rounded-3xl -z-10" />
               <div className="bg-zinc-950/80 border border-white/10 rounded-3xl p-8 lg:p-10 backdrop-blur-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] h-full flex flex-col justify-center relative overflow-hidden">
                 {/* Decorative grid background */}
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none" />
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
                 <h3 className="text-zinc-400 font-medium mb-10 flex items-center gap-2 uppercase tracking-wider text-sm relative z-10">
@@ -821,8 +774,8 @@ const CalculatorDashboard = () => {
                 </div>
 
                 <div className="bg-gradient-to-br from-cyan-500/15 via-blue-500/10 to-transparent rounded-2xl p-8 border border-cyan-500/30 relative overflow-hidden group shadow-[0_0_30px_rgba(34,211,238,0.1)] z-10">
-                  <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-400/20 blur-[60px] rounded-full group-hover:bg-cyan-400/40 transition-colors duration-500" />
-                  <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/20 blur-[50px] rounded-full" />
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-400/20 blur-xl md:blur-[60px] rounded-full group-hover:bg-cyan-400/40 transition-colors duration-500" />
+                  <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/20 blur-xl md:blur-[50px] rounded-full" />
                   
                   <p className="text-xs text-cyan-300 uppercase tracking-widest font-bold mb-3 relative z-10 flex items-center gap-2">
                     <Sparkles className="w-4 h-4" /> Potential New Clients / Month
@@ -877,7 +830,7 @@ const BentoHowItWorks = () => {
   return (
     <section id="how-it-works" className="py-32 relative z-20">
       <div className="absolute inset-0 bg-zinc-950" />
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none" />
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="text-center mb-20">
@@ -896,7 +849,7 @@ const BentoHowItWorks = () => {
             viewport={{ once: true }}
             className="md:col-span-2 relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-cyan-500/30"
           >
-            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-cyan-500/10 blur-[100px] rounded-full group-hover:bg-cyan-500/20 transition-colors duration-700" />
+            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-cyan-500/10 blur-2xl md:blur-[80px] rounded-full group-hover:bg-cyan-500/20 transition-colors duration-700" />
             
             <div className="relative z-10 flex flex-col h-full">
               <div className="w-16 h-16 rounded-2xl bg-zinc-950 border border-white/10 flex items-center justify-center mb-8 shadow-lg group-hover:scale-110 transition-transform duration-500 group-hover:border-cyan-500/50">
@@ -958,8 +911,8 @@ const BentoHowItWorks = () => {
             transition={{ delay: 0.2 }}
             className="md:col-span-3 relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-blue-500/30 flex flex-col md:flex-row items-center justify-between gap-10"
           >
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay pointer-events-none" />
-            <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-blue-500/10 blur-[120px] rounded-full group-hover:bg-blue-500/20 transition-colors duration-700 pointer-events-none" />
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 pointer-events-none" />
+            <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-blue-500/10 blur-3xl md:blur-[100px] rounded-full group-hover:bg-blue-500/20 transition-colors duration-700 pointer-events-none" />
             
             <div className="relative z-10 max-w-xl">
               <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500 group-hover:border-blue-500/50">
@@ -1047,7 +1000,7 @@ const Testimonials = () => {
 
   return (
     <section id="testimonials" className="py-32 relative overflow-hidden bg-zinc-950 border-y border-white/5 z-20">
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none" />
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
       <div className="absolute top-1/2 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
       
       <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -1069,7 +1022,7 @@ const Testimonials = () => {
               transition={{ duration: 0.7, delay: i * 0.15, ease: "easeOut" }}
               className="relative bg-zinc-900/40 backdrop-blur-xl border border-white/10 p-8 rounded-[2rem] shadow-2xl hover:border-cyan-500/30 transition-all duration-500 group flex flex-col hover:-translate-y-2 overflow-hidden"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-[50px] rounded-full group-hover:bg-cyan-500/10 transition-colors duration-500 pointer-events-none" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-xl md:blur-[50px] rounded-full group-hover:bg-cyan-500/10 transition-colors duration-500 pointer-events-none" />
               
               <div className="flex items-center gap-4 mb-6 relative z-10">
                 <img src={t.image} alt={t.name} className="w-14 h-14 rounded-full object-cover border-2 border-zinc-800 group-hover:border-cyan-500 transition-colors shadow-lg" referrerPolicy="no-referrer" />
@@ -1150,7 +1103,7 @@ const Pricing = () => {
   return (
     <section id="pricing" className="py-32 relative z-20">
       <div className="absolute inset-0 bg-zinc-950" />
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none" />
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="text-center mb-20">
@@ -1294,7 +1247,7 @@ const FAQ = () => {
 const FinalCTA = () => (
   <section className="py-32 relative z-20 overflow-hidden border-t border-white/5">
     <div className="absolute inset-0 bg-zinc-950" />
-    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none" />
+    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
     <motion.div 
       animate={{ 
         scale: [1, 1.2, 1],
@@ -1305,7 +1258,7 @@ const FinalCTA = () => (
         repeat: Infinity,
         ease: "easeInOut"
       }}
-      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-500/10 blur-[150px] rounded-full pointer-events-none" 
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-500/10 blur-3xl md:blur-[120px] rounded-full pointer-events-none" 
     />
     
     <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
