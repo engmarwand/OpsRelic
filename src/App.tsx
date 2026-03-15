@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'motion/react';
-import { Play, ArrowRight, Upload, Scissors, Calendar, Check, Star, TrendingUp, Zap, BarChart3, Users, Eye, Sparkles, ChevronRight, ShieldCheck, PlayCircle, MessageCircle, Video, Smartphone, CheckCircle2, ArrowUp } from 'lucide-react';
+import { Play, ArrowRight, Upload, Scissors, Calendar, Check, Star, TrendingUp, Zap, BarChart3, Users, Eye, Sparkles, ChevronRight, ShieldCheck, PlayCircle, MessageCircle, Video, Smartphone, CheckCircle2, ArrowUp, Flame, Timer, AlertCircle, Clock } from 'lucide-react';
+import logoUrl from './assets/logo.png';
 
 const BrandLogo = ({ className = "w-8 h-8" }: { className?: string }) => {
   const [imgError, setImgError] = useState(false);
@@ -8,7 +9,7 @@ const BrandLogo = ({ className = "w-8 h-8" }: { className?: string }) => {
   if (!imgError) {
     return (
       <img 
-        src={`${import.meta.env.BASE_URL}logo.png`}
+        src={logoUrl}
         alt="Opsrelic Logo" 
         className={`${className} object-contain drop-shadow-[0_0_15px_rgba(69,243,255,0.3)]`}
         onError={() => setImgError(true)}
@@ -59,13 +60,41 @@ const NoiseOverlay = () => (
 );
 
 const TopBanner = () => {
+  const [timeLeft, setTimeLeft] = useState({ hours: 14, minutes: 32, seconds: 59 });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
+        if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+        if (prev.hours > 0) return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        return { hours: 23, minutes: 59, seconds: 59 };
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white text-sm font-medium py-2.5 px-4 text-center relative z-50 flex items-center justify-center gap-2">
-      <span className="relative flex h-3 w-3">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-        <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
-      </span>
-      <span><strong>High Demand:</strong> We only have capacity for <strong>2 new clients</strong> this month. Book your call before spots fill up.</span>
+    <div className="bg-gradient-to-r from-red-600 via-orange-500 to-red-600 bg-[length:200%_auto] animate-[pulse_4s_ease-in-out_infinite] text-white text-sm font-medium py-3 px-4 text-center relative z-50 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 shadow-[0_0_20px_rgba(239,68,68,0.3)] border-b border-red-400/30">
+      <div className="flex items-center gap-2">
+        <Flame className="w-4 h-4 animate-pulse text-yellow-300" />
+        <span><strong>High Demand:</strong> Only <strong>2 onboarding spots</strong> left this month.</span>
+      </div>
+      
+      <div className="hidden md:flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full border border-white/10">
+        <span className="text-xs font-bold text-white/90">CAPACITY:</span>
+        <div className="w-24 h-2 bg-black/40 rounded-full overflow-hidden">
+          <div className="w-[85%] h-full bg-gradient-to-r from-yellow-400 to-yellow-300 rounded-full animate-pulse" />
+        </div>
+        <span className="text-xs font-bold text-yellow-300">85%</span>
+      </div>
+
+      <div className="flex items-center gap-2 bg-black/30 px-3 py-1 rounded-full border border-white/20 backdrop-blur-sm shadow-inner">
+        <Timer className="w-4 h-4 text-yellow-300" />
+        <span className="font-mono font-bold tracking-wider text-yellow-300">
+          {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
+        </span>
+      </div>
     </div>
   );
 };
@@ -80,7 +109,7 @@ const Navbar = () => {
   }, []);
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-zinc-950/85 backdrop-blur-xl border-b border-white/5 py-4 shadow-2xl' : 'bg-transparent py-6'}`}>
+    <header className={`sticky top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-zinc-950/85 backdrop-blur-xl border-b border-white/5 py-4 shadow-2xl' : 'bg-transparent py-6'}`}>
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
         <div 
           className="flex items-center gap-2 group cursor-pointer"
@@ -191,12 +220,9 @@ const Hero = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6, duration: 0.5 }}
-              className="flex items-center justify-center gap-2 mb-12 text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-full"
+              className="flex items-center justify-center gap-2 mb-12 text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/30 px-5 py-2.5 rounded-full shadow-[0_0_15px_rgba(239,68,68,0.2)]"
             >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-              </span>
+              <Flame className="w-4 h-4 text-red-500 animate-pulse" />
               Only 2 onboarding spots remaining for this month
             </motion.div>
 
@@ -1134,11 +1160,8 @@ const Pricing = () => {
         <div className="text-center mb-20">
           <h2 className="text-4xl lg:text-5xl font-display font-bold text-white mb-6">Simple, transparent pricing</h2>
           <p className="text-xl text-zinc-400 mb-6 font-light">Choose the plan that fits your content schedule. Cancel anytime.</p>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium shadow-lg mb-4">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-            </span>
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-medium shadow-[0_0_15px_rgba(239,68,68,0.2)] mb-4">
+            <Flame className="w-4 h-4 text-red-500 animate-pulse" />
             Only 2 onboarding spots remaining this month
           </div>
           <br />
@@ -1160,12 +1183,9 @@ const Pricing = () => {
             >
               {plan.popular && (
                 <>
-                  <div className="absolute inset-0 bg-gradient-to-b from-red-500/5 to-transparent rounded-[2.5rem] pointer-events-none" />
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs font-bold uppercase tracking-wider py-1.5 px-4 rounded-full shadow-[0_0_20px_rgba(239,68,68,0.4)] flex items-center gap-2 whitespace-nowrap">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                    </span>
+                  <div className="absolute inset-0 bg-gradient-to-b from-red-500/10 to-transparent rounded-[2.5rem] pointer-events-none" />
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-600 to-orange-500 text-white text-xs font-bold uppercase tracking-wider py-1.5 px-4 rounded-full shadow-[0_0_20px_rgba(239,68,68,0.6)] flex items-center gap-2 whitespace-nowrap animate-[pulse_2s_ease-in-out_infinite] border border-red-400/50">
+                    <Flame className="w-3.5 h-3.5 text-yellow-300" />
                     1 Spot Left
                   </div>
                 </>
@@ -1325,11 +1345,8 @@ const FinalCTA = () => (
         </div>
         
         <div className="flex flex-col items-center justify-center gap-2">
-          <p className="text-sm text-red-400 font-medium flex items-center justify-center gap-2 bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-full">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-            </span>
+          <p className="text-sm text-red-400 font-medium flex items-center justify-center gap-2 bg-red-500/10 border border-red-500/30 px-5 py-2.5 rounded-full shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+            <Flame className="w-4 h-4 text-red-500 animate-pulse" />
             Only 2 onboarding spots remaining this month
           </p>
           <p className="mt-4 text-sm text-zinc-500 font-medium">No commitment. 100% free consultation.</p>
@@ -1413,7 +1430,7 @@ const BackToTop = () => {
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-zinc-950 font-sans selection:bg-cyan-500/30 selection:text-cyan-200 overflow-x-hidden relative">
+    <div className="min-h-screen bg-zinc-950 font-sans relative">
       <ScrollProgress />
       <NoiseOverlay />
       <TopBanner />
