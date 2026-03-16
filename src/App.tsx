@@ -123,9 +123,15 @@ const Navbar = () => {
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
           <a href="#calculator" className="hover:text-cyan-400 transition-colors">ROI Calculator</a>
           <a href="#how-it-works" className="hover:text-cyan-400 transition-colors">How it Works</a>
+          <a 
+            href="#free-samples" 
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 font-bold border border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.4)] hover:shadow-[0_0_25px_rgba(34,211,238,0.6)] hover:bg-cyan-500/20 transition-all animate-[pulse_3s_ease-in-out_infinite]"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Free Samples
+          </a>
           <a href="#testimonials" className="hover:text-cyan-400 transition-colors">Wall of Love</a>
           <a href="#pricing" className="hover:text-cyan-400 transition-colors">Pricing</a>
-          <a href="#faq" className="hover:text-cyan-400 transition-colors">FAQ</a>
         </div>
         <button 
           data-cal-link="engmarwan/free-content-strategy-call"
@@ -1112,6 +1118,223 @@ const Testimonials = () => {
   );
 };
 
+const FreeSamples = () => {
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!validateEmail(email)) {
+      setEmailError('Please enter a valid email address.');
+      return;
+    }
+    setEmailError('');
+    setSubmitError('');
+    setIsSubmitting(true);
+
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      firstName: formData.get('firstName'),
+      lastName: formData.get('lastName'),
+      email: formData.get('email'),
+      youtubeLink: formData.get('youtubeLink'),
+      timestamp: new Date().toISOString(),
+      source: 'OpsRelic Free Samples Form'
+    };
+
+    try {
+      const response = await fetch('https://hook.us2.make.com/5oyofhazpiw5kj34toci9tb94e5ic4gy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit form');
+      }
+
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setSubmitError('Something went wrong. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isSubmitted) {
+    return (
+      <section id="free-samples" className="py-32 relative z-20 overflow-hidden bg-zinc-950">
+        <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="rounded-[2rem] bg-zinc-900/50 border border-cyan-500/20 p-16 backdrop-blur-xl"
+          >
+            <div className="w-20 h-20 bg-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-8">
+              <CheckCircle2 className="w-10 h-10 text-cyan-400" />
+            </div>
+            <h2 className="text-3xl font-display font-bold text-white mb-4">Request Received!</h2>
+            <p className="text-zinc-400 text-lg">We've received your request for 3 free samples. Our team will review your video and get back to you at <span className="text-cyan-400 font-medium">{email}</span> shortly.</p>
+            <button 
+              onClick={() => setIsSubmitted(false)}
+              className="mt-8 text-cyan-400 hover:text-cyan-300 transition-colors text-sm font-medium"
+            >
+              Submit another request
+            </button>
+          </motion.div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section id="free-samples" className="py-32 relative z-20 overflow-hidden bg-zinc-950">
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none" />
+      
+      <div className="max-w-4xl mx-auto px-6 relative z-10">
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="rounded-[2rem] bg-zinc-900/50 border border-cyan-500/20 p-8 md:p-16 backdrop-blur-xl relative overflow-hidden shadow-2xl"
+        >
+          <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 blur-[80px] rounded-full pointer-events-none" />
+          
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-bold uppercase tracking-wider mb-6 shadow-[0_0_15px_rgba(34,211,238,0.1)]">
+              <Flame className="w-4 h-4" /> 10 Spots Remaining This Month
+            </div>
+            <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-6">
+              Claim Your 3 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Free Custom Samples</span>
+            </h2>
+            <p className="text-xl text-zinc-400 max-w-2xl mx-auto font-light">
+              Send us a link to one of your YouTube videos, and we'll chop it into 3 high-performing shorts for free. Why not? It's 100% free and you get to see the quality firsthand. We're only taking 10 more creators to do this for.
+            </p>
+          </div>
+
+          <form className="space-y-6 max-w-2xl mx-auto" onSubmit={handleSubmit}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2 text-left">
+                <label htmlFor="firstName" className="text-sm font-medium text-zinc-300">Your First Name</label>
+                <input 
+                  type="text" 
+                  id="firstName" 
+                  name="firstName"
+                  className="w-full bg-zinc-950/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+                  placeholder="John"
+                  required
+                  aria-required="true"
+                />
+              </div>
+              <div className="space-y-2 text-left">
+                <label htmlFor="lastName" className="text-sm font-medium text-zinc-300">Your Last Name</label>
+                <input 
+                  type="text" 
+                  id="lastName" 
+                  name="lastName"
+                  className="w-full bg-zinc-950/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+                  placeholder="Doe"
+                  required
+                  aria-required="true"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2 text-left">
+              <label htmlFor="email" className="text-sm font-medium text-zinc-300">Email Address (Where we'll send your samples)</label>
+              <input 
+                type="email" 
+                id="email" 
+                name="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (emailError) setEmailError('');
+                }}
+                className={`w-full bg-zinc-950/50 border ${emailError ? 'border-red-500/50 focus:ring-red-500/50 focus:border-red-500/50' : 'border-white/10 focus:ring-cyan-500/50 focus:border-cyan-500/50'} rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 transition-all`}
+                placeholder="john@example.com"
+                required
+                aria-required="true"
+                aria-invalid={!!emailError}
+                aria-describedby={emailError ? "email-error" : undefined}
+              />
+              {emailError && (
+                <motion.p 
+                  id="email-error"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-400 text-xs mt-1 flex items-center gap-1"
+                  role="alert"
+                >
+                  <AlertCircle className="w-3 h-3" /> {emailError}
+                </motion.p>
+              )}
+            </div>
+
+            <div className="space-y-2 text-left">
+              <label htmlFor="youtubeLink" className="text-sm font-medium text-zinc-300">YouTube Video Link (The video you want us to edit)</label>
+              <input 
+                type="url" 
+                id="youtubeLink" 
+                name="youtubeLink"
+                className="w-full bg-zinc-950/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+                placeholder="https://youtube.com/watch?v=..."
+                required
+                aria-required="true"
+                aria-describedby="youtube-help"
+              />
+              <p id="youtube-help" className="text-xs text-zinc-500 mt-2">Paste a link to a video you want us to extract shorts from.</p>
+            </div>
+
+            <div className="pt-4">
+              <motion.button
+                whileHover={!isSubmitting ? { scale: 1.02 } : {}}
+                whileTap={!isSubmitting ? { scale: 0.98 } : {}}
+                type="submit"
+                disabled={isSubmitting}
+                className={`w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-lg shadow-[0_0_30px_rgba(34,211,238,0.3)] transition-all flex items-center justify-center gap-2 group ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-[0_0_50px_rgba(34,211,238,0.5)]'}`}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Sending Request...
+                  </>
+                ) : (
+                  <>
+                    Get My 3 Free Samples
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </motion.button>
+              {submitError && (
+                <p className="text-red-400 text-sm text-center mt-4 flex items-center justify-center gap-1">
+                  <AlertCircle className="w-4 h-4" /> {submitError}
+                </p>
+              )}
+              <p className="text-center text-xs text-zinc-500 mt-4 flex items-center justify-center gap-1">
+                <ShieldCheck className="w-3 h-3" /> 100% Free. No credit card required.
+              </p>
+            </div>
+          </form>
+        </motion.div>
+      </div>
+    </section>
+  );
+};
+
 const Pricing = () => {
   const plans = [
     {
@@ -1446,6 +1669,7 @@ export default function App() {
         <ContentMultiplier />
         <CalculatorDashboard />
         <BentoHowItWorks />
+        <FreeSamples />
         <Testimonials />
         <Pricing />
         <FAQ />
