@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'motion/react';
 import { Play, ArrowRight, Upload, Scissors, Calendar, Check, Star, TrendingUp, Zap, BarChart3, Users, Eye, Sparkles, ChevronRight, ShieldCheck, PlayCircle, MessageCircle, Video, Smartphone, CheckCircle2, ArrowUp, Flame, Timer, AlertCircle, Clock } from 'lucide-react';
-import logoUrl from './assets/logo.png';
+const logoUrl = '/logo.png';
 
 const BrandLogo = ({ className = "w-8 h-8" }: { className?: string }) => {
   const [imgError, setImgError] = useState(false);
@@ -376,7 +376,7 @@ const FeaturesBento = () => {
           <p className="text-xl text-zinc-400 max-w-2xl mx-auto font-light">We don't just cut videos. We engineer them to capture attention, build deep trust, and convert viewers into high-paying clients.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(420px,auto)] md:auto-rows-[350px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(420px,auto)] md:auto-rows-[minmax(350px,auto)]">
           {/* Feature 1: AI Hook Extraction */}
           <motion.div 
             initial={{ opacity: 0, y: 40 }}
@@ -452,7 +452,7 @@ const FeaturesBento = () => {
               <MessageCircle className="w-8 h-8 text-purple-400" />
             </motion.div>
 
-            <div className="relative z-10">
+            <div className="relative z-10 pt-32">
               <h3 className="text-2xl font-display font-bold text-white mb-3 group-hover:text-purple-400 transition-colors">Skyrocket Watch Time</h3>
               <p className="text-zinc-400 leading-relaxed font-light">Keep viewers glued to the screen with dynamic, animated captions that boost retention and train the algorithm to push your content further.</p>
             </div>
@@ -480,7 +480,7 @@ const FeaturesBento = () => {
               <Video className="w-8 h-8 text-blue-400" />
             </motion.div>
 
-            <div className="relative z-10">
+            <div className="relative z-10 pt-32">
               <h3 className="text-2xl font-display font-bold text-white mb-3 group-hover:text-blue-400 transition-colors">Look Like a Top 1% Authority</h3>
               <p className="text-zinc-400 leading-relaxed font-light">We add premium B-roll, sound design, and visual effects so your brand looks expensive, authoritative, and impossible to ignore.</p>
             </div>
@@ -1364,7 +1364,7 @@ const Footer = () => (
   <footer className="py-12 border-t border-white/5 bg-zinc-950 relative z-20">
     <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
       <div className="flex items-center gap-2">
-        <Zap className="w-5 h-5 text-cyan-400" />
+        <BrandLogo className="w-5 h-5" />
         <span className="text-lg font-display font-bold text-white tracking-wider text-left not-italic no-underline">OpsRelic</span>
       </div>
       <p className="text-zinc-500 text-sm">
