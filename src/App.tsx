@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'motion/react';
-import { Play, ArrowRight, Upload, Scissors, Calendar, Check, Star, TrendingUp, Zap, BarChart3, Users, Eye, Sparkles, ChevronRight, ShieldCheck, PlayCircle, MessageCircle, Video, Smartphone, CheckCircle2, ArrowUp, Flame, Timer, AlertCircle, Clock } from 'lucide-react';
+import { Play, ArrowRight, Upload, Scissors, Calendar, Check, Star, TrendingUp, Zap, BarChart3, Users, Eye, Sparkles, ChevronRight, ShieldCheck, PlayCircle, MessageCircle, Video, Smartphone, CheckCircle2, ArrowUp, Flame, Timer, AlertCircle, Clock, Menu, X } from 'lucide-react';
 const logoUrl = '/logo.png';
 
 const BrandLogo = ({ className = "w-8 h-8" }: { className?: string }) => {
@@ -89,7 +89,7 @@ const TopBanner = () => {
         <span className="text-xs font-bold text-yellow-300">85%</span>
       </div>
 
-      <div className="flex items-center gap-2 bg-black/30 px-3 py-1 rounded-full border border-white/20 backdrop-blur-sm shadow-inner">
+      <div className="flex items-center gap-2 bg-black/30 px-3 py-1 rounded-full border border-white/20 shadow-inner">
         <Timer className="w-4 h-4 text-yellow-300" />
         <span className="font-mono font-bold tracking-wider text-yellow-300">
           {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
@@ -101,6 +101,7 @@ const TopBanner = () => {
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -109,44 +110,73 @@ const Navbar = () => {
   }, []);
 
   return (
-    <header className={`sticky top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-zinc-950/85 backdrop-blur-xl border-b border-white/5 py-4 shadow-2xl' : 'bg-transparent py-6'}`}>
-      <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+    <header className={`sticky top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-zinc-950/95 border-b border-white/5 py-4 shadow-2xl' : 'bg-transparent py-6'}`}>
+      <div className="max-w-7xl mx-auto px-6 flex items-center justify-between relative">
+        
+        {/* Mobile Menu Button (Left) */}
+        <div className="md:hidden flex items-center w-1/3">
+          <button 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="text-zinc-400 hover:text-white transition-colors p-2 -ml-2"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+
+        {/* Logo (Center on mobile, Left on desktop) */}
         <div 
-          className="flex items-center gap-2 group cursor-pointer"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="flex items-center gap-2 group cursor-pointer justify-center md:justify-start w-1/3 md:w-auto"
+          onClick={() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setMobileMenuOpen(false);
+          }}
         >
-          <div className="relative flex items-center justify-center w-10 h-10 transition-transform duration-300 group-hover:scale-110 group-hover:drop-shadow-[0_0_15px_rgba(69,243,255,0.5)]">
+          <div className="relative flex items-center justify-center w-8 h-8 md:w-10 md:h-10 transition-transform duration-300 group-hover:scale-110 group-hover:drop-shadow-[0_0_15px_rgba(69,243,255,0.5)]">
             <BrandLogo className="w-full h-full" />
           </div>
-          <span className="text-xl font-display font-bold text-white tracking-wide text-left not-italic no-underline">OpsRelic</span>
+          <span className="text-lg md:text-xl font-display font-bold text-white tracking-wide text-left not-italic no-underline">OpsRelic</span>
         </div>
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
-          <a href="#calculator" className="hover:text-cyan-400 transition-colors">ROI Calculator</a>
+
+        {/* Desktop Links (Center) */}
+        <div className="hidden md:flex items-center justify-center gap-8 text-sm font-medium text-zinc-400">
+          <a href="#features" className="hover:text-cyan-400 transition-colors">Features</a>
+          <a href="#why-us" className="hover:text-cyan-400 transition-colors">Why Us</a>
           <a href="#how-it-works" className="hover:text-cyan-400 transition-colors">How it Works</a>
-          <a 
-            href="#free-samples" 
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 font-bold border border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.4)] hover:shadow-[0_0_25px_rgba(34,211,238,0.6)] hover:bg-cyan-500/20 transition-all animate-[pulse_3s_ease-in-out_infinite]"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            Free Samples
-          </a>
           <a href="#testimonials" className="hover:text-cyan-400 transition-colors">Wall of Love</a>
           <a href="#pricing" className="hover:text-cyan-400 transition-colors">Pricing</a>
         </div>
-        <button 
-          data-cal-link="engmarwan/free-content-strategy-call"
-          data-cal-namespace="free-content-strategy-call"
-          data-cal-config='{"layout":"month_view","useSlotsViewOnSmallScreen":"true","theme":"dark"}'
-          className="relative group overflow-hidden rounded-full p-[1px] animate-[pulse_3s_ease-in-out_infinite]"
-        >
-          <span className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 rounded-full opacity-70 group-hover:opacity-100 animate-[spin_3s_linear_infinite]" />
-          <div className="relative bg-zinc-950 text-white font-medium px-4 py-2 md:px-6 md:py-2.5 rounded-full transition-all duration-300 group-hover:bg-zinc-900 flex items-center gap-2 text-xs md:text-sm">
-            <span className="hidden sm:inline">Book strategy call</span>
-            <span className="sm:hidden">Book call</span>
-            <ChevronRight className="w-3 h-3 md:w-4 md:h-4 text-cyan-400 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </button>
+
+        {/* CTA Button (Right) */}
+        <div className="flex justify-end w-1/3 md:w-auto">
+          <button 
+            data-cal-link="engmarwan/free-content-strategy-call"
+            data-cal-namespace="free-content-strategy-call"
+            data-cal-config='{"layout":"month_view","useSlotsViewOnSmallScreen":"true","theme":"dark"}'
+            className="relative group"
+          >
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 rounded-full blur opacity-70 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-[pulse_3s_ease-in-out_infinite]"></div>
+            <div className="relative bg-zinc-950 text-white font-medium px-3 py-1.5 md:px-6 md:py-2.5 rounded-full transition-all duration-300 group-hover:bg-zinc-900 flex items-center gap-1.5 md:gap-2 text-[10px] md:text-sm whitespace-nowrap border border-white/10">
+              <span className="hidden sm:inline">Book strategy call</span>
+              <span className="sm:hidden">Book call</span>
+              <ChevronRight className="w-3 h-3 md:w-4 md:h-4 text-cyan-400 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </button>
+        </div>
       </div>
+
+      {/* Mobile Menu Dropdown */}
+      {mobileMenuOpen && (
+        <div className="md:hidden absolute top-full left-0 right-0 bg-zinc-950/95 border-b border-white/5 shadow-2xl backdrop-blur-lg">
+          <div className="flex flex-col px-6 py-4 gap-4 text-sm font-medium text-zinc-400">
+            <a href="#features" onClick={() => setMobileMenuOpen(false)} className="hover:text-cyan-400 transition-colors py-2 border-b border-white/5">Features</a>
+            <a href="#why-us" onClick={() => setMobileMenuOpen(false)} className="hover:text-cyan-400 transition-colors py-2 border-b border-white/5">Why Us</a>
+            <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="hover:text-cyan-400 transition-colors py-2 border-b border-white/5">How it Works</a>
+            <a href="#testimonials" onClick={() => setMobileMenuOpen(false)} className="hover:text-cyan-400 transition-colors py-2 border-b border-white/5">Wall of Love</a>
+            <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="hover:text-cyan-400 transition-colors py-2">Pricing</a>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
@@ -158,7 +188,7 @@ const Hero = () => {
       <div className="absolute inset-0 bg-zinc-950 -z-20" />
       <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-cyan-600/15 blur-3xl md:blur-[100px] rounded-full -z-10" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-blue-600/15 blur-3xl md:blur-[100px] rounded-full -z-10" />
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none -z-10" />
+
       
       <div className="max-w-5xl mx-auto px-6 relative z-10">
         <div className="flex flex-col items-center text-center">
@@ -174,7 +204,7 @@ const Hero = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-sm font-medium mb-8 backdrop-blur-md shadow-2xl"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-sm font-medium mb-8 shadow-2xl"
             >
               <Sparkles className="w-4 h-4 text-cyan-400" />
               <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent font-semibold">Voted #1 Repurposing Agency</span>
@@ -216,9 +246,12 @@ const Hero = () => {
                 data-cal-link="engmarwan/free-content-strategy-call"
                 data-cal-namespace="free-content-strategy-call"
                 data-cal-config='{"layout":"month_view","useSlotsViewOnSmallScreen":"true","theme":"dark"}'
-                className="w-full sm:w-auto bg-white text-zinc-950 hover:bg-zinc-200 font-semibold px-8 py-4 rounded-full transition-all duration-300 flex items-center justify-center gap-2 text-lg shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:-translate-y-1"
+                className="relative group w-full sm:w-auto"
               >
-                Start scaling today <ArrowRight className="w-5 h-5" />
+                <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 rounded-full blur opacity-70 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-[pulse_3s_ease-in-out_infinite]"></div>
+                <div className="relative bg-white text-zinc-950 hover:bg-zinc-100 font-bold px-8 py-4 rounded-full transition-all duration-300 flex items-center justify-center gap-2 text-lg hover:-translate-y-1">
+                  Start scaling today <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </div>
               </button>
             </motion.div>
 
@@ -291,7 +324,7 @@ const SocialProofLogos = () => {
   const logos = [
     {
       name: "YouTube Shorts",
-      color: "group-hover:text-[#FF0000] drop-shadow-[0_0_15px_rgba(255,0,0,0)] group-hover:drop-shadow-[0_0_15px_rgba(255,0,0,0.5)]",
+      color: "text-[#FF0000] drop-shadow-[0_0_15px_rgba(255,0,0,0.3)] group-hover:drop-shadow-[0_0_15px_rgba(255,0,0,0.6)]",
       icon: (
         <svg className="w-8 h-8 transition-all duration-300" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
           <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
@@ -300,7 +333,7 @@ const SocialProofLogos = () => {
     },
     {
       name: "TikTok",
-      color: "group-hover:text-[#00f2fe] drop-shadow-[0_0_15px_rgba(0,242,254,0)] group-hover:drop-shadow-[0_0_15px_rgba(0,242,254,0.5)]",
+      color: "text-[#00f2fe] drop-shadow-[0_0_15px_rgba(0,242,254,0.3)] group-hover:drop-shadow-[0_0_15px_rgba(0,242,254,0.6)]",
       icon: (
         <svg className="w-8 h-8 transition-all duration-300" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
           <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
@@ -309,7 +342,7 @@ const SocialProofLogos = () => {
     },
     {
       name: "Instagram Reels",
-      color: "group-hover:text-[#E1306C] drop-shadow-[0_0_15px_rgba(225,48,108,0)] group-hover:drop-shadow-[0_0_15px_rgba(225,48,108,0.5)]",
+      color: "text-[#E1306C] drop-shadow-[0_0_15px_rgba(225,48,108,0.3)] group-hover:drop-shadow-[0_0_15px_rgba(225,48,108,0.6)]",
       icon: (
         <svg className="w-8 h-8 transition-all duration-300" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm3.98-10.822a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
@@ -318,10 +351,19 @@ const SocialProofLogos = () => {
     },
     {
       name: "LinkedIn Video",
-      color: "group-hover:text-[#0A66C2] drop-shadow-[0_0_15px_rgba(10,102,194,0)] group-hover:drop-shadow-[0_0_15px_rgba(10,102,194,0.5)]",
+      color: "text-[#0A66C2] drop-shadow-[0_0_15px_rgba(10,102,194,0.3)] group-hover:drop-shadow-[0_0_15px_rgba(10,102,194,0.6)]",
       icon: (
         <svg className="w-8 h-8 transition-all duration-300" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
           <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+        </svg>
+      )
+    },
+    {
+      name: "X",
+      color: "text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] group-hover:drop-shadow-[0_0_15px_rgba(255,255,255,0.6)]",
+      icon: (
+        <svg className="w-8 h-8 transition-all duration-300" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
         </svg>
       )
     }
@@ -344,7 +386,7 @@ const SocialProofLogos = () => {
   );
 
   return (
-    <section className="py-12 border-y border-white/5 bg-zinc-950/50 backdrop-blur-sm relative z-20 overflow-hidden">
+    <section className="py-12 border-y border-white/5 bg-zinc-950/50 relative z-20 overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 text-center mb-8">
         <p className="text-sm text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 via-zinc-400 to-zinc-500 font-medium uppercase tracking-widest">Publishing millions of views across</p>
       </div>
@@ -371,7 +413,6 @@ const FeaturesBento = () => {
   return (
     <section id="features" className="py-32 relative z-20 overflow-hidden">
       <div className="absolute inset-0 bg-zinc-950" />
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="text-center mb-20">
@@ -391,9 +432,7 @@ const FeaturesBento = () => {
             transition={{ duration: 0.7, ease: "easeOut" }}
             className="md:col-span-2 relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-8 md:p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-cyan-500/30"
           >
-            <motion.div 
-              animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }}
-              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            <div 
               className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 blur-2xl md:blur-[80px] rounded-full group-hover:bg-cyan-500/20 transition-colors duration-700 pointer-events-none" 
             />
             <h3 className="text-3xl font-display font-bold text-white mb-4 relative z-10 group-hover:text-cyan-400 transition-colors">Stop the Scroll Instantly</h3>
@@ -402,10 +441,8 @@ const FeaturesBento = () => {
             <div className="h-48 md:h-0" />
             
             {/* Visual Mockup */}
-            <motion.div 
-              animate={{ y: [0, -10, 0], x: [0, -5, 0] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -bottom-10 -right-5 w-[85%] sm:w-[60%] h-auto sm:h-[70%] bg-zinc-950/80 backdrop-blur-md rounded-tl-2xl border-t border-l border-white/10 p-4 sm:p-6 shadow-2xl"
+            <div 
+              className="absolute -bottom-10 -right-5 w-[85%] sm:w-[60%] h-auto sm:h-[70%] bg-zinc-950/80 rounded-tl-2xl border-t border-l border-white/10 p-4 sm:p-6 shadow-2xl"
             >
                <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-4">
                  <span className="text-sm font-medium text-white">Analysis Complete</span>
@@ -433,7 +470,7 @@ const FeaturesBento = () => {
                    <span className="text-xs font-bold text-white/50">85%</span>
                  </div>
                </div>
-            </motion.div>
+            </div>
           </motion.div>
 
           {/* Feature 2: Dynamic Captions */}
@@ -444,19 +481,15 @@ const FeaturesBento = () => {
             transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
             className="relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-8 md:p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-purple-500/30 flex flex-col justify-end"
           >
-            <motion.div 
-              animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            <div 
               className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 blur-2xl md:blur-[80px] rounded-full group-hover:bg-purple-500/20 transition-colors duration-700 pointer-events-none" 
             />
             
-            <motion.div 
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            <div 
               className="absolute top-10 right-10 w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(168,85,247,0.1)] group-hover:scale-110 transition-transform duration-500 group-hover:border-purple-500/50"
             >
               <MessageCircle className="w-8 h-8 text-purple-400" />
-            </motion.div>
+            </div>
 
             <div className="relative z-10 pt-32">
               <h3 className="text-2xl font-display font-bold text-white mb-3 group-hover:text-purple-400 transition-colors">Skyrocket Watch Time</h3>
@@ -472,19 +505,15 @@ const FeaturesBento = () => {
             transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
             className="relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-8 md:p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-blue-500/30 flex flex-col justify-end"
           >
-            <motion.div 
-              animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.9, 0.5] }}
-              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            <div 
               className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-2xl md:blur-[80px] rounded-full group-hover:bg-blue-500/20 transition-colors duration-700 pointer-events-none" 
             />
             
-            <motion.div 
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            <div 
               className="absolute top-10 right-10 w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.1)] group-hover:scale-110 transition-transform duration-500 group-hover:border-blue-500/50"
             >
               <Video className="w-8 h-8 text-blue-400" />
-            </motion.div>
+            </div>
 
             <div className="relative z-10 pt-32">
               <h3 className="text-2xl font-display font-bold text-white mb-3 group-hover:text-blue-400 transition-colors">Look Like a Top 1% Authority</h3>
@@ -500,9 +529,7 @@ const FeaturesBento = () => {
             transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
             className="md:col-span-2 relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-8 md:p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-green-500/30"
           >
-            <motion.div 
-              animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }}
-              transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+            <div 
               className="absolute top-0 right-0 w-[500px] h-[500px] bg-green-500/10 blur-2xl md:blur-[80px] rounded-full group-hover:bg-green-500/20 transition-colors duration-700 pointer-events-none" 
             />
             <h3 className="text-3xl font-display font-bold text-white mb-4 relative z-10 group-hover:text-green-400 transition-colors">Dominate Every Platform</h3>
@@ -511,25 +538,163 @@ const FeaturesBento = () => {
             <div className="h-48 md:h-0" />
             
             {/* Visual Mockup */}
-            <motion.div 
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            <div 
               className="absolute -bottom-10 right-0 sm:right-10 flex gap-2 sm:gap-4 scale-75 sm:scale-100 origin-bottom-right"
             >
-               <div className="w-32 h-48 bg-zinc-950/80 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl flex flex-col items-center justify-center gap-2">
+               <div className="w-32 h-48 bg-zinc-950/80 rounded-xl border border-white/10 shadow-2xl flex flex-col items-center justify-center gap-2">
                  <Smartphone className="w-8 h-8 text-zinc-500" />
                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">TikTok</span>
                </div>
-               <div className="w-32 h-48 bg-zinc-950/80 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl flex flex-col items-center justify-center gap-2 -translate-y-8">
+               <div className="w-32 h-48 bg-zinc-950/80 rounded-xl border border-white/10 shadow-2xl flex flex-col items-center justify-center gap-2 -translate-y-8">
                  <Smartphone className="w-8 h-8 text-zinc-500" />
                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Reels</span>
                </div>
-               <div className="w-32 h-48 bg-zinc-950/80 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl flex flex-col items-center justify-center gap-2">
+               <div className="w-32 h-48 bg-zinc-950/80 rounded-xl border border-white/10 shadow-2xl flex flex-col items-center justify-center gap-2">
                  <Smartphone className="w-8 h-8 text-zinc-500" />
                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Shorts</span>
                </div>
-            </motion.div>
+            </div>
           </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const WhyChooseUs = () => {
+  const comparisons = [
+    {
+      old: "Freelancers who disappear or miss deadlines",
+      new: "Dedicated team with guaranteed 48h turnarounds"
+    },
+    {
+      old: "Basic cuts and generic auto-captions",
+      new: "Algorithmic hooks and platform-native editing"
+    },
+    {
+      old: "You manage the strategy and ideation",
+      new: "We provide data-driven content strategies"
+    },
+    {
+      old: "Paying per video with unpredictable costs",
+      new: "Flat monthly rate for unlimited potential"
+    }
+  ];
+
+  const pillars = [
+    {
+      icon: <Users className="w-6 h-6 text-cyan-400" />,
+      title: "Human-AI Hybrid",
+      description: "Expert human editors polish AI-assisted cuts for authentic, engaging videos.",
+    },
+    {
+      icon: <TrendingUp className="w-6 h-6 text-purple-400" />,
+      title: "Algorithmic Hooks",
+      description: "We engineer the first 3 seconds using proven psychological triggers.",
+    },
+    {
+      icon: <Smartphone className="w-6 h-6 text-blue-400" />,
+      title: "Platform-Native",
+      description: "Specifically optimized for the unique nuances of TikTok, Reels, and Shorts.",
+    },
+    {
+      icon: <BarChart3 className="w-6 h-6 text-emerald-400" />,
+      title: "Data-Driven",
+      description: "We constantly analyze metrics to adapt your strategy and double down on what works.",
+    }
+  ];
+
+  return (
+    <section id="why-us" className="py-32 relative z-20 overflow-hidden bg-zinc-950 border-y border-white/5">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(34,211,238,0.05),transparent_50%)] pointer-events-none" />
+      
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
+        <div className="text-center mb-20">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold uppercase tracking-wider mb-6 shadow-[0_0_15px_rgba(34,211,238,0.1)]">
+            <ShieldCheck className="w-4 h-4" /> The OpsRelic Advantage
+          </div>
+          <h2 className="text-5xl lg:text-7xl font-display font-bold text-white mb-6 tracking-tight">
+            Stop settling for <span className="text-zinc-600 line-through decoration-red-500/50">average</span>.
+          </h2>
+          <p className="text-xl text-zinc-400 max-w-2xl mx-auto font-light">
+            We built the agency we wished existed when we were scaling our own brands.
+          </p>
+        </div>
+
+        {/* Comparison Table */}
+        <div className="max-w-5xl mx-auto mb-32">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* The Old Way */}
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="bg-zinc-900/30 border border-white/5 rounded-3xl p-8 md:p-12"
+            >
+              <div className="flex items-center gap-4 mb-10">
+                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20">
+                  <X className="w-6 h-6 text-red-500" />
+                </div>
+                <h3 className="text-2xl md:text-3xl font-bold text-white">The Old Way</h3>
+              </div>
+              <ul className="space-y-8">
+                {comparisons.map((item, i) => (
+                  <li key={i} className="flex items-start gap-4 text-zinc-400">
+                    <X className="w-6 h-6 text-red-500/50 shrink-0 mt-0.5" />
+                    <span className="leading-relaxed text-lg">{item.old}</span>
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+
+            {/* The OpsRelic Way */}
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="bg-gradient-to-b from-cyan-500/10 to-blue-500/5 border border-cyan-500/30 rounded-3xl p-8 md:p-12 relative overflow-hidden shadow-[0_0_50px_rgba(34,211,238,0.05)]"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/20 blur-[100px] rounded-full pointer-events-none" />
+              <div className="flex items-center gap-4 mb-10 relative z-10">
+                <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center border border-cyan-500/40 shadow-[0_0_15px_rgba(34,211,238,0.3)]">
+                  <Check className="w-6 h-6 text-cyan-400" />
+                </div>
+                <h3 className="text-2xl md:text-3xl font-bold text-white">The OpsRelic Way</h3>
+              </div>
+              <ul className="space-y-8 relative z-10">
+                {comparisons.map((item, i) => (
+                  <li key={i} className="flex items-start gap-4 text-zinc-100">
+                    <Check className="w-6 h-6 text-cyan-400 shrink-0 mt-0.5 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
+                    <span className="leading-relaxed text-lg font-medium">{item.new}</span>
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* 4 Pillars Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {pillars.map((pillar, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, duration: 0.5 }}
+              className="bg-zinc-900/40 border border-white/5 rounded-2xl p-8 hover:bg-zinc-900/80 transition-all duration-300 group hover:border-cyan-500/20"
+            >
+              <div className="w-12 h-12 rounded-xl bg-zinc-800/50 flex items-center justify-center mb-6 border border-white/5 group-hover:scale-110 transition-transform duration-300 group-hover:border-cyan-500/30 group-hover:bg-cyan-500/10">
+                {pillar.icon}
+              </div>
+              <h4 className="text-xl font-bold text-white mb-3 group-hover:text-cyan-400 transition-colors">{pillar.title}</h4>
+              <p className="text-zinc-400 text-sm leading-relaxed font-light">
+                {pillar.description}
+              </p>
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>
@@ -538,17 +703,16 @@ const FeaturesBento = () => {
 
 const ContentMultiplier = () => {
   const shorts = [
-    { title: "The 1% Rule", views: "842K", subs: "+4.2K", clients: 12, color: "cyan", thumbnail: "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1080&q=80" },
-    { title: "Morning Routine", views: "1.2M", subs: "+8.5K", clients: 28, color: "blue", thumbnail: "https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=1080&q=80" },
-    { title: "Avoid This Mistake", views: "450K", subs: "+1.8K", clients: 5, color: "purple", thumbnail: "https://images.unsplash.com/photo-1486825586573-7131f7991bdd?auto=format&fit=crop&w=1080&q=80" },
-    { title: "My $10k Framework", views: "2.1M", subs: "+12K", clients: 45, color: "green", thumbnail: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1080&q=80" },
-    { title: "Productivity Hack", views: "320K", subs: "+900", clients: 2, color: "yellow", thumbnail: "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?auto=format&fit=crop&w=1080&q=80" },
-    { title: "Scaling Fast", views: "680K", subs: "+3.1K", clients: 8, color: "pink", thumbnail: "https://images.unsplash.com/photo-1504805572947-34fad45aed93?auto=format&fit=crop&w=1080&q=80" },
+    { title: "The 1% Rule", views: "842K", subs: "+4.2K", clients: 12, color: "cyan", thumbnail: "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=200&q=80" },
+    { title: "Morning Routine", views: "1.2M", subs: "+8.5K", clients: 28, color: "blue", thumbnail: "https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=200&q=80" },
+    { title: "Avoid This Mistake", views: "450K", subs: "+1.8K", clients: 5, color: "purple", thumbnail: "https://images.unsplash.com/photo-1486825586573-7131f7991bdd?auto=format&fit=crop&w=200&q=80" },
+    { title: "My $10k Framework", views: "2.1M", subs: "+12K", clients: 45, color: "green", thumbnail: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=200&q=80" },
+    { title: "Productivity Hack", views: "320K", subs: "+900", clients: 2, color: "yellow", thumbnail: "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?auto=format&fit=crop&w=200&q=80" },
+    { title: "Scaling Fast", views: "680K", subs: "+3.1K", clients: 8, color: "pink", thumbnail: "https://images.unsplash.com/photo-1504805572947-34fad45aed93?auto=format&fit=crop&w=200&q=80" },
   ];
 
   return (
     <section className="py-32 relative z-20 overflow-hidden bg-zinc-950 border-y border-white/5">
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="text-center mb-20">
@@ -568,9 +732,9 @@ const ContentMultiplier = () => {
             className="w-full lg:w-1/3 relative"
           >
             <div className="absolute inset-0 bg-cyan-500/20 blur-2xl md:blur-[80px] rounded-full" />
-            <div className="relative bg-zinc-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
+            <div className="relative bg-zinc-900/80 border border-white/10 rounded-3xl p-6 shadow-2xl">
               <div className="aspect-video bg-zinc-950 rounded-xl mb-6 relative overflow-hidden group flex items-center justify-center border border-white/5">
-                <img src="https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=1920&q=80" alt="Podcast Thumbnail" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-500" referrerPolicy="no-referrer" />
+                <img src="https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=800&q=80" alt="Podcast Thumbnail" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-500" referrerPolicy="no-referrer" />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent" />
                 <PlayCircle className="w-16 h-16 text-white/80 group-hover:text-cyan-400 transition-colors duration-300 relative z-10 drop-shadow-lg group-hover:scale-110 transform" />
                 <div className="absolute bottom-3 right-3 bg-black/80 px-2 py-1 rounded text-xs font-mono text-white z-10">45:20</div>
@@ -645,23 +809,61 @@ const ContentMultiplier = () => {
           viewport={{ once: true }}
           className="mt-16 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 border border-white/10 rounded-3xl p-8 max-w-4xl mx-auto text-center relative overflow-hidden"
         >
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
           <h3 className="text-zinc-400 uppercase tracking-widest text-sm font-bold mb-6">Total Multiplied Impact</h3>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16">
-            <div>
-              <div className="text-4xl md:text-5xl font-display font-bold text-white mb-2">5.6M+</div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <motion.div 
+                className="text-4xl md:text-5xl font-display font-bold text-white mb-2"
+                initial={{ scale: 0.8 }}
+                whileInView={{ scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ type: "spring", stiffness: 200, damping: 10, delay: 0.2 }}
+              >
+                5.6M+
+              </motion.div>
               <div className="text-zinc-500 font-medium">Extra Views</div>
-            </div>
+            </motion.div>
             <div className="hidden sm:block w-px h-16 bg-white/10" />
-            <div>
-              <div className="text-4xl md:text-5xl font-display font-bold text-green-400 mb-2">+30.5K</div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <motion.div 
+                className="text-4xl md:text-5xl font-display font-bold text-green-400 mb-2"
+                initial={{ scale: 0.8 }}
+                whileInView={{ scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ type: "spring", stiffness: 200, damping: 10, delay: 0.4 }}
+              >
+                +30.5K
+              </motion.div>
               <div className="text-zinc-500 font-medium">New Subscribers</div>
-            </div>
+            </motion.div>
             <div className="hidden sm:block w-px h-16 bg-white/10" />
-            <div>
-              <div className="text-4xl md:text-5xl font-display font-bold text-cyan-400 mb-2">100+</div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.5, delay: 0.5 }}
+            >
+              <motion.div 
+                className="text-4xl md:text-5xl font-display font-bold text-cyan-400 mb-2"
+                initial={{ scale: 0.8 }}
+                whileInView={{ scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ type: "spring", stiffness: 200, damping: 10, delay: 0.6 }}
+              >
+                100+
+              </motion.div>
               <div className="text-zinc-500 font-medium">New Clients</div>
-            </div>
+            </motion.div>
           </div>
         </motion.div>
       </div>
@@ -715,7 +917,7 @@ const CalculatorDashboard = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="relative rounded-[2.5rem] bg-zinc-900/40 border border-white/10 backdrop-blur-2xl p-8 md:p-12 overflow-hidden shadow-2xl"
+          className="relative rounded-[2.5rem] bg-zinc-900/40 border border-white/10 p-8 md:p-12 overflow-hidden shadow-2xl"
         >
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 blur-2xl md:blur-[80px] rounded-full -z-10 pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-600/10 blur-2xl md:blur-[80px] rounded-full -z-10 pointer-events-none" />
@@ -791,9 +993,9 @@ const CalculatorDashboard = () => {
             {/* Results Panel */}
             <div className="lg:col-span-7 relative h-full">
               <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 via-blue-600/10 to-transparent blur-2xl rounded-3xl -z-10" />
-              <div className="bg-zinc-950/80 border border-white/10 rounded-3xl p-8 lg:p-10 backdrop-blur-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] h-full flex flex-col justify-center relative overflow-hidden">
+              <div className="bg-zinc-950/80 border border-white/10 rounded-3xl p-8 lg:p-10 shadow-[0_0_50px_rgba(0,0,0,0.5)] h-full flex flex-col justify-center relative overflow-hidden">
                 {/* Decorative grid background */}
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
+
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
                 <h3 className="text-zinc-400 font-medium mb-10 flex items-center gap-2 uppercase tracking-wider text-sm relative z-10">
@@ -873,9 +1075,12 @@ const CalculatorDashboard = () => {
                     data-cal-link="engmarwan/free-content-strategy-call"
                     data-cal-namespace="free-content-strategy-call"
                     data-cal-config='{"layout":"month_view","useSlotsViewOnSmallScreen":"true","theme":"dark"}'
-                    className="bg-white text-zinc-950 hover:bg-zinc-200 font-bold px-8 py-4 rounded-full transition-all duration-300 flex items-center gap-2 text-sm shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] hover:-translate-y-1"
+                    className="relative group"
                   >
-                    Stop losing money <ArrowRight className="w-4 h-4" />
+                    <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 rounded-full blur opacity-70 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-[pulse_3s_ease-in-out_infinite]"></div>
+                    <div className="relative bg-white text-zinc-950 hover:bg-zinc-100 font-bold px-8 py-4 rounded-full transition-all duration-300 flex items-center gap-2 text-sm hover:-translate-y-1">
+                      Stop losing money <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </div>
                   </button>
                 </div>
               </div>
@@ -891,7 +1096,6 @@ const BentoHowItWorks = () => {
   return (
     <section id="how-it-works" className="py-32 relative z-20">
       <div className="absolute inset-0 bg-zinc-950" />
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="text-center mb-20">
@@ -925,7 +1129,7 @@ const BentoHowItWorks = () => {
             </div>
 
             {/* Decorative Upload UI */}
-            <div className="absolute right-10 top-1/2 -translate-y-1/2 w-64 h-48 bg-zinc-950/80 backdrop-blur-md border border-white/10 rounded-xl p-4 hidden lg:flex flex-col items-center justify-center gap-4 shadow-2xl transform group-hover:-translate-y-1/2 group-hover:scale-105 transition-all duration-500">
+            <div className="absolute right-10 top-1/2 -translate-y-1/2 w-64 h-48 bg-zinc-950/80 border border-white/10 rounded-xl p-4 hidden lg:flex flex-col items-center justify-center gap-4 shadow-2xl transform group-hover:-translate-y-1/2 group-hover:scale-105 transition-all duration-500">
               <div className="w-16 h-16 rounded-full border-2 border-dashed border-cyan-500/50 flex items-center justify-center animate-[spin_10s_linear_infinite]">
                 <div className="w-12 h-12 rounded-full bg-cyan-500/20 animate-pulse" />
               </div>
@@ -972,7 +1176,7 @@ const BentoHowItWorks = () => {
             transition={{ delay: 0.2 }}
             className="md:col-span-3 relative rounded-[2rem] bg-zinc-900/40 border border-white/10 p-10 overflow-hidden group hover:bg-zinc-900/60 transition-all duration-500 shadow-xl hover:shadow-2xl hover:border-blue-500/30 flex flex-col md:flex-row items-center justify-between gap-10"
           >
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 pointer-events-none" />
+
             <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] bg-blue-500/10 blur-3xl md:blur-[100px] rounded-full group-hover:bg-blue-500/20 transition-colors duration-700 pointer-events-none" />
             
             <div className="relative z-10 max-w-xl">
@@ -986,7 +1190,7 @@ const BentoHowItWorks = () => {
             </div>
             
             <div className="relative z-10 w-full md:w-auto flex-1 flex justify-end">
-              <div className="w-full max-w-md bg-zinc-950/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl rotate-2 group-hover:rotate-0 transition-all duration-500 group-hover:shadow-[0_20px_60px_rgba(59,130,246,0.2)]">
+              <div className="w-full max-w-md bg-zinc-950/80 border border-white/10 rounded-2xl p-6 shadow-2xl rotate-2 group-hover:rotate-0 transition-all duration-500 group-hover:shadow-[0_20px_60px_rgba(59,130,246,0.2)]">
                 <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-red-500/80" />
@@ -1005,6 +1209,7 @@ const BentoHowItWorks = () => {
                       key={i} 
                       initial={{ opacity: 0, x: 20 }}
                       whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
                       transition={{ delay: 0.3 + (i * 0.1) }}
                       className="flex items-center gap-4 p-4 rounded-xl bg-zinc-900/50 border border-white/5 group-hover:border-white/10 transition-colors"
                     >
@@ -1061,7 +1266,6 @@ const Testimonials = () => {
 
   return (
     <section id="testimonials" className="py-32 relative overflow-hidden bg-zinc-950 border-y border-white/5 z-20">
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
       <div className="absolute top-1/2 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
       
       <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -1081,7 +1285,7 @@ const Testimonials = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.7, delay: i * 0.15, ease: "easeOut" }}
-              className="relative bg-zinc-900/40 backdrop-blur-xl border border-white/10 p-8 rounded-[2rem] shadow-2xl hover:border-cyan-500/30 transition-all duration-500 group flex flex-col hover:-translate-y-2 overflow-hidden"
+              className="relative bg-zinc-900/40 border border-white/10 p-8 rounded-[2rem] shadow-2xl hover:border-cyan-500/30 transition-all duration-500 group flex flex-col hover:-translate-y-2 overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-xl md:blur-[50px] rounded-full group-hover:bg-cyan-500/10 transition-colors duration-500 pointer-events-none" />
               
@@ -1121,6 +1325,8 @@ const Testimonials = () => {
 const FreeSamples = () => {
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [youtubeLink, setYoutubeLink] = useState('');
+  const [youtubeLinkError, setYoutubeLinkError] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -1130,13 +1336,31 @@ const FreeSamples = () => {
     return re.test(email);
   };
 
+  const validateYouTubeLink = (url: string) => {
+    const re = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
+    return re.test(url);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    let isValid = true;
+
     if (!validateEmail(email)) {
       setEmailError('Please enter a valid email address.');
-      return;
+      isValid = false;
+    } else {
+      setEmailError('');
     }
-    setEmailError('');
+
+    if (!validateYouTubeLink(youtubeLink)) {
+      setYoutubeLinkError('Please enter a valid YouTube video link.');
+      isValid = false;
+    } else {
+      setYoutubeLinkError('');
+    }
+
+    if (!isValid) return;
+
     setSubmitError('');
     setIsSubmitting(true);
 
@@ -1179,7 +1403,7 @@ const FreeSamples = () => {
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="rounded-[2rem] bg-zinc-900/50 border border-cyan-500/20 p-16 backdrop-blur-xl"
+            className="rounded-[2rem] bg-zinc-900/50 border border-cyan-500/20 p-16"
           >
             <div className="w-20 h-20 bg-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-8">
               <CheckCircle2 className="w-10 h-10 text-cyan-400" />
@@ -1200,7 +1424,6 @@ const FreeSamples = () => {
 
   return (
     <section id="free-samples" className="py-32 relative z-20 overflow-hidden bg-zinc-950">
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none" />
       
       <div className="max-w-4xl mx-auto px-6 relative z-10">
@@ -1209,7 +1432,7 @@ const FreeSamples = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="rounded-[2rem] bg-zinc-900/50 border border-cyan-500/20 p-8 md:p-16 backdrop-blur-xl relative overflow-hidden shadow-2xl"
+          className="rounded-[2rem] bg-zinc-900/50 border border-cyan-500/20 p-8 md:p-16 relative overflow-hidden shadow-2xl"
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 blur-[80px] rounded-full pointer-events-none" />
           
@@ -1290,12 +1513,29 @@ const FreeSamples = () => {
                 type="url" 
                 id="youtubeLink" 
                 name="youtubeLink"
-                className="w-full bg-zinc-950/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+                value={youtubeLink}
+                onChange={(e) => {
+                  setYoutubeLink(e.target.value);
+                  if (youtubeLinkError) setYoutubeLinkError('');
+                }}
+                className={`w-full bg-zinc-950/50 border ${youtubeLinkError ? 'border-red-500/50 focus:ring-red-500/50 focus:border-red-500/50' : 'border-white/10 focus:ring-cyan-500/50 focus:border-cyan-500/50'} rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 transition-all`}
                 placeholder="https://youtube.com/watch?v=..."
                 required
                 aria-required="true"
-                aria-describedby="youtube-help"
+                aria-invalid={!!youtubeLinkError}
+                aria-describedby={youtubeLinkError ? "youtube-error youtube-help" : "youtube-help"}
               />
+              {youtubeLinkError && (
+                <motion.p 
+                  id="youtube-error"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-400 text-xs mt-1 flex items-center gap-1"
+                  role="alert"
+                >
+                  <AlertCircle className="w-3 h-3" /> {youtubeLinkError}
+                </motion.p>
+              )}
               <p id="youtube-help" className="text-xs text-zinc-500 mt-2">Paste a link to a video you want us to extract shorts from.</p>
             </div>
 
@@ -1381,7 +1621,6 @@ const Pricing = () => {
   return (
     <section id="pricing" className="py-32 relative z-20">
       <div className="absolute inset-0 bg-zinc-950" />
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="text-center mb-20">
@@ -1406,7 +1645,7 @@ const Pricing = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ duration: 0.7, delay: i * 0.15, ease: "easeOut" }}
-              className={`relative bg-zinc-950/80 backdrop-blur-xl border ${plan.popular ? 'border-cyan-500/50 shadow-[0_0_50px_rgba(34,211,238,0.15)] md:-translate-y-4' : 'border-white/10'} p-8 rounded-[2.5rem] flex flex-col group hover:border-white/20 transition-all duration-500`}
+              className={`relative bg-zinc-950/80 border ${plan.popular ? 'border-cyan-500/50 shadow-[0_0_50px_rgba(34,211,238,0.15)] md:-translate-y-4' : 'border-white/10'} p-8 rounded-[2.5rem] flex flex-col group hover:border-white/20 transition-all duration-500`}
             >
               {plan.popular && (
                 <>
@@ -1440,13 +1679,18 @@ const Pricing = () => {
                 data-cal-link="engmarwan/free-content-strategy-call"
                 data-cal-namespace="free-content-strategy-call"
                 data-cal-config='{"layout":"month_view","useSlotsViewOnSmallScreen":"true","theme":"dark"}'
-                className={`w-full py-4 rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
-                  plan.popular 
-                    ? 'bg-white text-zinc-950 hover:bg-zinc-200 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] hover:-translate-y-1' 
-                    : 'bg-zinc-900 hover:bg-zinc-800 text-white border border-white/10 hover:border-white/20'
-                }`}
+                className={`relative group w-full ${plan.popular ? '' : 'mt-1'}`}
               >
-                Get started <ArrowRight className="w-4 h-4" />
+                {plan.popular && (
+                  <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 rounded-2xl blur opacity-70 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-[pulse_3s_ease-in-out_infinite]"></div>
+                )}
+                <div className={`relative w-full py-4 rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
+                  plan.popular 
+                    ? 'bg-white text-zinc-950 hover:bg-zinc-100 hover:-translate-y-1' 
+                    : 'bg-zinc-900 hover:bg-zinc-800 text-white border border-white/10 hover:border-white/20'
+                }`}>
+                  Get started <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
               </button>
             </motion.div>
           ))}
@@ -1531,17 +1775,7 @@ const FAQ = () => {
 const FinalCTA = () => (
   <section className="py-32 relative z-20 overflow-hidden border-t border-white/5">
     <div className="absolute inset-0 bg-zinc-950" />
-    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
-    <motion.div 
-      animate={{ 
-        scale: [1, 1.2, 1],
-        opacity: [0.3, 0.5, 0.3],
-      }}
-      transition={{ 
-        duration: 8,
-        repeat: Infinity,
-        ease: "easeInOut"
-      }}
+    <div 
       className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-500/10 blur-3xl md:blur-[120px] rounded-full pointer-events-none" 
     />
     
@@ -1565,9 +1799,12 @@ const FinalCTA = () => (
             data-cal-link="engmarwan/free-content-strategy-call"
             data-cal-namespace="free-content-strategy-call"
             data-cal-config='{"layout":"month_view","useSlotsViewOnSmallScreen":"true","theme":"dark"}'
-            className="w-full sm:w-auto bg-white text-zinc-950 hover:bg-zinc-200 font-bold px-10 py-5 rounded-full transition-all duration-300 flex items-center justify-center gap-2 text-lg shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:-translate-y-1"
+            className="relative group w-full sm:w-auto"
           >
-            Book your strategy call <ArrowRight className="w-5 h-5" />
+            <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 rounded-full blur opacity-70 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-[pulse_3s_ease-in-out_infinite]"></div>
+            <div className="relative bg-white text-zinc-950 hover:bg-zinc-100 font-bold px-10 py-5 rounded-full transition-all duration-300 flex items-center justify-center gap-2 text-lg hover:-translate-y-1">
+              Book your strategy call <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </div>
           </button>
         </div>
         
@@ -1647,7 +1884,7 @@ const BackToTop = () => {
       }}
       transition={{ duration: 0.3 }}
       onClick={scrollToTop}
-      className="fixed bottom-8 right-8 z-50 p-3 rounded-full bg-zinc-900/80 backdrop-blur-md border border-white/10 text-white shadow-[0_0_20px_rgba(0,0,0,0.5)] hover:bg-zinc-800 hover:border-cyan-500/50 hover:text-cyan-400 transition-all duration-300 group"
+      className="fixed bottom-8 right-8 z-50 p-3 rounded-full bg-zinc-900/80 border border-white/10 text-white shadow-[0_0_20px_rgba(0,0,0,0.5)] hover:bg-zinc-800 hover:border-cyan-500/50 hover:text-cyan-400 transition-all duration-300 group"
       aria-label="Back to top"
     >
       <ArrowUp className="w-5 h-5 group-hover:-translate-y-1 transition-transform duration-300" />
@@ -1666,10 +1903,8 @@ export default function App() {
         <Hero />
         <SocialProofLogos />
         <FeaturesBento />
-        <ContentMultiplier />
-        <CalculatorDashboard />
+        <WhyChooseUs />
         <BentoHowItWorks />
-        <FreeSamples />
         <Testimonials />
         <Pricing />
         <FAQ />
