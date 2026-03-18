@@ -144,6 +144,7 @@ const Navbar = () => {
           <a href="#why-us" className="hover:text-cyan-400 transition-colors">Why Us</a>
           <a href="#how-it-works" className="hover:text-cyan-400 transition-colors">How it Works</a>
           <a href="#testimonials" className="hover:text-cyan-400 transition-colors">Wall of Love</a>
+          <a href="#free-samples" className="text-cyan-400 font-bold drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] hover:drop-shadow-[0_0_12px_rgba(34,211,238,1)] hover:text-cyan-300 transition-all">Free Samples</a>
           <a href="#pricing" className="hover:text-cyan-400 transition-colors">Pricing</a>
         </div>
 
@@ -173,6 +174,7 @@ const Navbar = () => {
             <a href="#why-us" onClick={() => setMobileMenuOpen(false)} className="hover:text-cyan-400 transition-colors py-2 border-b border-white/5">Why Us</a>
             <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="hover:text-cyan-400 transition-colors py-2 border-b border-white/5">How it Works</a>
             <a href="#testimonials" onClick={() => setMobileMenuOpen(false)} className="hover:text-cyan-400 transition-colors py-2 border-b border-white/5">Wall of Love</a>
+            <a href="#free-samples" onClick={() => setMobileMenuOpen(false)} className="text-cyan-400 font-bold drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] hover:drop-shadow-[0_0_12px_rgba(34,211,238,1)] hover:text-cyan-300 transition-all py-2 border-b border-white/5">Free Samples</a>
             <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="hover:text-cyan-400 transition-colors py-2">Pricing</a>
           </div>
         </div>
@@ -246,11 +248,11 @@ const Hero = () => {
                 data-cal-link="engmarwan/free-content-strategy-call"
                 data-cal-namespace="free-content-strategy-call"
                 data-cal-config='{"layout":"month_view","useSlotsViewOnSmallScreen":"true","theme":"dark"}'
-                className="relative group w-full sm:w-auto"
+                className="relative group w-full sm:w-auto hover:scale-[1.02] transition-transform duration-300"
               >
                 <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400 rounded-full blur opacity-70 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-[pulse_3s_ease-in-out_infinite]"></div>
-                <div className="relative bg-white text-zinc-950 hover:bg-zinc-100 font-bold px-8 py-4 rounded-full transition-all duration-300 flex items-center justify-center gap-2 text-lg hover:-translate-y-1">
-                  Start scaling today <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <div className="relative bg-gradient-to-r from-white to-zinc-100 group-hover:from-cyan-50 group-hover:to-white text-zinc-950 font-bold px-8 py-4 rounded-full transition-all duration-300 flex items-center justify-center gap-2 text-lg shadow-[0_0_30px_rgba(255,255,255,0.2)] group-hover:shadow-[0_0_40px_rgba(34,211,238,0.3)]">
+                  Start scaling today <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 group-hover:-rotate-12 transition-transform duration-300" />
                 </div>
               </button>
             </motion.div>
@@ -564,43 +566,20 @@ const FeaturesBento = () => {
 const WhyChooseUs = () => {
   const comparisons = [
     {
-      old: "Freelancers who disappear or miss deadlines",
-      new: "Dedicated team with guaranteed 48h turnarounds"
+      old: "Unreliable freelancers who ghost you or miss deadlines",
+      new: "A dedicated partner that feels like an in-house team"
     },
     {
-      old: "Basic cuts and generic auto-captions",
-      new: "Algorithmic hooks and platform-native editing"
+      old: "Babysitting editors and writing endless revisions",
+      new: "Hands-off process: you record, we handle the rest"
     },
     {
-      old: "You manage the strategy and ideation",
-      new: "We provide data-driven content strategies"
+      old: "Paying per video with unpredictable monthly costs",
+      new: "One flat monthly rate for unlimited scale"
     },
     {
-      old: "Paying per video with unpredictable costs",
-      new: "Flat monthly rate for unlimited potential"
-    }
-  ];
-
-  const pillars = [
-    {
-      icon: <Users className="w-6 h-6 text-cyan-400" />,
-      title: "Human-AI Hybrid",
-      description: "Expert human editors polish AI-assisted cuts for authentic, engaging videos.",
-    },
-    {
-      icon: <TrendingUp className="w-6 h-6 text-purple-400" />,
-      title: "Algorithmic Hooks",
-      description: "We engineer the first 3 seconds using proven psychological triggers.",
-    },
-    {
-      icon: <Smartphone className="w-6 h-6 text-blue-400" />,
-      title: "Platform-Native",
-      description: "Specifically optimized for the unique nuances of TikTok, Reels, and Shorts.",
-    },
-    {
-      icon: <BarChart3 className="w-6 h-6 text-emerald-400" />,
-      title: "Data-Driven",
-      description: "We constantly analyze metrics to adapt your strategy and double down on what works.",
+      old: "Getting vanity views but zero actual qualified leads",
+      new: "Content engineered specifically to drive revenue"
     }
   ];
 
@@ -622,27 +601,35 @@ const WhyChooseUs = () => {
         </div>
 
         {/* Comparison Table */}
-        <div className="max-w-5xl mx-auto mb-32">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="max-w-6xl mx-auto relative">
+          {/* VS Badge (Desktop only) */}
+          <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-zinc-950 border border-white/10 rounded-full items-center justify-center z-20 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+            <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-br from-zinc-300 to-zinc-600 italic">VS</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-0">
             {/* The Old Way */}
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="bg-zinc-900/30 border border-white/5 rounded-3xl p-8 md:p-12"
+              className="bg-zinc-900/30 border border-white/5 rounded-3xl md:rounded-r-none md:border-r-0 p-8 md:p-12 lg:p-16 relative overflow-hidden group"
             >
-              <div className="flex items-center gap-4 mb-10">
-                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20">
-                  <X className="w-6 h-6 text-red-500" />
+              <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="flex items-center gap-4 mb-12 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                  <X className="w-7 h-7 text-red-500" />
                 </div>
-                <h3 className="text-2xl md:text-3xl font-bold text-white">The Old Way</h3>
+                <h3 className="text-3xl md:text-4xl font-display font-bold text-zinc-300">The Old Way</h3>
               </div>
-              <ul className="space-y-8">
+              <ul className="space-y-10 relative z-10">
                 {comparisons.map((item, i) => (
-                  <li key={i} className="flex items-start gap-4 text-zinc-400">
-                    <X className="w-6 h-6 text-red-500/50 shrink-0 mt-0.5" />
-                    <span className="leading-relaxed text-lg">{item.old}</span>
+                  <li key={i} className="flex items-start gap-5 text-zinc-400 group/item">
+                    <div className="mt-1 p-1 rounded-full bg-red-500/10 border border-red-500/20 group-hover/item:bg-red-500/20 transition-colors shrink-0">
+                      <X className="w-4 h-4 text-red-500/70" />
+                    </div>
+                    <span className="leading-relaxed text-lg group-hover/item:text-zinc-300 transition-colors">{item.old}</span>
                   </li>
                 ))}
               </ul>
@@ -654,47 +641,29 @@ const WhyChooseUs = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="bg-gradient-to-b from-cyan-500/10 to-blue-500/5 border border-cyan-500/30 rounded-3xl p-8 md:p-12 relative overflow-hidden shadow-[0_0_50px_rgba(34,211,238,0.05)]"
+              className="bg-gradient-to-b from-cyan-500/10 to-blue-500/5 border border-cyan-500/30 rounded-3xl md:rounded-l-none p-8 md:p-12 lg:p-16 relative overflow-hidden shadow-[0_0_50px_rgba(34,211,238,0.05)] z-10 group"
             >
-              <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/20 blur-[100px] rounded-full pointer-events-none" />
-              <div className="flex items-center gap-4 mb-10 relative z-10">
-                <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center border border-cyan-500/40 shadow-[0_0_15px_rgba(34,211,238,0.3)]">
-                  <Check className="w-6 h-6 text-cyan-400" />
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/20 blur-[120px] rounded-full pointer-events-none group-hover:bg-cyan-500/30 transition-colors duration-700" />
+              <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none"></div>
+              
+              <div className="flex items-center gap-4 mb-12 relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 flex items-center justify-center border border-cyan-500/40 shadow-[0_0_20px_rgba(34,211,238,0.4)]">
+                  <Check className="w-7 h-7 text-cyan-400" />
                 </div>
-                <h3 className="text-2xl md:text-3xl font-bold text-white">The OpsRelic Way</h3>
+                <h3 className="text-3xl md:text-4xl font-display font-bold text-white drop-shadow-sm">The OpsRelic Way</h3>
               </div>
-              <ul className="space-y-8 relative z-10">
+              <ul className="space-y-10 relative z-10">
                 {comparisons.map((item, i) => (
-                  <li key={i} className="flex items-start gap-4 text-zinc-100">
-                    <Check className="w-6 h-6 text-cyan-400 shrink-0 mt-0.5 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
-                    <span className="leading-relaxed text-lg font-medium">{item.new}</span>
+                  <li key={i} className="flex items-start gap-5 text-zinc-100 group/item">
+                    <div className="mt-1 p-1 rounded-full bg-cyan-500/20 border border-cyan-500/40 shadow-[0_0_10px_rgba(34,211,238,0.3)] group-hover/item:scale-110 group-hover/item:bg-cyan-500/30 transition-all shrink-0">
+                      <Check className="w-4 h-4 text-cyan-400" />
+                    </div>
+                    <span className="leading-relaxed text-lg font-medium group-hover/item:text-white transition-colors">{item.new}</span>
                   </li>
                 ))}
               </ul>
             </motion.div>
           </div>
-        </div>
-
-        {/* 4 Pillars Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {pillars.map((pillar, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1, duration: 0.5 }}
-              className="bg-zinc-900/40 border border-white/5 rounded-2xl p-8 hover:bg-zinc-900/80 transition-all duration-300 group hover:border-cyan-500/20"
-            >
-              <div className="w-12 h-12 rounded-xl bg-zinc-800/50 flex items-center justify-center mb-6 border border-white/5 group-hover:scale-110 transition-transform duration-300 group-hover:border-cyan-500/30 group-hover:bg-cyan-500/10">
-                {pillar.icon}
-              </div>
-              <h4 className="text-xl font-bold text-white mb-3 group-hover:text-cyan-400 transition-colors">{pillar.title}</h4>
-              <p className="text-zinc-400 text-sm leading-relaxed font-light">
-                {pillar.description}
-              </p>
-            </motion.div>
-          ))}
         </div>
       </div>
     </section>
@@ -1906,6 +1875,7 @@ export default function App() {
         <WhyChooseUs />
         <BentoHowItWorks />
         <Testimonials />
+        <FreeSamples />
         <Pricing />
         <FAQ />
         <FinalCTA />
