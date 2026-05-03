@@ -11,9 +11,18 @@ export const WHOP_STORAGE_KEY = "whop_oauth_pkce";
 
 /**
  * Gets the redirect URI based on the current environment.
- * The user explicitly requested to use ONLY www.opsrelic.com
+ * Supports localhost for development and www.opsrelic.com for production
  */
 export const getWhopRedirectUri = () => {
+  // Get the current origin from window.location
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+  
+  // If running locally or in development, use current domain
+  if (currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')) {
+    return `${currentOrigin}/api/auth/whop/callback`;
+  }
+  
+  // Production: always use www.opsrelic.com
   return "https://www.opsrelic.com/api/auth/whop/callback";
 };
 
