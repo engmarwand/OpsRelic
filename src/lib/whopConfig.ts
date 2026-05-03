@@ -18,11 +18,11 @@ export const getWhopRedirectUri = () => {
     const hostname = window.location.hostname;
     // We use /oauth/callback as the redirect URI
     if (hostname.includes('opsrelic.com')) {
-      return "https://www.opsrelic.com/oauth/callback";
+      return "https://opsrelic.com/oauth/callback";
     }
     return `${window.location.origin}/oauth/callback`;
   }
-  return "https://www.opsrelic.com/oauth/callback";
+  return "https://opsrelic.com/oauth/callback";
 };
 
 function base64url(bytes: Uint8Array) {
