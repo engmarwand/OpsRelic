@@ -452,23 +452,13 @@ export default function Reports() {
           {/* Cover Page */}
           {workspace?.reports?.coverPage && (
             <div className="flex flex-col items-center justify-center min-h-[800px] text-center pb-8 mb-8 break-after-page print:min-h-screen">
-            <div className="w-40 h-40 rounded-xl bg-black flex items-center justify-center overflow-hidden mb-10 shadow-sm border border-black/10">
-              <img 
-                src={workspace?.brand?.logoUrl || "/logo.png"} 
-                alt="Logo" 
-                className="w-full h-full object-contain p-4"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  const parent = e.currentTarget.parentElement;
-                  if (parent) {
-                    const span = document.createElement('span');
-                    span.className = 'font-black text-white text-3xl';
-                    span.innerText = (agencyName || 'OR').substring(0, 2).toUpperCase();
-                    parent.appendChild(span);
-                  }
-                }}
-              />
-            </div>
+              {workspace?.brand?.logoUrl ? (
+                 <img src={workspace.brand.logoUrl} alt="Logo" className="w-40 h-40 object-contain mb-10 shadow-sm rounded-xl" />
+              ) : (
+                 <div className="w-32 h-32 rounded-[2rem] flex items-center justify-center shadow-lg text-white mb-10" style={{ backgroundColor: activeColor }}>
+                    <span className="font-black text-5xl">{agencyName.substring(0, 2).toUpperCase()}</span>
+                 </div>
+              )}
               <h1 className="text-5xl md:text-6xl font-black tracking-tight mb-6 text-black leading-tight">{reportTitle}</h1>
               <p className="text-black/60 text-2xl font-medium tracking-wide mb-16">{selectedCampaign === 'All' ? 'Global HQ Overview' : `Campaign: ${selectedCampaign}`}</p>
               <div className="mt-auto pb-10">
@@ -483,23 +473,16 @@ export default function Reports() {
           <header className={`flex justify-between items-end border-b-2 border-black/10 pb-8 ${workspace?.reports?.coverPage && 'print:hidden'}`}>
             <div>
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center overflow-hidden shadow-sm border border-black/10">
-                  <img 
-                    src={workspace?.brand?.logoUrl || "/logo.png"} 
-                    alt="Logo" 
-                    className="w-full h-full object-contain p-1.5"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      const parent = e.currentTarget.parentElement;
-                      if (parent) {
-                        const span = document.createElement('span');
-                        span.className = 'font-bold text-white text-[10px]';
-                        span.innerText = (agencyName || 'OR').substring(0, 2).toUpperCase();
-                        parent.appendChild(span);
-                      }
-                    }}
-                  />
-                </div>
+                {workspace?.brand?.logoUrl ? (
+                  <img src={workspace.brand.logoUrl} alt="Logo" className="w-10 h-10 object-contain shadow-sm rounded-lg" />
+                ) : (
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm text-white" style={{ backgroundColor: activeColor }}>
+                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20Z" fill="currentColor"/>
+                      <path d="M13 7H11V13L16.25 16.15L17 14.92L12.5 12.25V7H13Z" fill="currentColor"/>
+                    </svg>
+                  </div>
+                )}
                 <span className="font-bold text-xl tracking-tight text-black">{agencyName}</span>
               </div>
               <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-2 text-black leading-tight">{reportTitle}</h1>

@@ -18,7 +18,7 @@ interface AppContextType extends AppState {
 }
 
 const defaultWorkspace: WorkspaceSettings = {
-  brand: { name: "Your Agency", tagline: "Clipping Agency Operations", logo: null, logoUrl: "/logo.png" },
+  brand: { name: "Your Agency", tagline: "Clipping Agency Operations", logo: null, logoUrl: null },
   color: { primary: "#00D4FF", preset: "Electric Blue" },
   reports: { coverPage: true, defaultDateRange: "Last 30 days", defaultPlatforms: ["TikTok", "Instagram", "YouTube", "Other"], template: {}, emailSignature: "", fromName: "", replyTo: "" },
   layout: { theme: "dark", layout: "Standard", chartStyle: "Line" },
@@ -95,8 +95,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       const data: CsvRow[] = [];
       snapshot.forEach(doc => {
         const row = doc.data() as any;
+        const createdAtDate = row.createdAt?.toDate ? row.createdAt.toDate() : (row.createdAt ? new Date(row.createdAt) : null);
         data.push({
-          "Submission Date": row.createdAt ? new Date(row.createdAt).toISOString().split('T')[0] : "",
+          "Submission Date": createdAtDate ? createdAtDate.toISOString().split('T')[0] : "",
           Creator: row.creatorId ? row.creatorId.replace('id_creator_', '') : "",
           "Content Title": row.url || "",
           Platform: "TikTok", // Simplification since creator platform isn't immediately available here via JOIN
@@ -124,49 +125,49 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [userId]);
 
-  const setData = async (newData: CsvRow[]) => {
+  const setData = React.useCallback(async (newData: CsvRow[]) => {
     setState(prev => ({ ...prev, data: newData }));
-  };
+  }, []);
 
-  const clearData = () => {
+  const clearData = React.useCallback(() => {
     setState(prev => ({ ...prev, data: [] }));
     window.OpsRelicData = undefined;
-  };
+  }, []);
 
-  const setWorkspace = (newWorkspace: WorkspaceSettings) => {
+  const setWorkspace = React.useCallback((newWorkspace: WorkspaceSettings) => {
     setState(prev => {
       const newState = { ...prev, workspace: newWorkspace };
       window.OpsRelicData = { ...window.OpsRelicData, workspace: newWorkspace };
       return newState;
     });
-  };
+  }, []);
 
-  const setCurrentTier = (tier: Tier) => {
+  const setCurrentTier = React.useCallback((tier: Tier) => {
     setState(prev => ({ ...prev, currentTier: tier }));
-  };
+  }, []);
 
   const currentPlan = PLANS[state.currentTier || 'starter'];
 
-  const hasFeature = (featureName: keyof PlanFeatures) => {
-    return currentPlan.features[featureName];
-  };
+  const hasFeature = React.useCallback((featureName: keyof PlanFeatures) => {
+    return PLANS[state.currentTier || 'starter'].features[featureName];
+  }, [state.currentTier]);
 
-  const getLimit = (limitName: keyof PlanLimits) => {
-    return currentPlan.limits[limitName];
-  };
+  const getLimit = React.useCallback((limitName: keyof PlanLimits) => {
+    return PLANS[state.currentTier || 'starter'].limits[limitName];
+  }, [state.currentTier]);
 
-  const getUsage = (metricName: string) => {
+  const getUsage = React.useCallback((metricName: string) => {
     if (metricName === 'reportsPerMonth') {
       return state.reportsGeneratedMonth || 0;
     }
     return 0;
-  };
+  }, [state.reportsGeneratedMonth]);
 
-  const trackUsage = (metricName: string, amount: number = 1): boolean => {
+  const trackUsage = React.useCallback((metricName: string, amount: number = 1): boolean => {
     if (metricName === 'reportsPerMonth') {
-      const limit = getLimit('reportsPerMonth');
-      const current = getUsage('reportsPerMonth');
-      if (limit !== 'unlimited' && typeof limit === 'number') {
+      const limit = PLANS[state.currentTier || 'starter'].limits.reportsPerMonth;
+      const current = state.reportsGeneratedMonth || 0;
+      if (limit !== Infinity) {
         if (current + amount > limit) {
           return false; // Limit exceeded
         }
@@ -175,10 +176,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return true;
     }
     return true;
-  };
+  }, [state.currentTier, state.reportsGeneratedMonth]);
+
+  const contextValue = React.useMemo(() => ({ 
+    ...state, 
+    setData, 
+    clearData, 
+    setWorkspace, 
+    setCurrentTier, 
+    hasFeature, 
+    getLimit, 
+    getUsage, 
+    trackUsage, 
+    campaignsList, 
+    plan: currentPlan 
+  }), [state, setData, clearData, setWorkspace, setCurrentTier, hasFeature, getLimit, getUsage, trackUsage, campaignsList, currentPlan]);
 
   return (
-    <AppContext.Provider value={{ ...state, setData, clearData, setWorkspace, setCurrentTier, hasFeature, getLimit, getUsage, trackUsage, campaignsList, plan: currentPlan }}>
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );
