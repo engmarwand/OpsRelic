@@ -78,8 +78,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribeFirebase = onAuthStateChanged(auth, (fbUser) => {
       setFirebaseUser(fbUser);
       if (fbUser) {
-        // We use functional update to avoid stale user closure if needed, 
-        // but here we just want to ensure we don't overwrite a better user object from Whop
         setUser(prev => {
           if (prev) return prev;
           return {
@@ -93,7 +91,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const initAuth = async () => {
-      // With server-side callback, we just check the session
+      const pathname = window.location.pathname;
+      const search = window.location.search;
+
+      // Handle Whop Callback
+      if (pathname === '/auth-callback' && search.includes('code=')) {
+        setLoading(true);
+        try {
+          const { handleWhopCallback, WHOP_CLIENT_ID, getWhopRedirectUri } = await import('../lib/whopConfig');
+          const tokens = await handleWhopCallback(WHOP_CLIENT_ID, getWhopRedirectUri());
+          
+          // Sync with server session
+          const syncResponse = await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tokens }),
+          });
+
+          if (syncResponse.ok) {
+            await checkSession();
+            window.history.replaceState({}, '', '/#dashboard');
+          } else {
+            throw new Error('Failed to sync session');
+          }
+        } catch (err: any) {
+          console.error('Whop Callback failed:', err);
+          setError(err.message || 'Failed to complete Whop authentication');
+          window.history.replaceState({}, '', '/');
+        } finally {
+          setLoading(false);
+          setWhopLoading(false);
+        }
+        return;
+      }
+
+      // Standard session check
       await checkSession();
     };
 

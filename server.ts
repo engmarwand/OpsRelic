@@ -19,6 +19,20 @@ async function startServer() {
   const app = express();
   app.use(express.json());
   app.set('trust proxy', 1);
+
+  // Debug logger
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      console.log(`[API Request] ${req.method} ${req.path}`, {
+        query: req.query,
+        cookies: req.cookies ? Object.keys(req.cookies) : [],
+        origin: req.get('origin'),
+        host: req.get('host'),
+      });
+    }
+    next();
+  });
+
   app.use(cookieParser(SESSION_SECRET));
 
   // Whop OAuth Login - Generates PKCE and redirects to Whop
@@ -33,11 +47,10 @@ async function startServer() {
     const state = crypto.randomBytes(16).toString('hex');
 
     // Store verifier and redirect_uri in temporary cookies
-    const isProduction = process.env.NODE_ENV === 'production';
     const cookieOptions = {
       httpOnly: true,
-      secure: isProduction, // Only require secure in production
-      sameSite: isProduction ? ('none' as const) : ('lax' as const),
+      secure: true,
+      sameSite: 'none' as const,
       maxAge: 5 * 60 * 1000,
     };
     
@@ -103,13 +116,12 @@ async function startServer() {
       };
 
       // Set the session cookie
-      const isProduction = process.env.NODE_ENV === 'production';
       res.cookie('opsrelic_session', sessionData, {
         httpOnly: true,
-        secure: isProduction, // Only require secure in production
+        secure: true,
         signed: true,
         maxAge: 30 * 24 * 60 * 60 * 1000,
-        sameSite: isProduction ? 'lax' : 'lax',
+        sameSite: 'lax',
       });
 
       // Clear temporary cookies
@@ -181,7 +193,7 @@ async function startServer() {
 
       res.cookie('opsrelic_session', sessionData, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: true,
         signed: true,
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         sameSite: 'lax',
@@ -190,6 +202,48 @@ async function startServer() {
       res.json({ success: true, user: userData });
     } catch (error) {
       console.error("Auth server error:", error);
+      res.status(500).send("Internal Server Error");
+    }
+  });
+
+  // Create session from client-side tokens
+  app.post("/api/auth/session", async (req, res) => {
+    const { tokens } = req.body;
+    if (!tokens || !tokens.access_token) {
+      return res.status(400).send("Missing tokens");
+    }
+
+    try {
+      const userResponse = await fetch("https://api.whop.com/oauth/userinfo", {
+        headers: { Authorization: `Bearer ${tokens.access_token}` },
+      });
+      
+      if (!userResponse.ok) {
+        throw new Error("Failed to fetch userinfo with provided tokens");
+      }
+
+      const userData = await userResponse.json();
+
+      const sessionData = {
+        userId: userData.sub,
+        whopUserId: userData.sub,
+        name: userData.name,
+        email: userData.email,
+        accessToken: tokens.access_token,
+        isLoggedIn: true,
+      };
+
+      res.cookie('opsrelic_session', sessionData, {
+        httpOnly: true,
+        secure: true,
+        signed: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        sameSite: 'lax',
+      });
+
+      res.json({ success: true, user: userData });
+    } catch (error) {
+      console.error("Session creation error:", error);
       res.status(500).send("Internal Server Error");
     }
   });
@@ -226,22 +280,13 @@ async function startServer() {
     }
   });
 
-  // Setup Vite middleware LAST (after all API routes)
-  // This acts as a catch-all for the SPA frontend
-  const isDev = process.env.NODE_ENV !== "production";
-  if (isDev) {
-    try {
-      console.log("[v0] Setting up Vite middleware in development mode...");
-      const vite = await createViteServer({
-        server: { middlewareMode: true },
-        appType: "spa",
-      });
-      app.use(vite.middlewares);
-      console.log("[v0] Vite middleware initialized successfully");
-    } catch (error) {
-      console.error("[v0] Failed to initialize Vite middleware:", error);
-      throw error;
-    }
+  // Vite middleware for development
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));

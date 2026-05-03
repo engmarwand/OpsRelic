@@ -755,8 +755,8 @@ function AuthModal({ mode, onClose, onSwitchMode }: {
     setLoading(true);
     setError('');
     try {
-      const { startWhopOAuth, getWhopRedirectUri } = await import('../lib/whopConfig');
-      await startWhopOAuth(getWhopRedirectUri());
+      const { startWhopOAuth, getWhopRedirectUri, WHOP_CLIENT_ID } = await import('../lib/whopConfig');
+      await startWhopOAuth(WHOP_CLIENT_ID, getWhopRedirectUri());
     } catch (err: any) {
       console.error('Landing Whop login error:', err);
       setError('Failed to start Whop login. Please try again.');

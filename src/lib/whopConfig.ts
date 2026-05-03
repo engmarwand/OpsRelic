@@ -11,19 +11,19 @@ export const WHOP_STORAGE_KEY = "whop_oauth_pkce";
 
 /**
  * Gets the redirect URI based on the current environment.
- * Supports localhost for development and www.opsrelic.com for production
+ * We must use a frontend-handled path for the callback to maintain PKCE state in sessionStorage.
  */
 export const getWhopRedirectUri = () => {
-  // Get the current origin from window.location
-  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-  
-  // If running locally or in development, use current domain
-  if (currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')) {
-    return `${currentOrigin}/api/auth/whop/callback`;
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    // Always use the primary domain for the redirect URI if we're on it.
+    if (hostname.includes('opsrelic.com')) {
+      return "https://www.opsrelic.com/auth-callback";
+    }
+    // Otherwise use current origin for dev/preview
+    return `${window.location.origin}/auth-callback`;
   }
-  
-  // Production: always use www.opsrelic.com
-  return "https://www.opsrelic.com/api/auth/whop/callback";
+  return "https://www.opsrelic.com/auth-callback";
 };
 
 function base64url(bytes: Uint8Array) {
@@ -45,15 +45,84 @@ async function sha256(str: string) {
   );
 }
 
-export async function startWhopOAuth(redirectUri: string) {
-  // We use server-side login to handle PKCE securely and set cookies.
-  // We MUST ensure the login starts on the SAME domain as the redirectUri
-  // otherwise cookies set by the login endpoint won't be visible to the callback.
-  const url = new URL(redirectUri);
-  const loginUrl = `${url.origin}/api/auth/whop/login?redirect_uri=${encodeURIComponent(redirectUri)}`;
-  console.log("[v0] Starting Whop OAuth with redirect URI:", redirectUri);
-  console.log("[v0] Login URL:", loginUrl);
-  window.location.href = loginUrl;
+export async function startWhopOAuth(
+  clientId: string,
+  redirectUri: string,
+  scope = "openid profile email membership:update member:basic:read member:email:read member:stats:read plan:basic:read stats:read chat:read",
+) {
+  const pkce = {
+    codeVerifier: randomString(32),
+    state: randomString(16),
+    nonce: randomString(16),
+  };
+  sessionStorage.setItem(WHOP_STORAGE_KEY, JSON.stringify(pkce));
+
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    scope,
+    state: pkce.state,
+    nonce: pkce.nonce,
+    code_challenge: await sha256(pkce.codeVerifier),
+    code_challenge_method: "S256",
+  });
+
+  window.location.href = `https://api.whop.com/oauth/authorize?${params}`;
+}
+
+export interface WhopTokens {
+  access_token: string;
+  refresh_token: string;
+  id_token?: string;
+  token_type: string;
+  expires_in: number;
+  obtained_at: number;
+}
+
+export async function handleWhopCallback(
+  clientId: string,
+  redirectUri: string,
+): Promise<WhopTokens> {
+  const params = new URLSearchParams(window.location.search);
+  const [code, returnedState, error] = [
+    params.get("code"),
+    params.get("state"),
+    params.get("error"),
+  ];
+  
+  if (error) {
+    throw new Error(`OAuth error: ${error} - ${params.get("error_description") || ""}`);
+  }
+
+  if (!code) throw new Error("No code in callback URL");
+
+  const stored = JSON.parse(sessionStorage.getItem(WHOP_STORAGE_KEY) || "null");
+  sessionStorage.removeItem(WHOP_STORAGE_KEY);
+  
+  if (!stored || returnedState !== stored.state) {
+    throw new Error("Invalid state - possible CSRF");
+  }
+
+  const res = await fetch("https://api.whop.com/oauth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: redirectUri,
+      client_id: clientId,
+      code_verifier: stored.codeVerifier,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`Token exchange failed: ${err.error_description || res.status}`);
+  }
+
+  const tokens = await res.json();
+  return { ...tokens, obtained_at: Date.now() };
 }
 
 export type WhopTier = 'starter' | 'pro' | 'agency';
