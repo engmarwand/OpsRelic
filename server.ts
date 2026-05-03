@@ -181,7 +181,7 @@ async function startServer() {
 
       res.cookie('opsrelic_session', sessionData, {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
         signed: true,
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         sameSite: 'lax',
@@ -227,12 +227,15 @@ async function startServer() {
   });
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+  const isDev = process.env.NODE_ENV !== "production";
+  if (isDev) {
+    console.log("[v0] Setting up Vite middleware in development mode...");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
+    console.log("[v0] Vite middleware initialized");
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
