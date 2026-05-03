@@ -11,13 +11,9 @@ export const WHOP_STORAGE_KEY = "whop_oauth_pkce";
 
 /**
  * Gets the redirect URI based on the current environment.
- * In a professional OAuth flow, we should use the current origin
- * so that session/PKCE data matches the domain the user is on.
+ * The user explicitly requested to use ONLY www.opsrelic.com
  */
 export const getWhopRedirectUri = () => {
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}/api/auth/whop/callback`;
-  }
   return "https://www.opsrelic.com/api/auth/whop/callback";
 };
 

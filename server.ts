@@ -210,11 +210,9 @@ async function startServer() {
 
   // Proxy to fetch memberships (using session token)
   app.get("/api/auth/whop/memberships", async (req, res) => {
-    const sessionStr = req.signedCookies.opsrelic_session;
-    if (!sessionStr) return res.status(401).send("Unauthorized");
+    const session = req.signedCookies.opsrelic_session;
+    if (!session) return res.status(401).send("Unauthorized");
     
-    const session = JSON.parse(sessionStr);
-
     try {
       const response = await fetch("https://api.whop.com/api/v5/me/memberships", {
         headers: { Authorization: `Bearer ${session.accessToken}` },
