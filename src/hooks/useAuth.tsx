@@ -106,7 +106,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           window.history.replaceState({}, '', '/#dashboard');
         } catch (err: any) {
           console.error('Whop Callback failed:', err);
-          setError(err.message || 'Failed to complete Whop authentication');
+          // Attempt to parse the custom error message if it's JSON
+          let errorMessage = err.message || 'Failed to complete Whop authentication';
+          try {
+             const parsed = JSON.parse(errorMessage);
+             if (parsed.error_description) errorMessage = parsed.error_description;
+             else if (parsed.error) errorMessage = parsed.error;
+          } catch (e) {}
+          
+          setError(errorMessage);
           window.history.replaceState({}, '', '/');
         } finally {
           setLoading(false);

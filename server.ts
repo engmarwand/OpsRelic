@@ -141,16 +141,17 @@ async function startServer() {
     const { code, code_verifier, redirect_uri } = req.body;
 
     if (!code || !code_verifier || !redirect_uri) {
+      console.warn("Exchange request missing fields:", { hasCode: !!code, hasVerifier: !!code_verifier, hasRedirect: !!redirect_uri });
       return res.status(400).send("Missing code, code_verifier, or redirect_uri");
     }
 
     try {
       if (!CLIENT_SECRET) {
         console.error("CRITICAL: WHOP_CLIENT_SECRET is missing from environment variables!");
-        return res.status(500).json({ error: "Server configuration error: Missing Client Secret" });
+        return res.status(500).json({ error: "Server configuration error" });
       }
 
-      console.log("Exchanging Whop code for tokens...", { code: code.substring(0, 5) + "...", redirect_uri });
+      console.log("Exchanging Whop code for tokens...", { redirect_uri });
 
       // 1. Exchange code for tokens
       const tokenResponse = await fetch("https://api.whop.com/oauth/token", {
