@@ -16,14 +16,13 @@ export const WHOP_STORAGE_KEY = "whop_oauth_pkce";
 export const getWhopRedirectUri = () => {
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    // We use the root URL for the redirect callback to avoid 404s on custom domains
-    // that might not have SPA path routing configured correctly.
+    // We use /oauth/callback as the redirect URI
     if (hostname.includes('opsrelic.com')) {
-      return "https://www.opsrelic.com";
+      return "https://www.opsrelic.com/oauth/callback";
     }
-    return window.location.origin;
+    return `${window.location.origin}/oauth/callback`;
   }
-  return "https://www.opsrelic.com";
+  return "https://www.opsrelic.com/oauth/callback";
 };
 
 function base64url(bytes: Uint8Array) {
