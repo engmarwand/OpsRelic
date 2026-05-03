@@ -102,7 +102,7 @@ async function startServer() {
       };
 
       // Set the session cookie
-      res.cookie('opsrelic_session', JSON.stringify(sessionData), {
+      res.cookie('opsrelic_session', sessionData, {
         httpOnly: true,
         secure: true,
         signed: true,
@@ -177,9 +177,9 @@ async function startServer() {
         isLoggedIn: true,
       };
 
-      res.cookie('opsrelic_session', JSON.stringify(sessionData), {
+      res.cookie('opsrelic_session', sessionData, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: true,
         signed: true,
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         sameSite: 'lax',
@@ -198,11 +198,8 @@ async function startServer() {
     if (!session) {
       return res.status(401).json({ error: "No session" });
     }
-    try {
-      res.json(JSON.parse(session));
-    } catch (e) {
-      res.status(500).json({ error: "Invalid session" });
-    }
+    // If it's a signed cookie with an object, it's already an object
+    res.json(session);
   });
 
   // Logout

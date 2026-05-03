@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, Database, Users, TrendingUp, Zap, CheckCircle2, DollarSign, LayoutDashboard, Mail, Lock, User, ArrowRight, XCircle, X, Wallet, FileText, Activity, PieChart, ExternalLink } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { WhopLoginButton } from './WhopLoginButton';
-import { WHOP_STORE_URL } from '../lib/whopConfig';
 import { loginWithGoogle, loginWithEmail, registerWithEmail } from '../lib/firebase';
 
 export default function Landing() {
