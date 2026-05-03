@@ -21,6 +21,29 @@ async function startServer() {
   app.set('trust proxy', 1);
   app.use(cookieParser(SESSION_SECRET));
 
+  // Setup Vite middleware FIRST before other routes
+  const isDev = process.env.NODE_ENV !== "production";
+  if (isDev) {
+    try {
+      console.log("[v0] Setting up Vite middleware in development mode...");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+      console.log("[v0] Vite middleware initialized successfully");
+    } catch (error) {
+      console.error("[v0] Failed to initialize Vite middleware:", error);
+      throw error;
+    }
+  } else {
+    const distPath = path.join(process.cwd(), "dist");
+    app.use(express.static(distPath));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+  }
+
   // Whop OAuth Login - Generates PKCE and redirects to Whop
   app.get("/api/auth/whop/login", async (req, res) => {
     const { redirect_uri } = req.query;
@@ -225,24 +248,6 @@ async function startServer() {
       res.status(500).send("Failed to fetch memberships");
     }
   });
-
-  // Vite middleware for development
-  const isDev = process.env.NODE_ENV !== "production";
-  if (isDev) {
-    console.log("[v0] Setting up Vite middleware in development mode...");
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-    console.log("[v0] Vite middleware initialized");
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
