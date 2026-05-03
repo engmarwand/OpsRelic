@@ -16,14 +16,14 @@ export const WHOP_STORAGE_KEY = "whop_oauth_pkce";
 export const getWhopRedirectUri = () => {
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    // Always use the primary domain for the redirect URI if we're on it.
+    // We use the root URL for the redirect callback to avoid 404s on custom domains
+    // that might not have SPA path routing configured correctly.
     if (hostname.includes('opsrelic.com')) {
-      return "https://www.opsrelic.com/auth-callback";
+      return "https://www.opsrelic.com";
     }
-    // Otherwise use current origin for dev/preview
-    return `${window.location.origin}/auth-callback`;
+    return window.location.origin;
   }
-  return "https://www.opsrelic.com/auth-callback";
+  return "https://www.opsrelic.com";
 };
 
 function base64url(bytes: Uint8Array) {
@@ -104,25 +104,33 @@ export async function handleWhopCallback(
     throw new Error("Invalid state - possible CSRF");
   }
 
-  const res = await fetch("https://api.whop.com/oauth/token", {
+  // We use our OWN server to exchange the code.
+  // This is safer as it hides the Client Secret and avoids CORS issues.
+  const res = await fetch("/api/auth/whop/exchange", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      grant_type: "authorization_code",
       code,
       redirect_uri: redirectUri,
-      client_id: clientId,
       code_verifier: stored.codeVerifier,
     }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(`Token exchange failed: ${err.error_description || res.status}`);
+    throw new Error(`Token exchange failed: ${err.error_description || err.error || res.status}`);
   }
 
   const tokens = await res.json();
-  return { ...tokens, obtained_at: Date.now() };
+  // Our server returns { success: true, user: ... } and sets a cookie.
+  // We return a dummy tokens object since the session is now set via cookie.
+  return {
+    access_token: "set-via-cookie",
+    refresh_token: "set-via-cookie",
+    token_type: "Bearer",
+    expires_in: 3600,
+    obtained_at: Date.now(),
+  };
 }
 
 export type WhopTier = 'starter' | 'pro' | 'agency';

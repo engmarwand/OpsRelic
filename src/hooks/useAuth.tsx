@@ -95,25 +95,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const search = window.location.search;
 
       // Handle Whop Callback
-      if (pathname === '/auth-callback' && search.includes('code=')) {
+      if (search.includes('code=') && search.includes('state=')) {
         setLoading(true);
         try {
           const { handleWhopCallback, WHOP_CLIENT_ID, getWhopRedirectUri } = await import('../lib/whopConfig');
-          const tokens = await handleWhopCallback(WHOP_CLIENT_ID, getWhopRedirectUri());
+          // handleWhopCallback now calls our proxy and manages the session via cookies
+          await handleWhopCallback(WHOP_CLIENT_ID, getWhopRedirectUri());
           
-          // Sync with server session
-          const syncResponse = await fetch('/api/auth/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tokens }),
-          });
-
-          if (syncResponse.ok) {
-            await checkSession();
-            window.history.replaceState({}, '', '/#dashboard');
-          } else {
-            throw new Error('Failed to sync session');
-          }
+          await checkSession();
+          window.history.replaceState({}, '', '/#dashboard');
         } catch (err: any) {
           console.error('Whop Callback failed:', err);
           setError(err.message || 'Failed to complete Whop authentication');
