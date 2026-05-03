@@ -45,11 +45,11 @@ async function sha256(str: string) {
   );
 }
 
-export async function startWhopOAuth(
+export const startWhopOAuth = async (
   clientId: string,
   redirectUri: string,
   scope = "openid profile email membership:update member:basic:read member:email:read member:stats:read plan:basic:read stats:read chat:read",
-) {
+) => {
   const pkce = {
     codeVerifier: randomString(32),
     state: randomString(16),
@@ -68,7 +68,9 @@ export async function startWhopOAuth(
     code_challenge_method: "S256",
   });
 
-  window.location.href = `https://api.whop.com/oauth/authorize?${params}`;
+  const url = `https://api.whop.com/oauth/authorize?${params}`;
+  console.log("Starting Whop OAuth with:", { clientId, redirectUri, url });
+  window.location.href = url;
 }
 
 export interface WhopTokens {
