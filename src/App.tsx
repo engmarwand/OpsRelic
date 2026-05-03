@@ -15,8 +15,10 @@ import Landing from './components/Landing';
 import Walkthrough from './components/Walkthrough';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { AuthGuard } from './components/AuthGuard';
+import { WhopCallback } from './components/WhopCallback';
 
 import { useAppContext } from './lib/store';
+
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, hash: '#dashboard' },
@@ -237,6 +239,10 @@ export default function App() {
 
 function AuthWrapper() {
   const { isAuthenticated } = useAuth();
+  
+  if (window.location.pathname === '/oauth/callback') {
+    return <WhopCallback />;
+  }
   
   return (
     <AuthGuard>
