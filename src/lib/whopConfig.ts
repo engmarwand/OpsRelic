@@ -37,8 +37,11 @@ async function sha256(str: string) {
 }
 
 export async function startWhopOAuth(redirectUri: string) {
-  // Now we use server-side login to handle PKCE securely and set cookies
-  window.location.href = `/api/auth/whop/login?redirect_uri=${encodeURIComponent(redirectUri)}`;
+  // We use server-side login to handle PKCE securely and set cookies.
+  // We MUST ensure the login starts on the SAME domain as the redirectUri
+  // otherwise cookies set by the login endpoint won't be visible to the callback.
+  const url = new URL(redirectUri);
+  window.location.href = `${url.origin}/api/auth/whop/login?redirect_uri=${encodeURIComponent(redirectUri)}`;
 }
 
 export type WhopTier = 'starter' | 'pro' | 'agency';
