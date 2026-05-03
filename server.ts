@@ -18,6 +18,7 @@ const SESSION_SECRET = process.env.SESSION_SECRET || "opsrelic-local-secret-1234
 async function startServer() {
   const app = express();
   app.use(express.json());
+  app.set('trust proxy', 1);
   app.use(cookieParser(SESSION_SECRET));
 
   // Whop OAuth Login - Generates PKCE and redirects to Whop
@@ -31,13 +32,16 @@ async function startServer() {
     const code_challenge = crypto.createHash('sha256').update(code_verifier).digest('base64url');
     const state = crypto.randomBytes(16).toString('hex');
 
-    // Store verifier in a temporary cookie (shorter expiry, secure)
-    res.cookie('whop_pkce_verifier', code_verifier, {
+    // Store verifier and redirect_uri in temporary cookies
+    const cookieOptions = {
       httpOnly: true,
       secure: true,
-      sameSite: 'none', // Needed for cross-site redirect back to us in iframe
-      maxAge: 5 * 60 * 1000, // 5 minutes
-    });
+      sameSite: 'none' as const,
+      maxAge: 5 * 60 * 1000,
+    };
+    
+    res.cookie('whop_pkce_verifier', code_verifier, cookieOptions);
+    res.cookie('whop_redirect_uri', redirect_uri as string, cookieOptions);
 
     const scope = "openid profile email membership:update member:basic:read member:email:read member:stats:read plan:basic:read stats:read chat:read";
     const params = new URLSearchParams({
@@ -57,15 +61,14 @@ async function startServer() {
   app.get("/api/auth/whop/callback", async (req, res) => {
     const { code, state } = req.query;
     const code_verifier = req.cookies.whop_pkce_verifier;
+    const redirect_uri = req.cookies.whop_redirect_uri;
 
-    if (!code || !code_verifier) {
-      console.error("Callback missing code or verifier:", { code: !!code, verifier: !!code_verifier });
+    if (!code || !code_verifier || !redirect_uri) {
+      console.error("Callback missing parameters:", { code: !!code, verifier: !!code_verifier, redirect: !!redirect_uri });
       return res.redirect("/?error=auth_failed");
     }
 
     try {
-      const redirect_uri = `${req.protocol}://${req.get('host')}${req.path}`;
-      
       const tokenResponse = await fetch("https://api.whop.com/oauth/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -91,6 +94,7 @@ async function startServer() {
 
       const sessionData = {
         userId: userData.sub,
+        whopUserId: userData.sub, // Added for consistency with useAuth.tsx
         name: userData.name,
         email: userData.email,
         accessToken: tokens.access_token,
@@ -103,13 +107,14 @@ async function startServer() {
         secure: true,
         signed: true,
         maxAge: 30 * 24 * 60 * 60 * 1000,
-        sameSite: 'lax', // User explicitly requested Lax
+        sameSite: 'lax',
       });
 
-      // Clear temporary PKCE cookie
+      // Clear temporary cookies
       res.clearCookie('whop_pkce_verifier');
+      res.clearCookie('whop_redirect_uri');
 
-      // 302 Redirect to dashboard
+      // Redirect to dashboard (using hash to support the internal routing)
       res.redirect("/#dashboard");
     } catch (error) {
       console.error("Callback error:", error);
