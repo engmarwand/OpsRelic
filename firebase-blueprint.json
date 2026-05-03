@@ -1,0 +1,78 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "An agency or user using the platform.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "companyName": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["email", "companyName", "createdAt"]
+    },
+    "Campaign": {
+      "title": "Campaign",
+      "description": "A marketing campaign.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "clientName": { "type": "string" },
+        "budget": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "completed", "draft"] },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "name", "clientName", "budget", "status", "createdAt"]
+    },
+    "Creator": {
+      "title": "Creator",
+      "description": "A creator participating in campaigns.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "handle": { "type": "string" },
+        "platform": { "type": "string", "enum": ["tiktok", "instagram", "youtube"] },
+        "email": { "type": "string" },
+        "payoutMethod": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "handle", "platform", "createdAt"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "A video submission by a creator for a campaign.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "url": { "type": "string" },
+        "views": { "type": "number" },
+        "payout": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "paid"] },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "campaignId", "creatorId", "url", "views", "payout", "status", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Agency user profiles"
+    },
+    "/campaigns/{campaignId}": {
+      "schema": { "$ref": "#/entities/Campaign" },
+      "description": "Campaigns managed by agencies"
+    },
+    "/creators/{creatorId}": {
+      "schema": { "$ref": "#/entities/Creator" },
+      "description": "Creators managed by agencies"
+    },
+    "/submissions/{submissionId}": {
+      "schema": { "$ref": "#/entities/Submission" },
+      "description": "Video submissions from creators"
+    }
+  }
+}

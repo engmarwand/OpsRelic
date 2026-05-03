@@ -1,0 +1,146 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitive Definition
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    
+    // Validation Blueprints
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'companyName', 'createdAt']) &&
+             data.keys().size() == 3 &&
+             data.email is string && data.email.size() <= 100 &&
+             data.companyName is string && data.companyName.size() <= 100 &&
+             data.createdAt is number;
+    }
+
+    function isValidCampaign(data) {
+      return data.keys().hasAll(['userId', 'name', 'clientName', 'budget', 'status', 'createdAt']) &&
+             (data.keys().size() == 6 || data.keys().size() == 7) &&
+             data.userId == request.auth.uid &&
+             data.name is string && data.name.size() <= 100 &&
+             data.clientName is string && data.clientName.size() <= 100 &&
+             data.budget is number && data.budget >= 0 &&
+             (!('rewardRate' in data) || (data.rewardRate is number && data.rewardRate >= 0)) &&
+             data.status in ['active', 'completed', 'draft'] &&
+             data.createdAt is number;
+    }
+
+    function isValidCreator(data) {
+      return data.keys().hasAll(['userId', 'handle', 'platform', 'createdAt']) &&
+             (data.keys().size() == 4 || data.keys().size() == 5 || data.keys().size() == 6) &&
+             data.userId == request.auth.uid &&
+             data.handle is string && data.handle.size() <= 100 &&
+             data.platform in ['tiktok', 'instagram', 'youtube'] &&
+             data.createdAt is number &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 100)) &&
+             (!('payoutMethod' in data) || (data.payoutMethod is string && data.payoutMethod.size() <= 100));
+    }
+
+    function isValidSubmission(data) {
+      return data.keys().hasAll(['userId', 'campaignId', 'creatorId', 'url', 'views', 'payout', 'status', 'createdAt', 'updatedAt']) &&
+             data.keys().size() == 9 &&
+             data.userId == request.auth.uid &&
+             data.campaignId is string && data.campaignId.size() <= 128 &&
+             data.creatorId is string && data.creatorId.size() <= 128 &&
+             data.url is string && data.url.size() <= 500 &&
+             data.views is number && data.views >= 0 &&
+             data.payout is number && data.payout >= 0 &&
+             data.status in ['pending', 'approved', 'paid'] &&
+             data.createdAt is number &&
+             data.updatedAt is number;
+    }
+
+    match /user_config/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow set, create, update: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && 
+                    request.auth.uid == userId && 
+                    isValidUser(incoming()) && 
+                    incoming().createdAt == request.time.toMillis();
+      allow update: if isSignedIn() && 
+                    request.auth.uid == userId && 
+                    isValidUser(incoming()) && 
+                    incoming().createdAt == existing().createdAt &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['companyName']);
+      allow delete: if false; // Users shouldn't be deleted purely from client SDK
+    }
+
+    match /campaigns/{campaignId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(campaignId) && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && 
+                    isValidId(campaignId) &&
+                    isValidCampaign(incoming()) && 
+                    incoming().createdAt == request.time.toMillis();
+      allow update: if isSignedIn() && 
+                    isValidId(campaignId) &&
+                    resource.data.userId == request.auth.uid &&
+                    isValidCampaign(incoming()) &&
+                    incoming().userId == existing().userId &&
+                    incoming().createdAt == existing().createdAt &&
+                    (
+                      incoming().diff(existing()).affectedKeys().hasOnly(['name', 'clientName', 'budget', 'status', 'rewardRate'])
+                    );
+      allow delete: if isSignedIn() && isValidId(campaignId) && resource.data.userId == request.auth.uid;
+    }
+
+    match /creators/{creatorId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(creatorId) && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && 
+                    isValidId(creatorId) &&
+                    isValidCreator(incoming()) && 
+                    incoming().createdAt == request.time.toMillis();
+      allow update: if isSignedIn() && 
+                    isValidId(creatorId) &&
+                    resource.data.userId == request.auth.uid &&
+                    isValidCreator(incoming()) &&
+                    incoming().userId == existing().userId &&
+                    incoming().createdAt == existing().createdAt &&
+                    (
+                      incoming().diff(existing()).affectedKeys().hasOnly(['handle', 'platform', 'email', 'payoutMethod'])
+                    );
+      allow delete: if isSignedIn() && isValidId(creatorId) && resource.data.userId == request.auth.uid;
+    }
+
+    match /submissions/{submissionId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(submissionId) && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && 
+                    isValidId(submissionId) &&
+                    isValidSubmission(incoming()) && 
+                    incoming().createdAt == request.time.toMillis() &&
+                    incoming().updatedAt == request.time.toMillis() &&
+                    exists(/databases/$(database)/documents/campaigns/$(incoming().campaignId)) &&
+                    exists(/databases/$(database)/documents/creators/$(incoming().creatorId));
+      allow update: if isSignedIn() && 
+                    isValidId(submissionId) &&
+                    resource.data.userId == request.auth.uid &&
+                    isValidSubmission(incoming()) &&
+                    incoming().userId == existing().userId &&
+                    incoming().campaignId == existing().campaignId &&
+                    incoming().creatorId == existing().creatorId &&
+                    incoming().createdAt == existing().createdAt &&
+                    incoming().updatedAt == request.time.toMillis() &&
+                    (
+                      incoming().diff(existing()).affectedKeys().hasOnly(['url', 'views', 'payout', 'status', 'updatedAt'])
+                    );
+      allow delete: if isSignedIn() && isValidId(submissionId) && resource.data.userId == request.auth.uid;
+    }
+  }
+}
