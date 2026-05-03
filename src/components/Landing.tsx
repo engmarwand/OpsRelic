@@ -12,10 +12,10 @@ export default function Landing() {
 
   // Animated background lines
   const BackgroundLines = () => (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20 z-0">
-      <div className="absolute top-0 left-1/4 w-[1px] h-full bg-gradient-to-b from-transparent via-blue-500/50 to-transparent" />
-      <div className="absolute top-0 left-2/4 w-[1px] h-full bg-gradient-to-b from-transparent via-blue-600/50 to-transparent" />
-      <div className="absolute top-0 left-3/4 w-[1px] h-full bg-gradient-to-b from-transparent via-blue-500/50 to-transparent" />
+    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10 z-0">
+      <div className="absolute top-0 left-1/4 w-[1px] h-full bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+      <div className="absolute top-0 left-2/4 w-[1px] h-full bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+      <div className="absolute top-0 left-3/4 w-[1px] h-full bg-gradient-to-b from-transparent via-white/10 to-transparent" />
     </div>
   );
 
