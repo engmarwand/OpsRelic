@@ -50,7 +50,10 @@ export async function startWhopOAuth(redirectUri: string) {
   // We MUST ensure the login starts on the SAME domain as the redirectUri
   // otherwise cookies set by the login endpoint won't be visible to the callback.
   const url = new URL(redirectUri);
-  window.location.href = `${url.origin}/api/auth/whop/login?redirect_uri=${encodeURIComponent(redirectUri)}`;
+  const loginUrl = `${url.origin}/api/auth/whop/login?redirect_uri=${encodeURIComponent(redirectUri)}`;
+  console.log("[v0] Starting Whop OAuth with redirect URI:", redirectUri);
+  console.log("[v0] Login URL:", loginUrl);
+  window.location.href = loginUrl;
 }
 
 export type WhopTier = 'starter' | 'pro' | 'agency';
