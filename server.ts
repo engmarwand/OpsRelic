@@ -33,10 +33,11 @@ async function startServer() {
     const state = crypto.randomBytes(16).toString('hex');
 
     // Store verifier and redirect_uri in temporary cookies
+    const isProduction = process.env.NODE_ENV === 'production';
     const cookieOptions = {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none' as const,
+      secure: isProduction, // Only require secure in production
+      sameSite: isProduction ? ('none' as const) : ('lax' as const),
       maxAge: 5 * 60 * 1000,
     };
     
@@ -102,12 +103,13 @@ async function startServer() {
       };
 
       // Set the session cookie
+      const isProduction = process.env.NODE_ENV === 'production';
       res.cookie('opsrelic_session', sessionData, {
         httpOnly: true,
-        secure: true,
+        secure: isProduction, // Only require secure in production
         signed: true,
         maxAge: 30 * 24 * 60 * 60 * 1000,
-        sameSite: 'lax',
+        sameSite: isProduction ? 'lax' : 'lax',
       });
 
       // Clear temporary cookies
@@ -179,7 +181,7 @@ async function startServer() {
 
       res.cookie('opsrelic_session', sessionData, {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
         signed: true,
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         sameSite: 'lax',
@@ -224,13 +226,22 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
+  // Setup Vite middleware LAST (after all API routes)
+  // This acts as a catch-all for the SPA frontend
+  const isDev = process.env.NODE_ENV !== "production";
+  if (isDev) {
+    try {
+      console.log("[v0] Setting up Vite middleware in development mode...");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+      console.log("[v0] Vite middleware initialized successfully");
+    } catch (error) {
+      console.error("[v0] Failed to initialize Vite middleware:", error);
+      throw error;
+    }
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
