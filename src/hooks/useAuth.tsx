@@ -117,7 +117,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (exchangeResponse.ok) {
                 sessionStorage.removeItem(WHOP_STORAGE_KEY);
                 window.history.replaceState({}, document.title, window.location.pathname);
+                
+                // Add delay to ensure cookies are flushed
+                await new Promise(r => setTimeout(r, 100));
+                
                 await checkSession();
+                
+                // Debug session persistence
+                const checkRes = await fetch('/api/auth/me');
+                console.log('Session status after exchange check:', checkRes.ok ? 'SUCCESS' : 'FAILED');
+                
                 window.location.hash = '#dashboard';
                 return;
               }

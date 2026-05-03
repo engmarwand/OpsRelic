@@ -36,8 +36,8 @@ async function startServer() {
   app.post("/api/auth/whop/exchange", async (req, res) => {
     const { code, code_verifier, redirect_uri } = req.body;
 
-    if (!code || !code_verifier) {
-      return res.status(400).send("Missing code or code_verifier");
+    if (!code || !code_verifier || !redirect_uri) {
+      return res.status(400).send("Missing code, code_verifier, or redirect_uri");
     }
 
     try {
@@ -58,7 +58,7 @@ async function startServer() {
           code,
           code_verifier,
           grant_type: "authorization_code",
-          redirect_uri: redirect_uri || process.env.WHOP_REDIRECT_URI || "https://www.opsrelic.com/api/auth/whop/callback",
+          redirect_uri: redirect_uri,
         }),
       });
 
