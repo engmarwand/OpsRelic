@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { AppProvider } from './lib/store';
-import { Home, UploadCloud, BarChart2, FileText, Wallet, UserPlus, TrendingUp, Settings, Bell } from 'lucide-react';
+import { Home, UploadCloud, BarChart2, FileText, Wallet, UserPlus, TrendingUp, Settings, Bell, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 // Components
@@ -13,11 +13,11 @@ import Onboarding from './components/Onboarding';
 import Workspace from './components/Workspace';
 import Landing from './components/Landing';
 import Walkthrough from './components/Walkthrough';
-import { AuthProvider, useAuth } from './hooks/useAuth';
-import { AuthGuard } from './components/AuthGuard';
-import { WhopCallback } from './components/WhopCallback';
-import { useAppContext } from './lib/store';
+import Pricing from './components/Pricing';
+import { auth, logout } from './lib/firebase';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 
+import { useAppContext } from './lib/store';
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, hash: '#dashboard' },
@@ -31,35 +31,23 @@ const navItems = [
 
 import { ToastProvider } from './lib/toast';
 
-function AppContent() {
+function AppContent({ user, onLogout }: { user: FirebaseUser, onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const { user, logout } = useAuth();
-  const { workspace, data, hasFeature, setCurrentTier } = useAppContext();
-  
-  // Sync Whop Tier to App Context
-  useEffect(() => {
-    if (user?.productTier) {
-      setCurrentTier(user.productTier);
-    }
-  }, [user, setCurrentTier]);
+  const [showPricing, setShowPricing] = useState(false);
+  const { workspace, data, hasFeature, plan } = useAppContext();
   
   const flaggedCount = data?.filter(r => r.Status === 'Flagged').length || 0;
 
-  const currentNavItems = useMemo(() => navItems.filter(item => {
+  const currentNavItems = navItems.filter(item => {
     if (item.id === 'budget' && !hasFeature('budgetTracker')) return false;
-    if (item.id === 'onboarding' && !hasFeature('onboardingPipeline')) return false;
+    // Onboarding is always visible
     return true;
-  }), [hasFeature]);
+  });
 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.substring(1) || 'dashboard';
-      const items = navItems.filter(item => {
-        if (item.id === 'budget' && !hasFeature('budgetTracker')) return false;
-        if (item.id === 'onboarding' && !hasFeature('onboardingPipeline')) return false;
-        return true;
-      });
-      if (items.some(i => i.id === hash)) {
+      if (currentNavItems.some(i => i.id === hash)) {
         setActiveTab(hash);
       }
     };
@@ -116,8 +104,17 @@ function AppContent() {
           })}
         </nav>
 
-        <div className="p-6">
-          <p className="text-[11px] text-[#555]">Made for Whop agencies</p>
+        <div className="p-4 border-t border-white/5 mx-4 mb-4">
+          <button 
+            className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/10"
+            onClick={() => setShowPricing(true)}
+          >
+             <div className="text-left">
+               <p className="text-[10px] text-[#888] uppercase tracking-wider font-semibold">Current Plan</p>
+               <p className="text-sm font-bold text-white">{plan?.name || 'No Plan'}</p>
+             </div>
+             <div className="text-[10px] bg-[var(--color-brand-primary)] text-white px-2 py-1 rounded-md font-bold">UPGRADE</div>
+          </button>
         </div>
       </aside>
 
@@ -163,15 +160,6 @@ function AppContent() {
                   </div>
                 </div>
               )}
-
-              {/* Glowing Webhook Status */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--color-brand-primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-brand-primary) 20%, transparent)', boxShadow: '0 0 15px color-mix(in srgb, var(--color-brand-primary) 30%, transparent)' }}>
-                <div className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-[var(--color-brand-primary)]"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--color-brand-primary)]"></span>
-                </div>
-                <span className="text-xs font-semibold tracking-widest uppercase text-[var(--color-brand-primary)]">Webhook Active</span>
-              </div>
               
               <div className="relative group cursor-pointer">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg bg-[var(--color-brand-primary)]" style={{ boxShadow: '0 4px 20px color-mix(in srgb, var(--color-brand-primary) 30%, transparent)' }}>
@@ -179,13 +167,10 @@ function AppContent() {
                 </div>
                 <div className="absolute right-0 top-full mt-2 w-48 bg-[#111] border border-white/10 rounded-xl shadow-2xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
                   <div className="p-3 border-b border-white/5">
-                    <p className="text-sm font-bold text-white truncate">{user?.name || 'OpsRelic User'}</p>
-                    <p className="text-xs text-[#888] truncate">{user?.email}</p>
-                    {user?.productTier && (
-                      <p className="text-[10px] mt-1 font-black text-[#00D4FF] uppercase tracking-widest">{user.productTier} Plan</p>
-                    )}
+                    <p className="text-sm font-bold text-white truncate">{user.displayName || 'OpsRelic User'}</p>
+                    <p className="text-xs text-[#888] truncate">{user.email}</p>
                   </div>
-                  <button onClick={logout} className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-white/5 font-semibold transition-colors">
+                  <button onClick={onLogout} className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-white/5 font-semibold transition-colors">
                     Log out
                   </button>
                 </div>
@@ -220,36 +205,46 @@ function AppContent() {
             </AnimatePresence>
           </div>
         </main>
+        
+        {showPricing && (
+          <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+             <div className="w-full max-w-6xl max-h-[90vh] overflow-y-auto bg-[#050505] rounded-3xl relative">
+                <button className="absolute top-8 right-8 z-50 text-white p-2 hover:bg-white/10 rounded-full" onClick={() => setShowPricing(false)}><X /></button>
+                <Pricing onClose={() => setShowPricing(false)} />
+             </div>
+          </div>
+        )}
       </div>
     );
 }
 
 export default function App() {
-  return (
-    <AuthProvider>
-      <AppProvider>
-        <ToastProvider>
-          <AuthWrapper />
-        </ToastProvider>
-      </AppProvider>
-    </AuthProvider>
-  );
-}
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
-function AuthWrapper() {
-  const { isAuthenticated } = useAuth();
-  
-  if (window.location.pathname === '/oauth/callback') {
-    return <WhopCallback />;
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-[var(--color-brand-primary)]/20 border-t-[var(--color-brand-primary)] rounded-full animate-spin"></div>
+    </div>;
   }
-  
+
   return (
-    <AuthGuard>
-      {isAuthenticated ? (
-        <AppContent />
-      ) : (
-        <Landing />
-      )}
-    </AuthGuard>
+    <AppProvider>
+      <ToastProvider>
+        {user ? (
+          <AppContent user={user} onLogout={logout} />
+        ) : (
+          <Landing />
+        )}
+      </ToastProvider>
+    </AppProvider>
   );
 }

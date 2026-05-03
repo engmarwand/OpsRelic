@@ -78,7 +78,7 @@ export default function Onboarding() {
         </div>
         <h2 className="text-2xl font-bold mb-2">Onboarding Pipeline Locked</h2>
         <p className="text-[#888] max-w-md mx-auto mb-6">
-          Your current <span className="font-bold text-white capitalize">{plan.name}</span> plan does not include the Creator Onboarding Pipeline. 
+          Your current <span className="font-bold text-white capitalize">{plan?.name || 'No'}</span> plan does not include the Creator Onboarding Pipeline. 
           Upgrade to <span className="capitalize font-bold text-emerald-400">{minTier}</span> or higher to access this feature.
         </p>
         <button 
@@ -98,9 +98,16 @@ export default function Onboarding() {
   const [templates, setTemplates] = useState<MessageTemplate[]>(DEFAULT_TEMPLATES);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  if (!isLoaded) {
+    return <div className="flex items-center justify-center p-20 text-[#888]">Loading pipeline...</div>;
+  }
+
   useEffect(() => {
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) {
+        setIsLoaded(true);
+        return;
+    }
     
     const configRef = doc(db, 'user_config', user.uid);
     const unsubscribe = onSnapshot(configRef, (snap) => {

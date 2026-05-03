@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Your Plan</title>
+    <script async defer src="https://js.whop.com/static/checkout/loader.js"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #6366f1;
+            --pro-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { margin-bottom: 3rem; }
+
+        .pricing-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            border-color: var(--accent);
+        }
+
+        .card.pro {
+            border: 2px solid var(--accent);
+        }
+        
+        .card.pro::before {
+            content: "Most Popular";
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--pro-gradient);
+            padding: 0.25rem 1rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .price { font-size: 2.5rem; font-weight: bold; margin: 1rem 0; }
+        
+        ul { list-style: none; padding: 0; margin-bottom: 2rem; }
+        li { margin-bottom: 0.5rem; color: var(--text-muted); }
+        li::before { content: "✓"; color: var(--accent); margin-right: 0.5rem; }
+
+        .btn {
+            background: var(--pro-gradient);
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        /* Modal */
+        #modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 500px;
+            width: 90%;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Choose Your Plan</h1>
+
+    <div class="pricing-container">
+        <div class="card">
+            <h3>Starter</h3>
+            <div class="price">$47</div>
+            <ul><li>CSV Upload</li><li>Campaign Reports</li></ul>
+            <button class="btn" onclick="openCheckout('plan_E5ffPT5SleRuU')">Get Started</button>
+        </div>
+        <div class="card pro">
+            <h3>Pro</h3>
+            <div class="price">$97</div>
+            <ul><li>Everything in Starter</li><li>AI Insights</li><li>Budget Tracker</li></ul>
+            <button class="btn" onclick="openCheckout('plan_3abAVC0tgumce')">Get Started</button>
+        </div>
+        <div class="card">
+            <h3>Agency</h3>
+            <div class="price">$297</div>
+            <ul><li>Everything in Pro</li><li>Custom Domains</li><li>Report Reordering</li></ul>
+            <button class="btn" onclick="openCheckout('plan_5bnzRrzNEhrt7')">Get Started</button>
+        </div>
+    </div>
+
+    <div id="modal" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div id="whop-container"></div>
+            <button class="btn" style="width: 100%; margin-top: 1rem;" onclick="closeModal()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        function openCheckout(planId) {
+            const container = document.getElementById('whop-container');
+            container.innerHTML = `<div data-whop-checkout-plan-id="${planId}" data-whop-checkout-theme="dark"></div>`;
+            document.getElementById('modal').style.display = 'flex';
+        }
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

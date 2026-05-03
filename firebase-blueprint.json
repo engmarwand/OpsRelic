@@ -7,7 +7,7 @@
       "properties": {
         "email": { "type": "string" },
         "companyName": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "number" }
       },
       "required": ["email", "companyName", "createdAt"]
     },
@@ -21,7 +21,7 @@
         "clientName": { "type": "string" },
         "budget": { "type": "number" },
         "status": { "type": "string", "enum": ["active", "completed", "draft"] },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "number" }
       },
       "required": ["userId", "name", "clientName", "budget", "status", "createdAt"]
     },
@@ -35,7 +35,7 @@
         "platform": { "type": "string", "enum": ["tiktok", "instagram", "youtube"] },
         "email": { "type": "string" },
         "payoutMethod": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "number" }
       },
       "required": ["userId", "handle", "platform", "createdAt"]
     },
@@ -51,8 +51,8 @@
         "views": { "type": "number" },
         "payout": { "type": "number" },
         "status": { "type": "string", "enum": ["pending", "approved", "paid"] },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
       },
       "required": ["userId", "campaignId", "creatorId", "url", "views", "payout", "status", "createdAt", "updatedAt"]
     }

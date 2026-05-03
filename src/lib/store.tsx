@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AppState, CsvRow, WorkspaceSettings } from '../types';
 import { auth, db } from './firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
 import { PLANS, Tier, Plan, PlanFeatures, PlanLimits } from './plans';
 
 interface AppContextType extends AppState {
@@ -33,7 +33,7 @@ const defaultState: AppState = {
   budgets: [],
   onboarding: [],
   workspace: defaultWorkspace,
-  currentTier: 'agency', // Default to agency for full demo access
+  currentTier: undefined, 
   reportsGeneratedMonth: 0
 };
 
@@ -90,14 +90,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    // Fetch user profile and plan
+    const userDocRef = doc(db, 'users', userId);
+    const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const userData = docSnap.data();
+            setState(prev => ({ ...prev, currentTier: userData.plan }));
+        } else {
+            // No plan set for user
+            setState(prev => ({ ...prev, currentTier: undefined }));
+        }
+    });
+
     const qSubmissions = query(collection(db, 'submissions'), where('userId', '==', userId));
     const unsubscribeSubmissions = onSnapshot(qSubmissions, (snapshot) => {
       const data: CsvRow[] = [];
       snapshot.forEach(doc => {
         const row = doc.data() as any;
-        const createdAtDate = row.createdAt?.toDate ? row.createdAt.toDate() : (row.createdAt ? new Date(row.createdAt) : null);
         data.push({
-          "Submission Date": createdAtDate ? createdAtDate.toISOString().split('T')[0] : "",
+          "Submission Date": row.createdAt ? new Date(row.createdAt).toISOString().split('T')[0] : "",
           Creator: row.creatorId ? row.creatorId.replace('id_creator_', '') : "",
           "Content Title": row.url || "",
           Platform: "TikTok", // Simplification since creator platform isn't immediately available here via JOIN
@@ -122,52 +133,54 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return () => {
        unsubscribeSubmissions();
        unsubscribeCampaigns();
+       unsubscribeUser();
     };
   }, [userId]);
 
-  const setData = React.useCallback(async (newData: CsvRow[]) => {
+  const setData = async (newData: CsvRow[]) => {
     setState(prev => ({ ...prev, data: newData }));
-  }, []);
+  };
 
-  const clearData = React.useCallback(() => {
+  const clearData = () => {
     setState(prev => ({ ...prev, data: [] }));
     window.OpsRelicData = undefined;
-  }, []);
+  };
 
-  const setWorkspace = React.useCallback((newWorkspace: WorkspaceSettings) => {
+  const setWorkspace = (newWorkspace: WorkspaceSettings) => {
     setState(prev => {
       const newState = { ...prev, workspace: newWorkspace };
       window.OpsRelicData = { ...window.OpsRelicData, workspace: newWorkspace };
       return newState;
     });
-  }, []);
+  };
 
-  const setCurrentTier = React.useCallback((tier: Tier) => {
+  const setCurrentTier = (tier: Tier) => {
     setState(prev => ({ ...prev, currentTier: tier }));
-  }, []);
+  };
 
-  const currentPlan = PLANS[state.currentTier || 'starter'];
+  const currentPlan = state.currentTier ? PLANS[state.currentTier] : null;
 
-  const hasFeature = React.useCallback((featureName: keyof PlanFeatures) => {
-    return PLANS[state.currentTier || 'starter'].features[featureName];
-  }, [state.currentTier]);
+  const hasFeature = (featureName: keyof PlanFeatures) => {
+    return currentPlan ? currentPlan.features[featureName] : false;
+  };
 
-  const getLimit = React.useCallback((limitName: keyof PlanLimits) => {
-    return PLANS[state.currentTier || 'starter'].limits[limitName];
-  }, [state.currentTier]);
+  const getLimit = (limitName: keyof PlanLimits) => {
+    return currentPlan ? currentPlan.limits[limitName] : 0;
+  };
 
-  const getUsage = React.useCallback((metricName: string) => {
+
+  const getUsage = (metricName: string) => {
     if (metricName === 'reportsPerMonth') {
       return state.reportsGeneratedMonth || 0;
     }
     return 0;
-  }, [state.reportsGeneratedMonth]);
+  };
 
-  const trackUsage = React.useCallback((metricName: string, amount: number = 1): boolean => {
+  const trackUsage = (metricName: string, amount: number = 1): boolean => {
     if (metricName === 'reportsPerMonth') {
-      const limit = PLANS[state.currentTier || 'starter'].limits.reportsPerMonth;
-      const current = state.reportsGeneratedMonth || 0;
-      if (limit !== Infinity) {
+      const limit = getLimit('reportsPerMonth');
+      const current = getUsage('reportsPerMonth');
+      if (limit !== 'unlimited' && typeof limit === 'number') {
         if (current + amount > limit) {
           return false; // Limit exceeded
         }
@@ -176,24 +189,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return true;
     }
     return true;
-  }, [state.currentTier, state.reportsGeneratedMonth]);
-
-  const contextValue = React.useMemo(() => ({ 
-    ...state, 
-    setData, 
-    clearData, 
-    setWorkspace, 
-    setCurrentTier, 
-    hasFeature, 
-    getLimit, 
-    getUsage, 
-    trackUsage, 
-    campaignsList, 
-    plan: currentPlan 
-  }), [state, setData, clearData, setWorkspace, setCurrentTier, hasFeature, getLimit, getUsage, trackUsage, campaignsList, currentPlan]);
+  };
 
   return (
-    <AppContext.Provider value={contextValue}>
+    <AppContext.Provider value={{ ...state, setData, clearData, setWorkspace, setCurrentTier, hasFeature, getLimit, getUsage, trackUsage, campaignsList, plan: currentPlan }}>
       {children}
     </AppContext.Provider>
   );

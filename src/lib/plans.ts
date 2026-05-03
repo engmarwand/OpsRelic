@@ -70,7 +70,7 @@ export const PLANS: Record<Tier, Plan> = {
       dashboardKPIs: true,
       dataExport: true,
       budgetTracker: false,
-      onboardingPipeline: false,
+      onboardingPipeline: true,
       whiteLabelBranding: false,
       unlimitedReports: false,
       historicalAnalytics: false,

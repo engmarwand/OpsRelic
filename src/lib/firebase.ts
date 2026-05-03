@@ -10,7 +10,6 @@ export const googleProvider = new GoogleAuthProvider();
 
 export const loginWithGoogle = async () => {
     try {
-        console.warn(`Attempting Google login from domain: ${window.location.hostname}`);
         const result = await signInWithPopup(auth, googleProvider);
         const user = result.user;
         
@@ -25,12 +24,7 @@ export const loginWithGoogle = async () => {
                 createdAt: serverTimestamp()
             });
         }
-    } catch (error: any) {
-        if (error?.code === 'auth/unauthorized-domain') {
-            const domainMsg = "Google login is not authorized for this domain. Please contact support.";
-            console.error(domainMsg, { hostname: window.location.hostname });
-            throw new Error(domainMsg);
-        }
+    } catch (error) {
         console.error("Error signing in with Google: ", error);
         throw error;
     }
