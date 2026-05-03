@@ -93,50 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const initAuth = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      const state = urlParams.get('state');
-
-      if (code) {
-        setWhopLoading(true);
-        const pkceStr = sessionStorage.getItem(WHOP_STORAGE_KEY);
-        if (pkceStr) {
-          try {
-            const pkce = JSON.parse(pkceStr);
-            if (pkce.state === state) {
-              const exchangeResponse = await fetch('/api/auth/whop/exchange', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                  code, 
-                  code_verifier: pkce.codeVerifier,
-                  redirect_uri: getWhopRedirectUri()
-                }),
-              });
-
-              if (exchangeResponse.ok) {
-                sessionStorage.removeItem(WHOP_STORAGE_KEY);
-                window.history.replaceState({}, document.title, window.location.pathname);
-                
-                // Add delay to ensure cookies are flushed
-                await new Promise(r => setTimeout(r, 100));
-                
-                await checkSession();
-                
-                // Debug session persistence
-                const checkRes = await fetch('/api/auth/me');
-                console.log('Session status after exchange check:', checkRes.ok ? 'SUCCESS' : 'FAILED');
-                
-                window.location.hash = '#dashboard';
-                return;
-              }
-            }
-          } catch (e) {
-            console.error('Exchange error:', e);
-          }
-        }
-      }
-
+      // With server-side callback, we just check the session
       await checkSession();
     };
 

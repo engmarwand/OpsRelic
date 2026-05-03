@@ -20,16 +20,101 @@ async function startServer() {
   app.use(express.json());
   app.use(cookieParser(SESSION_SECRET));
 
-  // Whop OAuth Callback - Simplified to redirect back to frontend
+  // Whop OAuth Login - Generates PKCE and redirects to Whop
+  app.get("/api/auth/whop/login", async (req, res) => {
+    const { redirect_uri } = req.query;
+    if (!redirect_uri) return res.status(400).send("Missing redirect_uri");
+
+    // Generate PKCE on server
+    const crypto = await import("crypto");
+    const code_verifier = crypto.randomBytes(32).toString('base64url');
+    const code_challenge = crypto.createHash('sha256').update(code_verifier).digest('base64url');
+    const state = crypto.randomBytes(16).toString('hex');
+
+    // Store verifier in a temporary cookie (shorter expiry, secure)
+    res.cookie('whop_pkce_verifier', code_verifier, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none', // Needed for cross-site redirect back to us in iframe
+      maxAge: 5 * 60 * 1000, // 5 minutes
+    });
+
+    const scope = "openid profile email membership:update member:basic:read member:email:read member:stats:read plan:basic:read stats:read chat:read";
+    const params = new URLSearchParams({
+      response_type: "code",
+      client_id: CLIENT_ID!,
+      redirect_uri: redirect_uri as string,
+      scope,
+      state,
+      code_challenge,
+      code_challenge_method: "S256",
+    });
+
+    res.redirect(`https://api.whop.com/oauth/authorize?${params.toString()}`);
+  });
+
+  // Whop OAuth Callback - Exchanges code and redirects to dashboard
   app.get("/api/auth/whop/callback", async (req, res) => {
     const { code, state } = req.query;
-    
-    const searchParams = new URLSearchParams();
-    if (code) searchParams.set('code', code as string);
-    if (state) searchParams.set('state', state as string);
-    
-    // Redirect back to root where the frontend will handle code exchange
-    res.redirect(`/?${searchParams.toString()}`);
+    const code_verifier = req.cookies.whop_pkce_verifier;
+
+    if (!code || !code_verifier) {
+      console.error("Callback missing code or verifier:", { code: !!code, verifier: !!code_verifier });
+      return res.redirect("/?error=auth_failed");
+    }
+
+    try {
+      const redirect_uri = `${req.protocol}://${req.get('host')}${req.path}`;
+      
+      const tokenResponse = await fetch("https://api.whop.com/oauth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client_id: CLIENT_ID,
+          client_secret: CLIENT_SECRET,
+          code,
+          code_verifier,
+          grant_type: "authorization_code",
+          redirect_uri,
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error("Failed to exchange code");
+      }
+
+      const tokens = await tokenResponse.json();
+      const userResponse = await fetch("https://api.whop.com/oauth/userinfo", {
+        headers: { Authorization: `Bearer ${tokens.access_token}` },
+      });
+      const userData = await userResponse.json();
+
+      const sessionData = {
+        userId: userData.sub,
+        name: userData.name,
+        email: userData.email,
+        accessToken: tokens.access_token,
+        isLoggedIn: true,
+      };
+
+      // Set the session cookie
+      res.cookie('opsrelic_session', JSON.stringify(sessionData), {
+        httpOnly: true,
+        secure: true,
+        signed: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        sameSite: 'lax', // User explicitly requested Lax
+      });
+
+      // Clear temporary PKCE cookie
+      res.clearCookie('whop_pkce_verifier');
+
+      // 302 Redirect to dashboard
+      res.redirect("/#dashboard");
+    } catch (error) {
+      console.error("Callback error:", error);
+      res.redirect("/?error=server_error");
+    }
   });
 
   // Exchange Endpoint - Sets secure session cookie

@@ -742,7 +742,26 @@ function AuthModal({ mode, onClose, onSwitchMode }: {
     try {
       await loginWithGoogle();
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in.');
+      console.error('Landing Google login error:', err);
+      // Detailed error for domain auth issues
+      if (err.message?.includes('not authorized for this domain')) {
+        setError("Google login is not authorized for this domain. Please contact support.");
+      } else {
+        setError(err.message || 'Failed to sign in with Google.');
+      }
+      setLoading(false);
+    }
+  };
+
+  const handleWhopLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const { startWhopOAuth, getWhopRedirectUri } = await import('../lib/whopConfig');
+      await startWhopOAuth(getWhopRedirectUri());
+    } catch (err: any) {
+      console.error('Landing Whop login error:', err);
+      setError('Failed to start Whop login. Please try again.');
       setLoading(false);
     }
   };
@@ -783,6 +802,39 @@ function AuthModal({ mode, onClose, onSwitchMode }: {
             {error}
           </div>
         )}
+
+        <div className="space-y-3 mb-8">
+          <button 
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 bg-white text-black font-bold py-3.5 px-6 rounded-2xl transition-all hover:bg-gray-100 disabled:opacity-50"
+          >
+            <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="Google" />
+            {loading ? 'Processing...' : 'Continue with Google'}
+          </button>
+          
+          <button 
+            type="button"
+            onClick={handleWhopLogin}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 bg-[#00D4FF] text-white font-bold py-3.5 px-6 rounded-2xl transition-all shadow-[0_8px_20px_rgba(0,212,255,0.25)] hover:shadow-[0_12px_30px_rgba(0,212,255,0.4)] disabled:opacity-50"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 21.6c-5.302 0-9.6-4.298-9.6-9.6S6.698 2.4 12 2.4s9.6 4.298 9.6 9.6-4.298 9.6-9.6 9.6zm-1.8-6.6h3.6v1.8h-3.6v-1.8zm0-3.6h3.6v1.8h-3.6v-1.8zm0-3.6h3.6v1.8h-3.6v-1.8z"/>
+            </svg>
+            {loading ? 'Processing...' : 'Sign In with Whop'}
+          </button>
+        </div>
+
+        <div className="relative mb-8">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-white/5"></div>
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-[#0A0A0A] px-4 text-[#444] font-bold">Or use email</span>
+          </div>
+        </div>
 
         <form onSubmit={handleEmailAuth} className="space-y-4">
           {mode === 'signup' && (
