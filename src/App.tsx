@@ -15,7 +15,7 @@ import Landing from './components/Landing';
 import Walkthrough from './components/Walkthrough';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { AuthGuard } from './components/AuthGuard';
-// import { WhopCallback } from './components/WhopCallback';
+import { WhopCallback } from './components/WhopCallback';
 import { useAppContext } from './lib/store';
 
 
@@ -238,6 +238,10 @@ export default function App() {
 
 function AuthWrapper() {
   const { isAuthenticated } = useAuth();
+  
+  if (window.location.pathname === '/oauth/callback') {
+    return <WhopCallback />;
+  }
   
   return (
     <AuthGuard>

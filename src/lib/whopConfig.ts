@@ -15,11 +15,9 @@ export const WHOP_STORAGE_KEY = "whop_oauth_pkce";
  */
 export const getWhopRedirectUri = () => {
   if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    // We use the server-side callback
-    return `${window.location.origin}/api/auth/whop/callback`;
+    return `${window.location.origin}/oauth/callback`;
   }
-  return "https://www.opsrelic.com/api/auth/whop/callback";
+  return "https://www.opsrelic.com/oauth/callback";
 };
 
 function base64url(bytes: Uint8Array) {
@@ -86,4 +84,53 @@ export interface WhopUser {
   email: string;
   profile_pic_url?: string;
   productTier?: WhopTier;
+}
+
+export async function handleWhopCallback(
+  clientId: string,
+  redirectUri: string,
+): Promise<WhopTokens> {
+  const params = new URLSearchParams(window.location.search);
+  const [code, returnedState, error] = [
+    params.get("code"),
+    params.get("state"),
+    params.get("error"),
+  ];
+
+  if (error) {
+    throw new Error(`OAuth error: ${error} - ${params.get("error_description") || ""}`);
+  }
+
+  if (!code) throw new Error("No code in callback URL");
+
+  const stored = JSON.parse(sessionStorage.getItem(WHOP_STORAGE_KEY) || "null");
+  sessionStorage.removeItem(WHOP_STORAGE_KEY);
+
+  if (!stored || returnedState !== stored.state) {
+    throw new Error("Invalid state - possible CSRF");
+  }
+
+  const res = await fetch("https://api.whop.com/oauth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: redirectUri,
+      client_id: clientId,
+      code_verifier: stored.codeVerifier,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`Token exchange failed: ${err.error_description || err.error || res.status}`);
+  }
+
+  const tokens = await res.json();
+  return { ...tokens, obtained_at: Date.now() };
+}
+
+export function storeTokens(tokens: WhopTokens) {
+  document.cookie = `whop_tokens=${encodeURIComponent(JSON.stringify(tokens))}; path=/; max-age=${60 * 60 * 24 * 30}; secure; samesite=strict`;
 }
