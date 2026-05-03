@@ -8,9 +8,7 @@ export const WhopLoginButton: React.FC<{ className?: string }> = ({ className })
     const scope = "openid profile email membership:update member:basic:read member:email:read member:stats:read plan:basic:read stats:read";
     
     await startWhopOAuth(
-      WHOP_CLIENT_ID,
-      redirectUri,
-      scope
+      redirectUri
     );
   };
 

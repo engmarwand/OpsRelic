@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
@@ -12,24 +13,26 @@ const __dirname = path.dirname(__filename);
 const PORT = 3000;
 const CLIENT_ID = process.env.WHOP_CLIENT_ID;
 const CLIENT_SECRET = process.env.WHOP_CLIENT_SECRET;
+const SESSION_SECRET = process.env.SESSION_SECRET || "opsrelic-local-secret-123456";
 
 async function startServer() {
   const app = express();
   app.use(express.json());
+  app.use(cookieParser(SESSION_SECRET));
 
   // Whop OAuth Callback - Simplified to redirect back to frontend
   app.get("/api/auth/whop/callback", async (req, res) => {
     const { code, state } = req.query;
     
-    // Construct return URL with same params
     const searchParams = new URLSearchParams();
     if (code) searchParams.set('code', code as string);
     if (state) searchParams.set('state', state as string);
     
+    // Redirect back to root where the frontend will handle code exchange
     res.redirect(`/?${searchParams.toString()}`);
   });
 
-  // Dedicated Exchange Endpoint for PKCE
+  // Exchange Endpoint - Sets secure session cookie
   app.post("/api/auth/whop/exchange", async (req, res) => {
     const { code, code_verifier, redirect_uri } = req.body;
 
@@ -38,6 +41,7 @@ async function startServer() {
     }
 
     try {
+      // 1. Exchange code for tokens
       const tokenResponse = await fetch("https://api.whop.com/oauth/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -58,37 +62,68 @@ async function startServer() {
       }
 
       const tokens = await tokenResponse.json();
-      res.json(tokens);
+      const accessToken = tokens.access_token;
+
+      // 2. Fetch user profile
+      const userResponse = await fetch("https://api.whop.com/oauth/userinfo", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const userData = await userResponse.json();
+
+      // 3. Set secure signed cookie
+      const sessionData = {
+        userId: userData.sub,
+        whopUserId: userData.sub,
+        name: userData.name,
+        email: userData.email,
+        accessToken: accessToken,
+        isLoggedIn: true,
+      };
+
+      res.cookie('opsrelic_session', JSON.stringify(sessionData), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        signed: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        sameSite: 'lax',
+      });
+
+      res.json({ success: true, user: userData });
     } catch (error) {
       console.error("Auth server error:", error);
       res.status(500).send("Internal Server Error");
     }
   });
 
-  // Proxy to fetch user info with token (to avoid CORS if client fetches directly)
-  app.post("/api/auth/whop/userinfo", async (req, res) => {
-    const { accessToken } = req.body;
-    if (!accessToken) return res.status(400).send("Missing access token");
-
+  // Get current session
+  app.get("/api/auth/me", (req, res) => {
+    const session = req.signedCookies.opsrelic_session;
+    if (!session) {
+      return res.status(401).json({ error: "No session" });
+    }
     try {
-      const userResponse = await fetch("https://api.whop.com/oauth/userinfo", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const userData = await userResponse.json();
-      res.json(userData);
-    } catch (error) {
-      res.status(500).send("Failed to fetch user info");
+      res.json(JSON.parse(session));
+    } catch (e) {
+      res.status(500).json({ error: "Invalid session" });
     }
   });
 
-  // Proxy to fetch memberships
-  app.post("/api/auth/whop/memberships", async (req, res) => {
-    const { accessToken } = req.body;
-    if (!accessToken) return res.status(400).send("Missing access token");
+  // Logout
+  app.post("/api/auth/logout", (req, res) => {
+    res.clearCookie('opsrelic_session');
+    res.json({ success: true });
+  });
+
+  // Proxy to fetch memberships (using session token)
+  app.get("/api/auth/whop/memberships", async (req, res) => {
+    const sessionStr = req.signedCookies.opsrelic_session;
+    if (!sessionStr) return res.status(401).send("Unauthorized");
+    
+    const session = JSON.parse(sessionStr);
 
     try {
       const response = await fetch("https://api.whop.com/api/v5/me/memberships", {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { Authorization: `Bearer ${session.accessToken}` },
       });
       const data = await response.json();
       res.json(data);
