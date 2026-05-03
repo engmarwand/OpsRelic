@@ -8,7 +8,18 @@ export const WHOP_PRODUCT_TIERS = {
 export const WHOP_CLIENT_ID = 'app_Lm1pKoAki3PWjp';
 export const WHOP_STORE_URL = 'https://whop.com/opsrelic-hq';
 export const WHOP_STORAGE_KEY = "whop_oauth_pkce";
-export const WHOP_REDIRECT_URI = "https://www.opsrelic.com/api/auth/whop/callback";
+
+/**
+ * Gets the redirect URI based on the current environment.
+ * In a professional OAuth flow, we should use the current origin
+ * so that session/PKCE data matches the domain the user is on.
+ */
+export const getWhopRedirectUri = () => {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/api/auth/whop/callback`;
+  }
+  return "https://www.opsrelic.com/api/auth/whop/callback";
+};
 
 function base64url(bytes: Uint8Array) {
   return btoa(String.fromCharCode(...bytes)).replace(

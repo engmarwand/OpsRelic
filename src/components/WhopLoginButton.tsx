@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { startWhopOAuth, WHOP_REDIRECT_URI } from '../lib/whopConfig';
+import { startWhopOAuth, getWhopRedirectUri } from '../lib/whopConfig';
 
 export const WhopLoginButton: React.FC<{ className?: string }> = ({ className }) => {
   const handleWhopLogin = async () => {
-    await startWhopOAuth(WHOP_REDIRECT_URI);
+    await startWhopOAuth(getWhopRedirectUri());
   };
 
   return (

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { WhopUser, WHOP_PRODUCT_TIERS, WhopTier, WHOP_STORAGE_KEY, WHOP_REDIRECT_URI } from '../lib/whopConfig';
+import { WhopUser, WHOP_PRODUCT_TIERS, WhopTier, WHOP_STORAGE_KEY, getWhopRedirectUri } from '../lib/whopConfig';
 
 interface AuthContextType {
   user: WhopUser | null;
@@ -85,11 +85,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 body: JSON.stringify({ 
                   code, 
                   code_verifier: pkce.codeVerifier,
-                  redirect_uri: WHOP_REDIRECT_URI
+                  redirect_uri: getWhopRedirectUri()
                 }),
               });
 
               if (exchangeResponse.ok) {
+                console.log('Whop exchange successful');
                 // Success! Clear PKCE and refresh session
                 sessionStorage.removeItem(WHOP_STORAGE_KEY);
                 window.history.replaceState({}, document.title, window.location.pathname);
@@ -97,7 +98,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 window.location.hash = '#dashboard';
                 return;
               } else {
-                setError('Authentication failed during code exchange.');
+                const errData = await exchangeResponse.json().catch(() => ({}));
+                console.error('Whop exchange failed:', errData);
+                setError(errData.error || 'Authentication failed during code exchange.');
               }
             } else {
               setError('Security mismatch detected.');

@@ -18,7 +18,7 @@ interface AppContextType extends AppState {
 }
 
 const defaultWorkspace: WorkspaceSettings = {
-  brand: { name: "Your Agency", tagline: "Clipping Agency Operations", logo: null, logoUrl: null },
+  brand: { name: "Your Agency", tagline: "Clipping Agency Operations", logo: null, logoUrl: "/logo.png" },
   color: { primary: "#00D4FF", preset: "Electric Blue" },
   reports: { coverPage: true, defaultDateRange: "Last 30 days", defaultPlatforms: ["TikTok", "Instagram", "YouTube", "Other"], template: {}, emailSignature: "", fromName: "", replyTo: "" },
   layout: { theme: "dark", layout: "Standard", chartStyle: "Line" },

@@ -176,7 +176,7 @@ export default function Workspace() {
                         </button>
                       </>
                     ) : (
-                      <ImageIcon className="w-8 h-8 text-[#333]" />
+                      <img src="/logo.png" alt="Logo" className="w-full h-full object-contain p-2 opacity-50" />
                     )}
                   </div>
                 </div>
@@ -620,9 +620,7 @@ export default function Workspace() {
                 {workspace?.brand?.logoUrl ? (
                   <img src={workspace.brand.logoUrl} alt="Logo" className="w-20 h-20 object-contain mb-4" />
                 ) : (
-                  <div className="w-16 h-16 rounded-2xl mb-4 flex items-center justify-center text-white shadow-lg shadow-black/10 transition-colors" style={{ backgroundColor: previewColor }}>
-                     <span className="font-black text-2xl">{previewName.substring(0, 2).toUpperCase()}</span>
-                  </div>
+                  <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain mb-4" />
                 )}
                 <h2 className="text-2xl font-black text-black tracking-tight">{previewName}</h2>
                 <p className="text-sm font-semibold text-black/50 tracking-wide mt-1 uppercase" style={{ color: previewColor }}>{previewTagline}</p>

@@ -41,6 +41,13 @@ async function startServer() {
     }
 
     try {
+      if (!CLIENT_SECRET) {
+        console.error("CRITICAL: WHOP_CLIENT_SECRET is missing from environment variables!");
+        return res.status(500).json({ error: "Server configuration error: Missing Client Secret" });
+      }
+
+      console.log("Exchanging Whop code for tokens...", { code: code.substring(0, 5) + "...", redirect_uri });
+
       // 1. Exchange code for tokens
       const tokenResponse = await fetch("https://api.whop.com/oauth/token", {
         method: "POST",
@@ -57,7 +64,7 @@ async function startServer() {
 
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.json();
-        console.error("Whop Exchange error:", errorData);
+        console.error("Whop Exchange error response:", errorData);
         return res.status(tokenResponse.status).json(errorData);
       }
 
