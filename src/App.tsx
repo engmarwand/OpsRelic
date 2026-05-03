@@ -77,11 +77,23 @@ function AppContent() {
       <aside className="w-[260px] fixed inset-y-0 left-0 bg-[#0A0A0A] border-r border-white/5 flex flex-col z-50 transition-transform max-md:-translate-x-full print:hidden">
         <div className="p-6">
           <div className="flex items-center gap-3">
-            {workspace?.brand?.logoUrl ? (
-              <img src={workspace.brand.logoUrl} alt="Logo" className="w-8 h-8 rounded-md object-contain" />
-            ) : (
-              <img src="/logo.png" alt="Logo" className="w-8 h-8 rounded-md object-contain" />
-            )}
+            <div className="w-8 h-8 rounded-md bg-black flex items-center justify-center overflow-hidden border border-white/10">
+              <img 
+                src={workspace?.brand?.logoUrl || "/logo.png"} 
+                alt="Logo" 
+                className="w-full h-full object-contain p-1" 
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) {
+                    const span = document.createElement('span');
+                    span.className = 'font-bold text-white text-[10px]';
+                    span.innerText = (workspace?.brand?.name || 'OR').substring(0, 2).toUpperCase();
+                    parent.appendChild(span);
+                  }
+                }}
+              />
+            </div>
             <div>
               <h1 className="font-bold text-white text-lg leading-tight">{workspace?.brand?.name || 'OpsRelic'}</h1>
               <p className="text-[11px] text-[#888]">{workspace?.brand?.tagline || 'Agency Operations'}</p>

@@ -40,30 +40,8 @@ async function sha256(str: string) {
   );
 }
 
-export async function startWhopOAuth(redirectUri: string) {
-  const pkce = {
-    codeVerifier: randomString(32),
-    state: randomString(16),
-    nonce: randomString(16),
-  };
-  
-  // Store in sessionStorage for the callback to verify
-  sessionStorage.setItem(WHOP_STORAGE_KEY, JSON.stringify(pkce));
-
-  const scope = "openid profile email membership:update member:basic:read member:email:read member:stats:read plan:basic:read stats:read chat:read";
-
-  const params = new URLSearchParams({
-    response_type: "code",
-    client_id: WHOP_CLIENT_ID,
-    redirect_uri: redirectUri,
-    scope,
-    state: pkce.state,
-    nonce: pkce.nonce,
-    code_challenge: await sha256(pkce.codeVerifier),
-    code_challenge_method: "S256",
-  });
-
-  window.location.href = `https://api.whop.com/oauth/authorize?${params.toString()}`;
+export async function startWhopOAuth() {
+  window.location.href = "/api/auth/whop/login";
 }
 
 export type WhopTier = 'starter' | 'pro' | 'agency';

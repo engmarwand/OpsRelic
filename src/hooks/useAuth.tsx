@@ -66,58 +66,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const initAuth = async () => {
-      // 1. Check for OAuth code in URL (PKCE Exchange)
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      const state = urlParams.get('state');
-
-      if (code) {
-        setLoading(true);
-        const pkceStr = sessionStorage.getItem(WHOP_STORAGE_KEY);
-        if (pkceStr) {
-          try {
-            const pkce = JSON.parse(pkceStr);
-            if (pkce.state === state) {
-              const exchangeResponse = await fetch('/api/auth/whop/exchange', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                  code, 
-                  code_verifier: pkce.codeVerifier,
-                  redirect_uri: getWhopRedirectUri()
-                }),
-              });
-
-              if (exchangeResponse.ok) {
-                console.log('Whop exchange successful');
-                // Success! Clear PKCE and refresh session
-                sessionStorage.removeItem(WHOP_STORAGE_KEY);
-                window.history.replaceState({}, document.title, window.location.pathname);
-                await checkSession();
-                window.location.hash = '#dashboard';
-                return;
-              } else {
-                const errData = await exchangeResponse.json().catch(() => ({}));
-                console.error('Whop exchange failed:', errData);
-                setError(errData.error || 'Authentication failed during code exchange.');
-              }
-            } else {
-              setError('Security mismatch detected.');
+    const checkSession = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const session = await response.json();
+          
+          // Fetch Memberships to determine Tier
+          const membershipsResponse = await fetch('/api/auth/whop/memberships');
+          let tier: WhopTier = 'starter';
+          
+          if (membershipsResponse.ok) {
+            const membershipsData = await membershipsResponse.json();
+            const activeMembership = membershipsData.data?.find((m: any) => 
+              m.status === 'active' && WHOP_PRODUCT_TIERS[m.product_id as keyof typeof WHOP_PRODUCT_TIERS]
+            );
+            if (activeMembership) {
+              tier = WHOP_PRODUCT_TIERS[activeMembership.product_id as keyof typeof WHOP_PRODUCT_TIERS] as WhopTier;
             }
-          } catch (e) {
-            console.error('Exchange error:', e);
-            setError('An error occurred during authentication flow.');
           }
+
+          setUser({
+            id: session.userId,
+            name: session.name,
+            email: session.email,
+            productTier: tier,
+          });
+        } else {
+          setUser(null);
         }
+      } catch (err) {
+        console.error('Session check failed:', err);
+        setUser(null);
+      } finally {
         setLoading(false);
       }
-
-      // 2. Check existing session if no code in URL
-      await checkSession();
     };
 
-    initAuth();
+    checkSession();
   }, []);
 
   return (

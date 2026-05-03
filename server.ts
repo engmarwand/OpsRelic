@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+import crypto from "crypto";
 
 dotenv.config();
 
@@ -20,16 +21,100 @@ async function startServer() {
   app.use(express.json());
   app.use(cookieParser(SESSION_SECRET));
 
-  // Whop OAuth Callback - Simplified to redirect back to frontend
+  // Force www on production for consistent auth origins
+  if (process.env.NODE_ENV === "production" && process.env.WHOP_REDIRECT_URI?.includes("www.opsrelic.com")) {
+    app.use((req, res, next) => {
+      if (req.hostname === 'opsrelic.com') {
+        return res.redirect(301, `https://www.opsrelic.com${req.originalUrl}`);
+      }
+      next();
+    });
+  }
+
+  // Static files FIRST to ensure assets like logo.png are served correctly in production
+  if (process.env.NODE_ENV === "production") {
+    const distPath = path.resolve(__dirname, "dist");
+    const publicPath = path.resolve(__dirname, "public");
+    console.log("Production static serving paths:", { distPath, publicPath });
+    app.use(express.static(distPath));
+    app.use(express.static(publicPath));
+  }
+
+  // Whop OAuth Login - Start PKCE flow
+  app.get("/api/auth/whop/login", (req, res) => {
+    const state = crypto.randomBytes(32).toString('hex');
+    const code_verifier = crypto.randomBytes(64).toString('hex');
+    const code_challenge = crypto.createHash('sha256').update(code_verifier).digest('base64')
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+    const cookieOptions = { httpOnly: true, secure: true, sameSite: 'lax' as const, maxAge: 900000 };
+    res.cookie('whop_state', state, cookieOptions);
+    res.cookie('whop_verifier', code_verifier, cookieOptions);
+
+    const params = new URLSearchParams({
+      client_id: CLIENT_ID!,
+      redirect_uri: "https://www.opsrelic.com/api/auth/whop/callback",
+      response_type: 'code',
+      state: state,
+      code_challenge: code_challenge,
+      code_challenge_method: 'S256',
+      scope: 'openid profile email membership:update member:basic:read member:email:read'
+    });
+
+    res.redirect(`https://api.whop.com/oauth/authorize?${params.toString()}`);
+  });
+
+  // Whop OAuth Callback - Exchange code for tokens
   app.get("/api/auth/whop/callback", async (req, res) => {
     const { code, state } = req.query;
-    
-    const searchParams = new URLSearchParams();
-    if (code) searchParams.set('code', code as string);
-    if (state) searchParams.set('state', state as string);
-    
-    // Redirect back to root where the frontend will handle code exchange
-    res.redirect(`/?${searchParams.toString()}`);
+    const { whop_state, whop_verifier } = req.cookies;
+
+    if (!state || state !== whop_state) {
+      return res.status(400).send("Security verification failed: State mismatch.");
+    }
+
+    try {
+      const tokenResponse = await fetch("https://api.whop.com/oauth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: "https://www.opsrelic.com/api/auth/whop/callback",
+          client_id: CLIENT_ID,
+          client_secret: CLIENT_SECRET,
+          code_verifier: whop_verifier
+        }),
+      });
+
+      const tokenData = await tokenResponse.json();
+      if (!tokenResponse.ok) {
+        console.error("Token Exchange Error:", tokenData);
+        return res.status(tokenResponse.status).json(tokenData);
+      }
+
+      const userResponse = await fetch("https://api.whop.com/oauth/userinfo", {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+      const userData = await userResponse.json();
+
+      res.cookie('opsrelic_session', JSON.stringify({
+        userId: userData.sub,
+        name: userData.name || userData.username,
+        email: userData.email,
+        accessToken: tokenData.access_token,
+        isLoggedIn: true,
+      }), {
+        httpOnly: true, secure: true, signed: true, maxAge: 30 * 24 * 60 * 60 * 1000, sameSite: 'lax',
+      });
+
+      res.clearCookie('whop_state');
+      res.clearCookie('whop_verifier');
+      res.redirect("/");
+    } catch (error) {
+      console.error("OAuth Error:", error);
+      res.status(500).send("Authentication failed");
+    }
   });
 
   // Exchange Endpoint - Sets secure session cookie
@@ -147,8 +232,8 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+    // Production SPA fallback
+    const distPath = path.resolve(__dirname, "dist");
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });

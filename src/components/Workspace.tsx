@@ -164,21 +164,31 @@ export default function Workspace() {
                       }}
                     />
                   </label>
-                  <div className="w-32 h-32 bg-[#0F0F0F] border border-white/5 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative group">
-                    {workspace?.brand?.logoUrl ? (
-                      <>
-                        <img src={workspace.brand.logoUrl} alt="Logo" className="w-full h-full object-contain p-2" />
+                    <div className="w-32 h-32 bg-[#0F0F0F] border border-white/5 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative group">
+                      <img 
+                        src={workspace?.brand?.logoUrl || "/logo.png"} 
+                        alt="Logo" 
+                        className={`w-full h-full object-contain p-2 ${!workspace?.brand?.logoUrl ? 'opacity-50' : ''}`}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const parent = e.currentTarget.parentElement;
+                          if (parent) {
+                            const span = document.createElement('span');
+                            span.className = 'font-black text-white text-xl';
+                            span.innerText = (workspace?.brand?.name || 'OR').substring(0, 2).toUpperCase();
+                            parent.appendChild(span);
+                          }
+                        }}
+                      />
+                      {workspace?.brand?.logoUrl && (
                         <button 
                           onClick={() => updateBrand('logoUrl', null)}
                           className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-bold"
                         >
                           Remove
                         </button>
-                      </>
-                    ) : (
-                      <img src="/logo.png" alt="Logo" className="w-full h-full object-contain p-2 opacity-50" />
-                    )}
-                  </div>
+                      )}
+                    </div>
                 </div>
               </div>
 
@@ -615,13 +625,24 @@ export default function Workspace() {
           </div>
 
           <div className="p-8 pb-10">
-             {/* Preview: Header / Cover */}
              <div className="flex flex-col items-center text-center mb-10 pb-10 border-b border-black/5">
-                {workspace?.brand?.logoUrl ? (
-                  <img src={workspace.brand.logoUrl} alt="Logo" className="w-20 h-20 object-contain mb-4" />
-                ) : (
-                  <img src="/logo.png" alt="Logo" className="w-20 h-20 object-contain mb-4" />
-                )}
+                <div className="w-20 h-20 bg-black rounded-xl flex items-center justify-center overflow-hidden mb-4 border border-white/10 shadow-lg shadow-black/20">
+                  <img 
+                    src={workspace?.brand?.logoUrl || "/logo.png"} 
+                    alt="Logo" 
+                    className="w-full h-full object-contain p-2"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const parent = e.currentTarget.parentElement;
+                      if (parent) {
+                        const span = document.createElement('span');
+                        span.className = 'font-black text-white text-xl';
+                        span.innerText = (previewName || 'OR').substring(0, 2).toUpperCase();
+                        parent.appendChild(span);
+                      }
+                    }}
+                  />
+                </div>
                 <h2 className="text-2xl font-black text-black tracking-tight">{previewName}</h2>
                 <p className="text-sm font-semibold text-black/50 tracking-wide mt-1 uppercase" style={{ color: previewColor }}>{previewTagline}</p>
              </div>

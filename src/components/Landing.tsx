@@ -34,7 +34,24 @@ export default function Landing() {
       <nav className="fixed top-0 w-full border-b border-white/5 bg-[#050505]/80 backdrop-blur-md z-50">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="OpsRelic Logo" className="w-10 h-10 object-contain rounded-xl shadow-lg shadow-blue-500/20" />
+            <div className="w-10 h-10 bg-black border border-white/10 rounded-xl flex items-center justify-center overflow-hidden">
+              <img 
+                src="/logo.png" 
+                alt="Logo" 
+                className="w-full h-full object-contain p-1.5" 
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  // Show OR text as fallback if image fails
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) {
+                    const span = document.createElement('span');
+                    span.className = 'font-black text-white text-xs';
+                    span.innerText = 'OR';
+                    parent.appendChild(span);
+                  }
+                }} 
+              />
+            </div>
             <span className="font-bold text-xl tracking-tight">OpsRelic</span>
           </div>
           <div className="flex items-center gap-6">
@@ -771,11 +788,23 @@ function AuthModal({ mode, onClose, onSwitchMode }: {
         </button>
 
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl mx-auto flex items-center justify-center mb-6 text-white">
-            <Zap className="w-8 h-8" />
+          <div className="w-16 h-16 bg-black border border-white/10 rounded-2xl mx-auto flex items-center justify-center mb-6 text-white overflow-hidden">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain p-2" onError={(e) => (e.currentTarget.style.display = 'none')} />
           </div>
           <h2 className="text-3xl font-black mb-2 tracking-tight">{mode === 'login' ? 'Welcome' : 'Join OpsRelic'}</h2>
           <p className="text-[#888] text-sm">Use your email or social account.</p>
+        </div>
+
+        <div className="mb-6">
+          <WhopLoginButton className="w-full" />
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/5"></div>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-[#0A0A0A] px-2 text-[#555] font-bold">Or continue with email</span>
+            </div>
+          </div>
         </div>
 
         {error && (
