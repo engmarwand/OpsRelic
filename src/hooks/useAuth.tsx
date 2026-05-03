@@ -91,38 +91,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const initAuth = async () => {
-      const pathname = window.location.pathname;
-      const search = window.location.search;
-
-      // Handle Whop Callback
-      if (search.includes('code=') && search.includes('state=')) {
-        setLoading(true);
-        try {
-          const { handleWhopCallback, WHOP_CLIENT_ID, getWhopRedirectUri } = await import('../lib/whopConfig');
-          // handleWhopCallback now calls our proxy and manages the session via cookies
-          await handleWhopCallback(WHOP_CLIENT_ID, getWhopRedirectUri());
-          
-          await checkSession();
-          window.history.replaceState({}, '', '/#dashboard');
-        } catch (err: any) {
-          console.error('Whop Callback failed:', err);
-          // Attempt to parse the custom error message if it's JSON
-          let errorMessage = err.message || 'Failed to complete Whop authentication';
-          try {
-             const parsed = JSON.parse(errorMessage);
-             if (parsed.error_description) errorMessage = parsed.error_description;
-             else if (parsed.error) errorMessage = parsed.error;
-          } catch (e) {}
-          
-          setError(errorMessage);
-          window.history.replaceState({}, '', '/');
-        } finally {
-          setLoading(false);
-          setWhopLoading(false);
-        }
-        return;
-      }
-
       // Standard session check
       await checkSession();
     };

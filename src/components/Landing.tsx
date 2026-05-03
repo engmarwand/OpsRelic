@@ -755,8 +755,10 @@ function AuthModal({ mode, onClose, onSwitchMode }: {
     setLoading(true);
     setError('');
     try {
-      const { startWhopOAuth, getWhopRedirectUri, WHOP_CLIENT_ID } = await import('../lib/whopConfig');
-      await startWhopOAuth(WHOP_CLIENT_ID, getWhopRedirectUri());
+      const { getWhopRedirectUri } = await import('../lib/whopConfig');
+      // Redirect to the server-side login endpoint which handles PKCE
+      const loginUrl = `/api/auth/whop/login?redirect_uri=${encodeURIComponent(getWhopRedirectUri())}`;
+      window.location.href = loginUrl;
     } catch (err: any) {
       console.error('Landing Whop login error:', err);
       setError('Failed to start Whop login. Please try again.');
