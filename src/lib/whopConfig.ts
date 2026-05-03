@@ -8,6 +8,7 @@ export const WHOP_PRODUCT_TIERS = {
 export const WHOP_CLIENT_ID = 'app_Lm1pKoAki3PWjp';
 export const WHOP_STORE_URL = 'https://whop.com/opsrelic-hq';
 export const WHOP_STORAGE_KEY = "whop_oauth_pkce";
+export const WHOP_REDIRECT_URI = "https://www.opsrelic.com/api/auth/whop/callback";
 
 function base64url(bytes: Uint8Array) {
   return btoa(String.fromCharCode(...bytes)).replace(

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { WhopUser, WHOP_PRODUCT_TIERS, WhopTier, WHOP_STORAGE_KEY } from '../lib/whopConfig';
+import { WhopUser, WHOP_PRODUCT_TIERS, WhopTier, WHOP_STORAGE_KEY, WHOP_REDIRECT_URI } from '../lib/whopConfig';
 
 interface AuthContextType {
   user: WhopUser | null;
@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 body: JSON.stringify({ 
                   code, 
                   code_verifier: pkce.codeVerifier,
-                  redirect_uri: `${window.location.origin}/api/auth/whop/callback`
+                  redirect_uri: WHOP_REDIRECT_URI
                 }),
               });
 

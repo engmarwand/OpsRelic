@@ -51,7 +51,7 @@ async function startServer() {
           code,
           code_verifier,
           grant_type: "authorization_code",
-          redirect_uri: redirect_uri || process.env.WHOP_REDIRECT_URI,
+          redirect_uri: redirect_uri || process.env.WHOP_REDIRECT_URI || "https://www.opsrelic.com/api/auth/whop/callback",
         }),
       });
 

@@ -1,15 +1,10 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { startWhopOAuth, WHOP_CLIENT_ID } from '../lib/whopConfig';
+import { startWhopOAuth, WHOP_REDIRECT_URI } from '../lib/whopConfig';
 
 export const WhopLoginButton: React.FC<{ className?: string }> = ({ className }) => {
   const handleWhopLogin = async () => {
-    const redirectUri = `${window.location.origin}/api/auth/whop/callback`;
-    const scope = "openid profile email membership:update member:basic:read member:email:read member:stats:read plan:basic:read stats:read";
-    
-    await startWhopOAuth(
-      redirectUri
-    );
+    await startWhopOAuth(WHOP_REDIRECT_URI);
   };
 
   return (
