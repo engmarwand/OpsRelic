@@ -2,6 +2,7 @@ export type Tier = 'starter' | 'pro' | 'agency';
 
 export interface PlanFeatures {
   csvUpload: boolean;
+  smartSync: boolean; // Added
   campaignReports: boolean;
   clipperLeaderboard: boolean;
   platformBreakdown: boolean;
@@ -39,6 +40,7 @@ export interface PlanFeatures {
 export interface PlanLimits {
   reportsPerMonth: number;
   campaigns: number;
+  recordsPerCampaign: number; // Added
   savedTemplates: number;
   clipperInvites: number;
   dataRetentionDays: number;
@@ -58,26 +60,27 @@ export interface Plan {
 export const PLANS: Record<Tier, Plan> = {
   starter: {
     id: 'starter',
-    name: "Starter",
-    price: 47,
+    name: "Free", // Renamed for clarity
+    price: 0, // Making first tier free as implied by "free trials"
     features: {
       csvUpload: true,
-      campaignReports: true,
+      smartSync: false,
+      campaignReports: false, // Report builder locked in free
       clipperLeaderboard: true,
       platformBreakdown: true,
-      pdfExport: true,
-      reportTemplates: true,
+      pdfExport: false,
+      reportTemplates: false,
       dashboardKPIs: true,
       dataExport: true,
       budgetTracker: false,
-      onboardingPipeline: true,
+      onboardingPipeline: false,
       whiteLabelBranding: false,
       unlimitedReports: false,
       historicalAnalytics: false,
       aiInsights: false,
       messageTemplates: false,
       prioritySupport: false,
-      workspaceCustomization: true,
+      workspaceCustomization: false,
       colorSchemePresets: false,
       clientProfiles: false,
       reportReordering: false,
@@ -87,19 +90,20 @@ export const PLANS: Record<Tier, Plan> = {
       notificationPreferences: false,
       layoutStyles: false,
       emailBranding: false,
-      reportCoverPage: true,
+      reportCoverPage: false,
       livePreviewPanel: false,
       perClientBranding: false,
       rollingDateRanges: false,
-      savedTemplates: true,
+      savedTemplates: false,
     },
     limits: {
-      reportsPerMonth: 5,
-      campaigns: 2,
-      savedTemplates: 1,
-      clipperInvites: 10,
-      dataRetentionDays: 90,
-      exportFrequency: "Once per session",
+      reportsPerMonth: 0,
+      campaigns: 1,
+      recordsPerCampaign: 500,
+      savedTemplates: 0,
+      clipperInvites: 0,
+      dataRetentionDays: 30,
+      exportFrequency: "None",
       clientProfiles: 0,
       scheduledReportTriggers: 0,
     },
@@ -107,9 +111,10 @@ export const PLANS: Record<Tier, Plan> = {
   pro: {
     id: 'pro',
     name: "Pro",
-    price: 97,
+    price: 79,
     features: {
       csvUpload: true,
+      smartSync: true,
       campaignReports: true,
       clipperLeaderboard: true,
       platformBreakdown: true,
@@ -118,8 +123,8 @@ export const PLANS: Record<Tier, Plan> = {
       dashboardKPIs: true,
       dataExport: true,
       budgetTracker: true,
-      onboardingPipeline: true,
-      whiteLabelBranding: true,
+      onboardingPipeline: false,
+      whiteLabelBranding: false,
       unlimitedReports: true,
       historicalAnalytics: true,
       aiInsights: true,
@@ -134,7 +139,7 @@ export const PLANS: Record<Tier, Plan> = {
       customDomains: false,
       notificationPreferences: false,
       layoutStyles: false,
-      emailBranding: true,
+      emailBranding: false,
       reportCoverPage: true,
       livePreviewPanel: true,
       perClientBranding: false,
@@ -144,20 +149,22 @@ export const PLANS: Record<Tier, Plan> = {
     limits: {
       reportsPerMonth: 50,
       campaigns: 10,
+      recordsPerCampaign: 5000,
       savedTemplates: 5,
       clipperInvites: 50,
       dataRetentionDays: 365,
       exportFrequency: "Unlimited",
-      clientProfiles: 0,
-      scheduledReportTriggers: 0,
+      clientProfiles: 10,
+      scheduledReportTriggers: 5,
     },
   },
   agency: {
     id: 'agency',
     name: "Agency",
-    price: 197,
+    price: 247,
     features: {
       csvUpload: true,
+      smartSync: true,
       campaignReports: true,
       clipperLeaderboard: true,
       platformBreakdown: true,
@@ -192,6 +199,7 @@ export const PLANS: Record<Tier, Plan> = {
     limits: {
       reportsPerMonth: Infinity,
       campaigns: Infinity,
+      recordsPerCampaign: Infinity,
       savedTemplates: Infinity,
       clipperInvites: Infinity,
       dataRetentionDays: Infinity,

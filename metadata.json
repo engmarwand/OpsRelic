@@ -1,5 +1,5 @@
 {
-  "name": "Opsrelic Landing Page",
-  "description": "A conversion-focused landing page for an AI video repurposing and automation service called opsrelic.",
+  "name": "OpsRelic Agency Dashboard",
+  "description": "A comprehensive management platform for clipping agencies, featuring campaign tracking, contractor performance analytics, and customizable client reporting.",
   "requestFramePermissions": []
 }

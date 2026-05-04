@@ -1,78 +1,107 @@
 {
   "entities": {
     "User": {
-      "title": "User",
-      "description": "An agency or user using the platform.",
+      "title": "User Profile",
+      "description": "User account information and subscription tier",
       "type": "object",
       "properties": {
-        "email": { "type": "string" },
-        "companyName": { "type": "string" },
-        "createdAt": { "type": "number" }
+        "plan": {
+          "type": "string",
+          "enum": ["starter", "pro", "agency"],
+          "description": "Subscription tier of the user"
+        }
       },
-      "required": ["email", "companyName", "createdAt"]
+      "required": ["plan"]
+    },
+    "Workspace": {
+      "title": "Workspace Settings",
+      "description": "Agency branding and configuration",
+      "type": "object",
+      "properties": {
+        "brand": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "tagline": { "type": "string" },
+            "logoUrl": { "type": ["string", "null"] }
+          }
+        },
+        "color": {
+          "type": "object",
+          "properties": {
+            "primary": { "type": "string" }
+          }
+        },
+        "layout": {
+          "type": "object",
+          "properties": {
+            "theme": { "type": "string" },
+            "layout": { "type": "string" }
+          }
+        },
+        "notifications": {
+          "type": "object"
+        }
+      }
     },
     "Campaign": {
       "title": "Campaign",
-      "description": "A marketing campaign.",
+      "description": "Tracking campaign for agency projects",
       "type": "object",
       "properties": {
-        "userId": { "type": "string" },
         "name": { "type": "string" },
-        "clientName": { "type": "string" },
-        "budget": { "type": "number" },
-        "status": { "type": "string", "enum": ["active", "completed", "draft"] },
-        "createdAt": { "type": "number" }
-      },
-      "required": ["userId", "name", "clientName", "budget", "status", "createdAt"]
-    },
-    "Creator": {
-      "title": "Creator",
-      "description": "A creator participating in campaigns.",
-      "type": "object",
-      "properties": {
         "userId": { "type": "string" },
-        "handle": { "type": "string" },
-        "platform": { "type": "string", "enum": ["tiktok", "instagram", "youtube"] },
-        "email": { "type": "string" },
-        "payoutMethod": { "type": "string" },
-        "createdAt": { "type": "number" }
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["userId", "handle", "platform", "createdAt"]
+      "required": ["name", "userId"]
     },
     "Submission": {
       "title": "Submission",
-      "description": "A video submission by a creator for a campaign.",
+      "description": "Content asset submissions from creators",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
         "campaignId": { "type": "string" },
-        "creatorId": { "type": "string" },
-        "url": { "type": "string" },
+        "title": { "type": "string" },
         "views": { "type": "number" },
         "payout": { "type": "number" },
-        "status": { "type": "string", "enum": ["pending", "approved", "paid"] },
-        "createdAt": { "type": "number" },
-        "updatedAt": { "type": "number" }
+        "status": { "type": "string" },
+        "platform": { "type": "string" },
+        "url": { "type": "string" }
       },
-      "required": ["userId", "campaignId", "creatorId", "url", "views", "payout", "status", "createdAt", "updatedAt"]
+      "required": ["userId", "campaignId", "title"]
+    },
+    "UserConfig": {
+      "title": "User Configuration",
+      "description": "Creator pipeline, guidelines and message templates",
+      "type": "object",
+      "properties": {
+        "invites": { "type": "array" },
+        "guidelines": { "type": "array" },
+        "templates": { "type": "array" }
+      }
     }
   },
   "firestore": {
     "/users/{userId}": {
-      "schema": { "$ref": "#/entities/User" },
-      "description": "Agency user profiles"
+      "schema": "User",
+      "description": "Individual user data"
+    },
+    "/workspaces/{userId}": {
+      "schema": "Workspace",
+      "description": "Agency workspace configuration"
     },
     "/campaigns/{campaignId}": {
-      "schema": { "$ref": "#/entities/Campaign" },
-      "description": "Campaigns managed by agencies"
-    },
-    "/creators/{creatorId}": {
-      "schema": { "$ref": "#/entities/Creator" },
-      "description": "Creators managed by agencies"
+      "schema": "Campaign",
+      "description": "Campaign documents"
     },
     "/submissions/{submissionId}": {
-      "schema": { "$ref": "#/entities/Submission" },
-      "description": "Video submissions from creators"
+      "schema": "Submission",
+      "description": "Content submission documents"
+    },
+    "/user_config/{userId}": {
+      "schema": "UserConfig",
+      "description": "Pipeline and CRM configuration for a user"
     }
   }
 }

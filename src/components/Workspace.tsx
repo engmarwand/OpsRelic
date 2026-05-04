@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../lib/store';
-import { Settings, Image as ImageIcon, Palette, LayoutDashboard, Bell, FileText, UploadCloud, X, Check, Lock, ChevronDown, Monitor, Moon, Sun, GripVertical, AlertCircle, Plus, Mail } from 'lucide-react';
+import { Settings, Image as ImageIcon, Palette, LayoutDashboard, Bell, FileText, UploadCloud, X, Check, Lock, ChevronDown, Monitor, GripVertical, AlertCircle, Plus, Mail, Save, Loader2 } from 'lucide-react';
 import { getFeatureMinTier } from '../lib/plans';
 import type { PlanFeatures } from '../lib/plans';
+import type { WorkspaceSettings } from '../types';
 
 function TierBadge({ tier }: { tier: 'starter' | 'pro' | 'agency' }) {
   if (tier === 'starter') return null;
@@ -24,44 +25,96 @@ function FeatureLock({ feature }: { feature: keyof PlanFeatures }) {
 }
 
 export default function Workspace() {
-  const { workspace, setWorkspace, hasFeature } = useAppContext();
-  const [activeTab, setActiveTab] = useState<'brand' | 'reports' | 'customization' | 'notificationPreferences'>('brand');
+  const { workspace: globalWorkspace, saveWorkspace, hasFeature } = useAppContext();
+  const [activeTab, setActiveTab] = useState<'brand' | 'customization' | 'notificationPreferences'>('brand');
+  const [localWorkspace, setLocalWorkspace] = useState<WorkspaceSettings | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // Initialize local workspace from global one
+  useEffect(() => {
+    if (globalWorkspace && !localWorkspace) {
+      setLocalWorkspace(globalWorkspace);
+    }
+  }, [globalWorkspace]);
+
+  const isDirty = localWorkspace && globalWorkspace && JSON.stringify(localWorkspace) !== JSON.stringify(globalWorkspace);
+
+  const handleSave = async () => {
+    if (!localWorkspace || isSaving) return;
+    setIsSaving(true);
+    try {
+      await saveWorkspace(localWorkspace);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (error) {
+      console.error("Save failed", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const updateBrand = (key: string, value: any) => {
-    if (!workspace) return;
-    setWorkspace({ ...workspace, brand: { ...workspace.brand, [key]: value } });
+    if (!localWorkspace) return;
+    setLocalWorkspace({ ...localWorkspace, brand: { ...localWorkspace.brand, [key]: value } });
   };
 
   const updateColor = (key: string, value: any) => {
-    if (!workspace) return;
-    setWorkspace({ ...workspace, color: { ...workspace.color, [key]: value } });
-  };
-
-  const updateReports = (key: string, value: any) => {
-    if (!workspace) return;
-    setWorkspace({ ...workspace, reports: { ...workspace.reports, [key]: value } });
+    if (!localWorkspace) return;
+    setLocalWorkspace({ ...localWorkspace, color: { ...localWorkspace.color, [key]: value } });
   };
 
   const updateLayout = (key: string, value: any) => {
-    if (!workspace) return;
-    setWorkspace({ ...workspace, layout: { ...workspace.layout, [key]: value } });
+    if (!localWorkspace) return;
+    setLocalWorkspace({ ...localWorkspace, layout: { ...localWorkspace.layout, [key]: value } });
   };
 
   const updateNotifications = (key: string, value: any) => {
-    if (!workspace) return;
-    setWorkspace({ ...workspace, notifications: { ...workspace.notifications, [key]: value } });
+    if (!localWorkspace) return;
+    setLocalWorkspace({ ...localWorkspace, notifications: { ...localWorkspace.notifications, [key]: value } });
   };
 
   // Preview styling extraction
-  const previewColor = workspace?.color?.primary || '#00D4FF';
-  const previewName = workspace?.brand?.name || 'Your Agency';
-  const previewTagline = workspace?.brand?.tagline || 'Clipping Agency Operations';
+  const previewColor = localWorkspace?.color?.primary || '#00D4FF';
+  const previewName = localWorkspace?.brand?.name || 'Your Agency';
+  const previewTagline = localWorkspace?.brand?.tagline || 'Clipping Agency Operations';
+
+  if (!localWorkspace) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 w-full max-w-[1600px] mx-auto min-h-[calc(100vh-120px)]">
+    <div className="flex flex-col lg:flex-row gap-8 w-full max-w-[1600px] mx-auto min-h-[calc(100vh-120px)] relative">
+      
+      {/* Save Button Overlay */}
+      {isDirty && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[60] animate-in slide-in-from-bottom-10 fade-in duration-300">
+           <button 
+             onClick={handleSave}
+             disabled={isSaving}
+             className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center gap-3 font-black uppercase tracking-widest text-xs border border-white/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+           >
+             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+             {isSaving ? 'Synchronizing...' : 'Save Workspace Changes'}
+           </button>
+        </div>
+      )}
+
+      {/* Success Notification */}
+      {showSuccess && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[60] animate-in fade-in zoom-in slide-in-from-top-4 duration-300">
+           <div className="bg-green-500/20 border border-green-500/30 text-green-400 px-6 py-3 rounded-2xl backdrop-blur-md flex items-center gap-3 font-bold text-xs uppercase tracking-wider">
+             <Check className="w-4 h-4" /> Changes Persisted Successfully
+           </div>
+        </div>
+      )}
       
       {/* LEFT COLUMN - TABS & CONTENT */}
-      <div className="w-full lg:w-[65%] flex flex-col gap-6">
+      <div className="w-full lg:w-[65%] flex flex-col gap-6 pb-32">
         
         {/* Header */}
         <div>
@@ -73,7 +126,6 @@ export default function Workspace() {
         <div className="flex space-x-2 bg-[#111] p-1.5 rounded-xl border border-white/5 overflow-x-auto no-scrollbar">
           {[
             { id: 'brand', label: 'Brand & Identity', icon: Palette },
-            { id: 'reports', label: 'Reports', icon: FileText },
             { id: 'customization', label: 'Customization', icon: LayoutDashboard },
             { id: 'notificationPreferences', label: 'Notifications', icon: Bell },
           ].map(t => (
@@ -90,40 +142,40 @@ export default function Workspace() {
         </div>
 
         {/* Tab Content Area */}
-        <div className="bg-[#111] border border-white/5 rounded-2xl shadow-xl flex-1 overflow-hidden">
+        <div className="bg-[#0A0A0A] border border-white/5 rounded-[48px] shadow-2xl flex-1 overflow-hidden">
           
           {/* BRAND & IDENTITY TAB */}
           {activeTab === 'brand' && (
-            <div className="p-8 space-y-10">
+            <div className="p-10 md:p-14 space-y-14">
               
               {/* Agency Name & Tagline */}
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-bold text-white flex items-center">
-                    Brand Name & Tagline
+                  <h3 className="text-2xl font-display font-black text-white tracking-widest uppercase italic">
+                    Agency Identity
                   </h3>
-                  <p className="text-xs text-[#888] mt-1">These appear on the dashboard header and on generated reports.</p>
+                  <p className="text-[10px] font-black text-[#333] uppercase tracking-[0.2em] mt-2">Configure primary agency identifiers for reports and dashboard.</p>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2">Agency Name</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-[9px] font-black text-[#555] uppercase tracking-[0.3em] ml-1">Agency Name</label>
                     <input 
                       type="text" 
-                      value={workspace?.brand?.name || ''} 
+                      value={localWorkspace?.brand?.name || ''} 
                       onChange={(e) => updateBrand('name', e.target.value)}
-                      placeholder="e.g. OpsRelic Agency"
-                      className="w-full bg-[#0F0F0F] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[var(--primary-color)] transition-colors"
+                      placeholder="ACME MEDIA"
+                      className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-5 py-4 text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-[#222]"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2">Tagline / Slogan</label>
+                  <div className="space-y-2">
+                    <label className="block text-[9px] font-black text-[#555] uppercase tracking-[0.3em] ml-1">Tagline</label>
                     <input 
                       type="text" 
-                      value={workspace?.brand?.tagline || ''} 
+                      value={localWorkspace?.brand?.tagline || ''} 
                       onChange={(e) => updateBrand('tagline', e.target.value)}
-                      placeholder="e.g. Premium Viral Distribution"
-                      className="w-full bg-[#0F0F0F] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[var(--primary-color)] transition-colors"
+                      placeholder="VIRAL CONTENT OPERATIONS"
+                      className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-5 py-4 text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-[#222]"
                     />
                   </div>
                 </div>
@@ -165,9 +217,9 @@ export default function Workspace() {
                     />
                   </label>
                   <div className="w-32 h-32 bg-[#0F0F0F] border border-white/5 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative group">
-                    {workspace?.brand?.logoUrl ? (
+                    {localWorkspace?.brand?.logoUrl ? (
                       <>
-                        <img src={workspace.brand.logoUrl} alt="Logo" className="w-full h-full object-contain p-2" />
+                        <img src={localWorkspace.brand.logoUrl} alt="Logo" className="w-full h-full object-contain p-2" />
                         <button 
                           onClick={() => updateBrand('logoUrl', null)}
                           className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-bold"
@@ -208,27 +260,7 @@ export default function Workspace() {
                 </div>
               </div>
 
-              {/* Per-Client Branding Profiles (Agency) */}
-              <div className={`space-y-4 pt-8 border-t border-white/5 ${hasFeature('clientProfiles') ? '' : 'opacity-50'}`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-white flex items-center">
-                      Client Profiles
-                      <TierBadge tier={getFeatureMinTier('clientProfiles')} />
-                      <FeatureLock feature="clientProfiles" />
-                    </h3>
-                    <p className="text-xs text-[#888] mt-1">Create unlimited isolated profiles with custom branding.</p>
-                  </div>
-                  <button disabled={!hasFeature('clientProfiles')} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-colors disabled:opacity-50">
-                    <Plus className="w-3 h-3" /> Add Client
-                  </button>
-                </div>
-
-                <div className="bg-[#0F0F0F] rounded-xl border border-white/5 p-8 text-center text-white/40">
-                  <p className="text-sm">No client profiles created yet.</p>
-                  <p className="text-xs mt-1">Click "Add Client" to override colors and logos for specific campaigns.</p>
-                </div>
-              </div>
+              {/* Accent Color Section */}
               <div className="space-y-4 pt-8 border-t border-white/5">
                 <div>
                   <h3 className="text-lg font-bold text-white flex items-center">
@@ -238,23 +270,29 @@ export default function Workspace() {
                 </div>
 
                 <div className="flex items-start gap-8">
-                  {/* Single Color Picker (Starter) */}
-                  <div>
-                    <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-3">Custom Hex</label>
+                  {/* Single Color Picker (Pro+) */}
+                  <div className={hasFeature('colorSchemePresets') ? '' : 'opacity-40'}>
+                    <label className="flex items-center text-xs font-bold text-white/70 uppercase tracking-wider mb-3">
+                      Custom Hex
+                      {!hasFeature('colorSchemePresets') && <TierBadge tier="pro" />}
+                      {!hasFeature('colorSchemePresets') && <FeatureLock feature="colorSchemePresets" />}
+                    </label>
                     <div className="flex items-center gap-3">
-                      <div className="relative w-12 h-12 rounded-xl border border-white/20 overflow-hidden shadow-lg cursor-pointer shrink-0">
+                      <div className={`relative w-12 h-12 rounded-xl border border-white/20 overflow-hidden shadow-lg shrink-0 ${hasFeature('colorSchemePresets') ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                         <input 
                           type="color" 
-                          value={workspace?.color?.primary || '#00D4FF'} 
+                          disabled={!hasFeature('colorSchemePresets')}
+                          value={localWorkspace?.color?.primary || '#00D4FF'} 
                           onChange={(e) => updateColor('primary', e.target.value)}
-                          className="absolute -inset-2 w-16 h-16 cursor-pointer"
+                          className={`absolute -inset-2 w-16 h-16 ${hasFeature('colorSchemePresets') ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                         />
                       </div>
                       <input 
                         type="text" 
-                        value={workspace?.color?.primary || '#00D4FF'} 
+                        disabled={!hasFeature('colorSchemePresets')}
+                        value={localWorkspace?.color?.primary || '#00D4FF'} 
                         onChange={(e) => updateColor('primary', e.target.value)}
-                        className="bg-[#0F0F0F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white uppercase w-24 font-mono focus:outline-none focus:border-[var(--primary-color)]"
+                        className="bg-[#0F0F0F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white uppercase w-24 font-mono focus:outline-none focus:border-[var(--primary-color)] disabled:opacity-50"
                       />
                     </div>
                   </div>
@@ -280,7 +318,7 @@ export default function Workspace() {
                             updateColor('preset', preset.name);
                             updateColor('primary', preset.hex);
                           }}
-                          className={`w-10 h-10 rounded-full border-2 transition-transform shadow-lg ${workspace?.color?.primary === preset.hex ? 'border-white scale-110' : 'border-transparent hover:scale-110'}`}
+                          className={`w-10 h-10 rounded-full border-2 transition-transform shadow-lg ${localWorkspace?.color?.primary === preset.hex ? 'border-white scale-110' : 'border-transparent hover:scale-110'}`}
                           style={{ backgroundColor: preset.hex }}
                           title={preset.name}
                         />
@@ -293,206 +331,12 @@ export default function Workspace() {
             </div>
           )}
 
-          {/* REPORTS TAB */}
-          {activeTab === 'reports' && (
-            <div className="p-8 space-y-10">
-              
-              {/* Basic Report Settings */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-white flex items-center">
-                  Report Defaults
-                </h3>
-                
-                <div className="bg-[#0F0F0F] p-4 rounded-xl border border-white/5 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-white">Report Cover Page</h4>
-                    <p className="text-xs text-[#888] mt-0.5">Include a branded cover page on PDF exports.</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" checked={workspace?.reports?.coverPage ?? true} onChange={(e) => updateReports('coverPage', e.target.checked)} />
-                    <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00D4FF]"></div>
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-[#0F0F0F] p-4 rounded-xl border border-white/5">
-                    <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2">Default Date Range</label>
-                    <select 
-                      value={workspace?.reports?.defaultDateRange || 'Last 30 days'}
-                      onChange={(e) => updateReports('defaultDateRange', e.target.value)}
-                      className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[var(--primary-color)]"
-                    >
-                      <option value="Last 7 days">Last 7 days</option>
-                      <option value="Last 30 days">Last 30 days</option>
-                      <option value="Last Week (Mon-Sun)">Last Week (Mon-Sun)</option>
-                      <option value="Full Campaign">Full Campaign</option>
-                    </select>
-                  </div>
-                  
-                  {/* Rolling Dates Toggle (Pro) */}
-                  <div className={`bg-[#0F0F0F] p-4 rounded-xl border border-white/5 ${hasFeature('rollingDateRanges') ? '' : 'opacity-50'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                       <label className="flex items-center text-xs font-bold text-white/70 uppercase tracking-wider">
-                        Rolling Dates
-                        <TierBadge tier={getFeatureMinTier('rollingDateRanges')} />
-                      </label>
-                      <FeatureLock feature="rollingDateRanges" />
-                    </div>
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="text-xs text-[#888]">Use relative rolling timelines.</span>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" disabled={!hasFeature('rollingDateRanges')} checked={workspace?.rollingDates ?? false} onChange={(e) => workspace && setWorkspace({...workspace, rollingDates: e.target.checked})} />
-                        <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#00D4FF]"></div>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-[#0F0F0F] p-4 rounded-xl border border-white/5">
-                  <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-3">Default Platforms</label>
-                  <div className="flex flex-wrap gap-4">
-                    {['TikTok', 'Instagram', 'YouTube', 'Other'].map(plat => (
-                      <label key={plat} className="flex items-center gap-2 cursor-pointer group">
-                        <div className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${workspace?.reports?.defaultPlatforms?.includes(plat) ? 'bg-[#00D4FF] border-[#00D4FF]' : 'border-white/20 bg-transparent group-hover:border-white/40'}`}>
-                          {workspace?.reports?.defaultPlatforms?.includes(plat) && <Check className="w-3 h-3 text-black" />}
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          className="hidden" 
-                          checked={workspace?.reports?.defaultPlatforms?.includes(plat)} 
-                          onChange={(e) => {
-                            if (!workspace) return;
-                            const current = workspace?.reports?.defaultPlatforms || [];
-                            if (e.target.checked) updateReports('defaultPlatforms', [...current, plat]);
-                            else updateReports('defaultPlatforms', current.filter(p => p !== plat));
-                          }}
-                        />
-                        <span className="text-sm font-semibold text-white/90">{plat}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Full Report Branding (Pro) */}
-              <div className={`space-y-4 pt-8 border-t border-white/5 ${hasFeature('whiteLabelBranding') ? '' : 'opacity-50'}`}>
-                 <h3 className="text-lg font-bold text-white flex items-center">
-                  Full Report Branding
-                  <TierBadge tier={getFeatureMinTier('whiteLabelBranding')} />
-                  <FeatureLock feature="whiteLabelBranding" />
-                </h3>
-                <div className="bg-[#0F0F0F] p-4 rounded-xl border border-white/5 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-white">Apply branding to report exports</h4>
-                    <p className="text-xs text-[#888] mt-0.5">Custom cover, headers, charts, and footer text over default OpsRelic styles.</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" disabled={!hasFeature('whiteLabelBranding')} />
-                    <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00D4FF]"></div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Email Branding (Pro) */}
-              <div className={`space-y-4 pt-8 border-t border-white/5 ${hasFeature('emailBranding') ? '' : 'opacity-50'}`}>
-                <h3 className="text-lg font-bold text-white flex items-center">
-                  Email Branding
-                  <TierBadge tier={getFeatureMinTier('emailBranding')} />
-                  <FeatureLock feature="emailBranding" />
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2">From Name</label>
-                    <input type="text" disabled={!hasFeature('emailBranding')} value={workspace?.reports?.fromName || ''} onChange={(e) => updateReports('fromName', e.target.value)} placeholder={workspace?.brand?.name || "Your Agency"} className="w-full bg-[#0F0F0F] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none disabled:opacity-50" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2">Reply-To Email</label>
-                    <input type="email" disabled={!hasFeature('emailBranding')} value={workspace?.reports?.replyTo || ''} onChange={(e) => updateReports('replyTo', e.target.value)} placeholder="hello@agency.com" className="w-full bg-[#0F0F0F] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none disabled:opacity-50" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2">Email Signature</label>
-                    <textarea disabled={!hasFeature('emailBranding')} value={workspace?.reports?.emailSignature || ''} onChange={(e) => updateReports('emailSignature', e.target.value)} placeholder="Best regards,&#10;The Team" className="w-full bg-[#0F0F0F] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none min-h-[80px] disabled:opacity-50" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Scheduled Report Templates (Agency) */}
-              <div className={`space-y-4 pt-8 border-t border-white/5 ${hasFeature('scheduledReports') ? '' : 'opacity-50'}`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-white flex items-center">
-                      Auto-Report Schedule
-                      <TierBadge tier={getFeatureMinTier('scheduledReports')} />
-                      <FeatureLock feature="scheduledReports" />
-                    </h3>
-                    <p className="text-xs text-[#888] mt-1">Configure automated recurring emails per client profile.</p>
-                  </div>
-                  <button disabled={!hasFeature('scheduledReports')} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-colors disabled:opacity-50">
-                    <Plus className="w-3 h-3" /> New Schedule
-                  </button>
-                </div>
-                
-                <div className="bg-[#0F0F0F] border border-white/5 rounded-xl p-6 text-center">
-                  <Mail className="w-8 h-8 text-[#555] mx-auto mb-3" />
-                  <p className="text-sm font-semibold text-white/80">No active schedules</p>
-                  <p className="text-xs text-[#555] mt-1">Auto-reports require webhook integrations via Zapier or Make.com</p>
-                </div>
-              </div>
-
-              {/* Advanced Report Sections (Agency) */}
-              <div className={`space-y-4 pt-8 border-t border-white/5 ${hasFeature('reportReordering') ? '' : 'opacity-50'}`}>
-                <div>
-                  <h3 className="text-lg font-bold text-white flex items-center">
-                    Advanced Report Modules
-                    <TierBadge tier={getFeatureMinTier('reportReordering')} />
-                    <FeatureLock feature="reportReordering" />
-                  </h3>
-                  <p className="text-xs text-[#888] mt-1">Granular section toggles and drag-and-drop reordering.</p>
-                </div>
-
-                <div className="bg-[#0F0F0F] border border-white/5 rounded-xl overflow-hidden p-2 space-y-2">
-                  {['Campaign Executive Summary', 'Timeline & Performance Charts', 'Demographic Breakdown', 'Top Submissions Gallery', 'Spend & ROI Analysis'].map((section, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-black/40 border border-white/5 p-3 rounded-lg hover:bg-white/5 transition-colors cursor-default">
-                      <div className="flex items-center gap-3">
-                        <GripVertical className="w-4 h-4 text-[#555] cursor-grab hover:text-white" />
-                        <span className="text-sm font-semibold text-white/90">{section}</span>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" defaultChecked disabled={!hasFeature('reportReordering')} />
-                        <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--primary-color)]"></div>
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-          )}
-
           {/* CUSTOMIZATION TAB */}
           {activeTab === 'customization' && (
             <div className="p-8 space-y-10">
               
-              {/* Light/Dark Mode Toggle (Starter) */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-white flex items-center">
-                  Theme 
-                </h3>
-                <div className="flex gap-4">
-                  <button onClick={() => updateLayout('theme', 'dark')} className={`flex-1 flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all ${workspace?.layout?.theme === 'dark' ? 'border-[var(--primary-color)] bg-[var(--primary-color)]/10 text-[var(--primary-color)]' : 'border-white/5 bg-[#0F0F0F] hover:bg-white/5 text-[#888]'}`}>
-                    <Moon className="w-8 h-8 mb-3" />
-                    <span className="font-bold">Dark Mode</span>
-                  </button>
-                  <button onClick={() => updateLayout('theme', 'light')} className={`flex-1 flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all ${workspace?.layout?.theme === 'light' ? 'border-[var(--primary-color)] bg-[var(--primary-color)]/10 text-[var(--primary-color)]' : 'border-white/5 bg-[#0F0F0F] hover:bg-white/5 text-[#888]'}`}>
-                     <Sun className="w-8 h-8 mb-3" />
-                     <span className="font-bold">Light Mode</span>
-                  </button>
-                </div>
-                <p className="text-xs text-[#888]">Client PDF exports always render in high-contrast light mode automatically.</p>
-              </div>
-
               {/* Workspace Layout Preference (Agency) */}
-              <div className={`space-y-4 pt-8 border-t border-white/5 ${hasFeature('layoutStyles') ? '' : 'opacity-50'}`}>
+              <div className={`space-y-4 ${hasFeature('layoutStyles') ? '' : 'opacity-50'}`}>
                 <h3 className="text-lg font-bold text-white flex items-center">
                   Dashboard Layout
                   <TierBadge tier={getFeatureMinTier('layoutStyles')} />
@@ -501,7 +345,7 @@ export default function Workspace() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-[#0F0F0F] p-4 rounded-xl border border-white/5">
                     <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2">Data Density</label>
-                    <select disabled={!hasFeature('layoutStyles')} value={workspace?.layout?.layout || 'Standard'} onChange={(e) => updateLayout('layout', e.target.value)} className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none disabled:opacity-50">
+                    <select disabled={!hasFeature('layoutStyles')} value={localWorkspace?.layout?.layout || 'Standard'} onChange={(e) => updateLayout('layout', e.target.value)} className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none disabled:opacity-50">
                       <option value="Standard">Standard Layout</option>
                       <option value="Condensed">Condensed (More data visible)</option>
                       <option value="Expanded">Expanded (Larger cards)</option>
@@ -509,7 +353,7 @@ export default function Workspace() {
                   </div>
                   <div className="bg-[#0F0F0F] p-4 rounded-xl border border-white/5">
                     <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2">Chart Style Preference</label>
-                    <select disabled={!hasFeature('layoutStyles')} value={workspace?.layout?.chartStyle || 'Line'} onChange={(e) => updateLayout('chartStyle', e.target.value)} className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none disabled:opacity-50">
+                    <select disabled={!hasFeature('layoutStyles')} value={localWorkspace?.layout?.chartStyle || 'Line'} onChange={(e) => updateLayout('chartStyle', e.target.value)} className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none disabled:opacity-50">
                       <option value="Line">Smoothed Line Chart</option>
                       <option value="Bar">Vertical Bar Chart</option>
                       <option value="Area">Filled Area Chart</option>
@@ -543,10 +387,10 @@ export default function Workspace() {
                           type="text"
                           disabled={!hasFeature('metricLabelCustomization')}
                           placeholder={`e.g. ${metric.default}`}
-                          value={workspace?.metrics?.customLabels?.[metric.key] || ''}
+                          value={localWorkspace?.metrics?.customLabels?.[metric.key] || ''}
                           onChange={(e) => {
-                             if(!workspace) return;
-                             setWorkspace({...workspace, metrics: { ...workspace.metrics, customLabels: { ...(workspace.metrics?.customLabels || {}), [metric.key]: e.target.value }}})
+                             if(!localWorkspace) return;
+                             setLocalWorkspace({...localWorkspace, metrics: { ...localWorkspace.metrics, customLabels: { ...(localWorkspace.metrics?.customLabels || {}), [metric.key]: e.target.value }}})
                           }}
                           className="w-full bg-black border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[var(--primary-color)] disabled:opacity-50"
                         />
@@ -581,7 +425,7 @@ export default function Workspace() {
                         <p className="text-xs text-[#888] mt-0.5">{notif.desc}</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" disabled={!hasFeature('notificationPreferences')} checked={workspace?.notifications?.[notif.id as keyof typeof workspace.notifications] ?? false} onChange={(e) => updateNotifications(notif.id, e.target.checked)} />
+                        <input type="checkbox" className="sr-only peer" disabled={!hasFeature('notificationPreferences')} checked={localWorkspace?.notifications?.[notif.id as keyof typeof localWorkspace.notifications] ?? false} onChange={(e) => updateNotifications(notif.id, e.target.checked)} />
                         <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary-color)]"></div>
                       </label>
                     </div>
@@ -592,86 +436,68 @@ export default function Workspace() {
           )}
 
         </div>
-      </div>
-
-      {/* RIGHT COLUMN - LIVE PREVIEW */}
+      </div>      {/* RIGHT COLUMN - LIVE PREVIEW */}
       <div className="w-full lg:w-[35%] flex flex-col gap-6 sticky top-24 h-max">
-        <h3 className="text-xs font-bold text-[#888] uppercase tracking-widest pl-1">Live Preview</h3>
+        <h3 className="text-[10px] font-black text-[#333] uppercase tracking-[0.3em] pl-1">Live Preview</h3>
         
         {/* Preview Container */}
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-black/5" style={{ minHeight: '500px' }}>
+        <div className="bg-[#0A0A0A] rounded-[48px] shadow-[0_0_80px_-20px_rgba(0,0,0,1)] overflow-hidden border border-white/5 relative group p-6" style={{ minHeight: '600px' }}>
           
-          {/* Mock Document Header */}
-          <div className="bg-black/5 px-6 py-4 flex items-center justify-between border-b border-black/5">
-             <div className="flex space-x-1.5">
-               <div className="w-3 h-3 rounded-full bg-red-400"></div>
-               <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-               <div className="w-3 h-3 rounded-full bg-green-400"></div>
+          {/* Mock Browser Frame */}
+          <div className="bg-white/5 px-6 py-4 flex items-center justify-between rounded-t-[32px] border border-white/5 border-b-0">
+             <div className="flex space-x-2">
+               <div className="w-2.5 h-2.5 rounded-full bg-red-500/20"></div>
+               <div className="w-2.5 h-2.5 rounded-full bg-amber-500/20"></div>
+               <div className="w-2.5 h-2.5 rounded-full bg-green-500/20"></div>
              </div>
-             <div className="text-[10px] font-bold text-black/40 bg-white px-3 py-1 rounded border border-black/5 shadow-sm">
-               dashboard.preview
+             <div className="text-[9px] font-black text-white/20 bg-black/40 px-4 py-1.5 rounded-full border border-white/5 tracking-widest uppercase">
+               RELIC.OS_DASHBOARD
              </div>
              <div className="w-10"></div>
           </div>
 
-          <div className="p-8 pb-10">
+          <div className="bg-white rounded-b-[32px] p-10 min-h-[500px]">
              {/* Preview: Header / Cover */}
-             <div className="flex flex-col items-center text-center mb-10 pb-10 border-b border-black/5">
-                {workspace?.brand?.logoUrl ? (
-                  <img src={workspace.brand.logoUrl} alt="Logo" className="w-20 h-20 object-contain mb-4" />
+             <div className="flex flex-col items-center text-center mb-12 pb-12 border-b border-black/5">
+                {localWorkspace?.brand?.logoUrl ? (
+                  <img src={localWorkspace.brand.logoUrl} alt="Logo" className="w-24 h-24 object-contain mb-6" />
                 ) : (
-                  <div className="w-16 h-16 rounded-2xl mb-4 flex items-center justify-center text-white shadow-lg shadow-black/10 transition-colors" style={{ backgroundColor: previewColor }}>
-                     <span className="font-black text-2xl">{previewName.substring(0, 2).toUpperCase()}</span>
+                  <div className="w-20 h-20 rounded-[32px] mb-6 flex items-center justify-center text-white shadow-2xl transition-all duration-500 transform hover:rotate-6" style={{ backgroundColor: previewColor, boxShadow: `0 20px 40px ${previewColor}44` }}>
+                     <span className="font-black text-3xl">{previewName.substring(0, 2).toUpperCase()}</span>
                   </div>
                 )}
-                <h2 className="text-2xl font-black text-black tracking-tight">{previewName}</h2>
-                <p className="text-sm font-semibold text-black/50 tracking-wide mt-1 uppercase" style={{ color: previewColor }}>{previewTagline}</p>
+                <h2 className="text-3xl font-display font-black text-black tracking-tighter uppercase italic">{previewName}</h2>
+                <p className="text-[10px] font-black tracking-[0.3em] mt-3 uppercase" style={{ color: previewColor }}>{previewTagline}</p>
              </div>
 
              {/* Preview: Mock content based on tab */}
-             {activeTab === 'reports' ? (
-                <div className="space-y-6">
-                  <div className="h-4 w-32 bg-black/10 rounded animate-pulse"></div>
-                  <div className="bg-black/5 h-32 rounded-xl border border-black/5"></div>
-                  <div className="flex gap-4">
-                    <div className="flex-1 bg-black/5 h-20 rounded-xl border border-black/5"></div>
-                    <div className="flex-1 bg-black/5 h-20 rounded-xl border border-black/5"></div>
+             <div className="space-y-8">
+                {/* Mock dashboard KPIs */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="p-6 rounded-[24px] bg-black/[0.02] border border-black/5">
+                    <div className="text-[9px] font-black uppercase tracking-[0.2em] text-black/30 mb-3">Net Impressions</div>
+                    <div className="text-3xl font-black text-black tracking-tighter leading-none italic">12.4M</div>
                   </div>
-                  {workspace?.reports?.coverPage && (
-                    <div className="mt-8 p-4 rounded-xl border-2 border-dashed border-black/10 flex items-center justify-center text-xs font-bold text-black/40">
-                      Cover Page Rendering Enabled
-                    </div>
-                  )}
+                  <div className="p-6 rounded-[24px] bg-black/[0.02] border border-black/5 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 transition-transform group-hover:scale-110" style={{ backgroundColor: previewColor }}></div>
+                    <div className="text-[9px] font-black uppercase tracking-[0.2em] text-black/30 mb-3">Total Payouts</div>
+                    <div className="text-3xl font-black tracking-tighter leading-none italic" style={{ color: previewColor }}>$12.5K</div>
+                  </div>
                 </div>
-             ) : (
-                <div className="space-y-6">
-                  {/* Mock dashboard KPIs */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-xl border border-black/5 shadow-sm">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-black/40 mb-1">Total Views</div>
-                      <div className="text-xl font-black text-black">4.2M</div>
-                    </div>
-                    <div className="p-4 rounded-xl border border-black/5 shadow-sm relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-16 h-16 opacity-10 rounded-full -translate-y-1/2 translate-x-1/2" style={{ backgroundColor: previewColor }}></div>
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-black/40 mb-1">Active Cap</div>
-                      <div className="text-xl font-black" style={{ color: previewColor }}>$8,400</div>
-                    </div>
-                  </div>
-                  
-                  {/* Mock Chart Area */}
-                  <div className="p-4 rounded-xl border border-black/5 shadow-sm h-40 flex flex-col justify-end gap-2 items-end">
-                     <div className="w-full flex items-end justify-between h-20 px-2">
-                       {[30, 50, 40, 70, 45, 80, 60].map((h, i) => (
-                         <div key={i} className="w-4 rounded-t-sm transition-all" style={{ height: `${h}%`, backgroundColor: previewColor }}></div>
-                       ))}
-                     </div>
-                  </div>
-                  
-                  <button className="w-full py-3 rounded-xl text-white font-bold text-sm shadow-md transition-colors" style={{ backgroundColor: previewColor }}>
-                    Primary Action
-                  </button>
+                
+                {/* Mock Chart Area */}
+                <div className="p-8 rounded-[32px] bg-black/[0.02] border border-black/5 h-48 flex flex-col justify-end gap-2 items-end">
+                   <div className="w-full flex items-end justify-between h-24 px-4">
+                     {[30, 50, 40, 70, 45, 80, 60].map((h, i) => (
+                       <div key={i} className="w-6 rounded-t-lg transition-all duration-500" style={{ height: `${h}%`, backgroundColor: previewColor, opacity: 0.3 + (i * 0.1) }}></div>
+                     ))}
+                   </div>
                 </div>
-             )}
+                
+                <button className="w-full py-5 rounded-[24px] text-white font-black text-[10px] uppercase tracking-[0.3em] shadow-xl hover:translate-y-[-2px] active:translate-y-[1px] transition-all" style={{ backgroundColor: previewColor, boxShadow: `0 15px 30px ${previewColor}33` }}>
+                  Execute Deployment
+                </button>
+             </div>
           </div>
         </div>
       </div>

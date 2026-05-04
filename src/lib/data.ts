@@ -19,8 +19,8 @@ export const generateSampleData = (): CsvRow[] => {
       // Views ranging from 8,000 to 450,000
       const views = Math.floor(Math.random() * (450000 - 8000 + 1)) + 8000;
       
-      // Dates spanning last 30 days
-      const d = new Date(now.getTime() - Math.floor(Math.random()*30)*24*60*60*1000);
+      // Dates spanning last 90 days
+      const d = new Date(now.getTime() - Math.floor(Math.random()*90)*24*60*60*1000);
       
       data.push({
           "Submission Date": d.toISOString().split('T')[0],

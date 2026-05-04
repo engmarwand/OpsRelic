@@ -7,6 +7,11 @@ export interface CsvRow {
   Status: string;
   Views: number;
   "Amount Paid": number;
+  "Submission URL"?: string;
+  Likes?: number;
+  Comments?: number;
+  Shares?: number;
+  _campaignId?: string;
 }
 
 export interface Budget {

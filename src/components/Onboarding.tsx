@@ -66,30 +66,10 @@ const STAGE_COLORS: Record<PipelineStage, string> = {
 };
 
 export default function Onboarding() {
-  const { data: globalData, hasFeature, plan } = useAppContext();
+  const { data: globalData, hasFeature, plan, setShowPricing } = useAppContext();
   const { addToast } = useToast();
 
-  if (!hasFeature('onboardingPipeline')) {
-    const minTier = 'pro'; // Hardcoding or you can import getFeatureMinTier
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-6 border border-white/10">
-          <Target className="w-8 h-8 text-[#555]" />
-        </div>
-        <h2 className="text-2xl font-bold mb-2">Onboarding Pipeline Locked</h2>
-        <p className="text-[#888] max-w-md mx-auto mb-6">
-          Your current <span className="font-bold text-white capitalize">{plan?.name || 'No'}</span> plan does not include the Creator Onboarding Pipeline. 
-          Upgrade to <span className="capitalize font-bold text-emerald-400">{minTier}</span> or higher to access this feature.
-        </p>
-        <button 
-          onClick={() => window.location.hash = '#workspace'}
-          className="px-6 py-3 rounded-xl bg-white text-black font-bold uppercase tracking-widest text-sm hover:bg-gray-200 transition-colors"
-        >
-          Upgrade Plan
-        </button>
-      </div>
-    );
-  }
+  const isLocked = !hasFeature('onboardingPipeline');
   
   const [activeTab, setActiveTab] = useState<'recruit' | 'pipeline' | 'guidelines' | 'templates'>('recruit');
   
@@ -98,11 +78,9 @@ export default function Onboarding() {
   const [templates, setTemplates] = useState<MessageTemplate[]>(DEFAULT_TEMPLATES);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  if (!isLoaded) {
-    return <div className="flex items-center justify-center p-20 text-[#888]">Loading pipeline...</div>;
-  }
-
   useEffect(() => {
+    let unsubscribe = () => {};
+    
     const user = auth.currentUser;
     if (!user) {
         setIsLoaded(true);
@@ -110,7 +88,7 @@ export default function Onboarding() {
     }
     
     const configRef = doc(db, 'user_config', user.uid);
-    const unsubscribe = onSnapshot(configRef, (snap) => {
+    unsubscribe = onSnapshot(configRef, (snap) => {
         if (snap.exists()) {
             const data = snap.data();
             if (data.invites) setInvites(data.invites);
@@ -122,42 +100,16 @@ export default function Onboarding() {
                 invites: [],
                 guidelines: [],
                 templates: DEFAULT_TEMPLATES
-            });
+            }).catch(err => console.error("Error setting default config:", err));
         }
         setIsLoaded(true);
+    }, (error) => {
+        console.error("Pipeline onSnapshot error:", error);
+        setIsLoaded(true); // Ensure it still loads
     });
     
     return () => unsubscribe();
   }, []);
-
-  const saveToFirebase = async (newInvites: CreatorInvite[], newGuidelines: CampaignGuideline[], newTemplates: MessageTemplate[]) => {
-    const user = auth.currentUser;
-    if (!user) return;
-    try {
-        await setDoc(doc(db, 'user_config', user.uid), {
-            invites: newInvites,
-            guidelines: newGuidelines,
-            templates: newTemplates
-        }, { merge: true });
-    } catch(e) {
-        console.error(e);
-    }
-  };
-
-  const handleUpdateInvites = (newInvites: CreatorInvite[]) => {
-      setInvites(newInvites);
-      saveToFirebase(newInvites, guidelines, templates);
-  };
-  
-  const handleUpdateGuidelines = (newGuidelines: CampaignGuideline[]) => {
-      setGuidelines(newGuidelines);
-      saveToFirebase(invites, newGuidelines, templates);
-  };
-  
-  const handleUpdateTemplates = (newTemplates: MessageTemplate[]) => {
-      setTemplates(newTemplates);
-      saveToFirebase(invites, guidelines, newTemplates);
-  };
 
   // Read CSV Creators into Active stage automatically
   useEffect(() => {
@@ -193,80 +145,140 @@ export default function Onboarding() {
     }
   }, [globalData, isLoaded]); // intentional missing invites to avoid infinite loops since we update invites
 
+  if (!isLoaded) {
+    return <div className="flex items-center justify-center p-20 text-[#888]">Loading pipeline...</div>;
+  }
+
+  const saveToFirebase = async (newInvites: CreatorInvite[], newGuidelines: CampaignGuideline[], newTemplates: MessageTemplate[]) => {
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+        await setDoc(doc(db, 'user_config', user.uid), {
+            invites: newInvites,
+            guidelines: newGuidelines,
+            templates: newTemplates
+        }, { merge: true });
+    } catch(e) {
+        console.error(e);
+    }
+  };
+
+  const handleUpdateInvites = (newInvites: CreatorInvite[]) => {
+      setInvites(newInvites);
+      saveToFirebase(newInvites, guidelines, templates);
+  };
+  
+  const handleUpdateGuidelines = (newGuidelines: CampaignGuideline[]) => {
+      setGuidelines(newGuidelines);
+      saveToFirebase(invites, newGuidelines, templates);
+  };
+  
+  const handleUpdateTemplates = (newTemplates: MessageTemplate[]) => {
+      setTemplates(newTemplates);
+      saveToFirebase(invites, guidelines, newTemplates);
+  };
+
   const campaigns = Array.from(new Set(globalData.map(r => r.Campaign))).sort();
 
   return (
-    <div className="space-y-6">
-      {/* Header Tabs */}
-      <div className="flex border-b border-white/10 overflow-x-auto hide-scrollbar">
-        {[
-          { id: 'recruit', label: 'Recruit', icon: UserPlus },
-          { id: 'pipeline', label: 'Pipeline', icon: Target },
-          { id: 'guidelines', label: 'Guidelines', icon: FileText },
-          { id: 'templates', label: 'Templates', icon: Copy }
-        ].map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id as any)}
-            className={`flex items-center gap-2 px-6 py-4 font-medium text-sm transition-colors whitespace-nowrap ${
-              activeTab === t.id 
-                ? 'text-[#FF6B35] border-b-2 border-[#FF6B35]' 
-                : 'text-[#888] hover:text-white border-b-2 border-transparent hover:border-white/20'
-            }`}
-          >
-            <t.icon className="w-4 h-4" />
-            {t.label}
-          </button>
-        ))}
-      </div>
+    <div className="space-y-6 relative">
+      {/* Locked Overlay */}
+      {isLocked && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-start pt-32 text-center pointer-events-none">
+          <div className="pointer-events-auto bg-[#111]/80 backdrop-blur-md p-10 rounded-[40px] border border-white/10 shadow-2xl max-w-lg mx-6 group transition-all hover:scale-[1.02] hover:border-blue-500/30">
+            <div className="w-20 h-20 bg-blue-500/10 rounded-3xl flex items-center justify-center mb-6 border border-blue-500/20 mx-auto">
+              <Target className="w-10 h-10 text-blue-500" />
+            </div>
+            <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-3">CRM Pipeline Locked</h2>
+            <p className="text-[#888] font-bold leading-relaxed mb-8">
+              Visualizing your creator pipeline is a <span className="text-blue-400">Pro</span> feature. 
+              Upgrade to manage recruitment, guidelines, and automated onboarding.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => setShowPricing(true)}
+                className="w-full py-4 bg-blue-600 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20"
+              >
+                Unlock CRM Pipeline
+              </button>
+              <p className="text-[10px] text-[#444] font-black uppercase tracking-[0.2em]">Scale your agency to the next level</p>
+            </div>
+          </div>
+        </div>
+      )}
 
-      <div className="max-w-6xl">
-        {activeTab === 'recruit' && (
-          <TabRecruit 
-            campaigns={campaigns} 
-            invites={invites} 
-            guidelines={guidelines}
-            addInvite={(inv: CreatorInvite) => {
-              handleUpdateInvites([inv, ...invites]);
-              addToast(`Invite sent to ${inv.email}`, "success");
-            }} 
-            addToast={addToast}
-          />
-        )}
-        {activeTab === 'pipeline' && (
-          <TabPipeline 
-            invites={invites} 
-            campaigns={campaigns}
-            guidelines={guidelines}
-            updateInvite={(id: string, updates: Partial<CreatorInvite>) => handleUpdateInvites(invites.map((i: CreatorInvite) => i.id === id ? { ...i, ...updates } : i))}
-            removeInvite={(id: string) => handleUpdateInvites(invites.filter((i: CreatorInvite) => i.id !== id))}
-          />
-        )}
-        {activeTab === 'guidelines' && (
-          <TabGuidelines 
-            campaigns={campaigns} 
-            guidelines={guidelines} 
-            saveGuideline={(g: CampaignGuideline) => {
-              const ex = guidelines.findIndex((x: CampaignGuideline) => x.campaign === g.campaign);
-              if (ex >= 0) {
-                const nw = [...guidelines];
-                nw[ex] = g;
-                handleUpdateGuidelines(nw);
-              } else {
-                handleUpdateGuidelines([...guidelines, g]);
-              }
-              addToast("Guidelines saved", "success");
-            }} 
-            invites={invites}
-          />
-        )}
-        {activeTab === 'templates' && (
-          <TabTemplates 
-            templates={templates} 
-            setTemplates={handleUpdateTemplates}
-            addToast={addToast}
-          />
-        )}
+      <div className={`${isLocked ? 'opacity-20 grayscale-[0.8] blur-[2px] pointer-events-none select-none' : ''}`}>
+        {/* Header Tabs */}
+        <div className="flex border-b border-white/10 overflow-x-auto hide-scrollbar">
+          {[
+            { id: 'recruit', label: 'Recruit', icon: UserPlus },
+            { id: 'pipeline', label: 'Pipeline', icon: Target },
+            { id: 'guidelines', label: 'Guidelines', icon: FileText },
+            { id: 'templates', label: 'Templates', icon: Copy }
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id as any)}
+              className={`flex items-center gap-2 px-6 py-4 font-medium text-sm transition-colors whitespace-nowrap ${
+                activeTab === t.id 
+                  ? 'text-[#FF6B35] border-b-2 border-[#FF6B35]' 
+                  : 'text-[#888] hover:text-white border-b-2 border-transparent hover:border-white/20'
+              }`}
+            >
+              <t.icon className="w-4 h-4" />
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="max-w-6xl mt-6">
+          {activeTab === 'recruit' && (
+            <TabRecruit 
+              campaigns={campaigns} 
+              invites={invites} 
+              guidelines={guidelines}
+              addInvite={(inv: CreatorInvite) => {
+                handleUpdateInvites([inv, ...invites]);
+                addToast(`Invite sent to ${inv.email}`, "success");
+              }} 
+              addToast={addToast}
+            />
+          )}
+          {activeTab === 'pipeline' && (
+            <TabPipeline 
+              invites={invites} 
+              campaigns={campaigns}
+              guidelines={guidelines}
+              updateInvite={(id: string, updates: Partial<CreatorInvite>) => handleUpdateInvites(invites.map((i: CreatorInvite) => i.id === id ? { ...i, ...updates } : i))}
+              removeInvite={(id: string) => handleUpdateInvites(invites.filter((i: CreatorInvite) => i.id !== id))}
+            />
+          )}
+          {activeTab === 'guidelines' && (
+            <TabGuidelines 
+              campaigns={campaigns} 
+              guidelines={guidelines} 
+              saveGuideline={(g: CampaignGuideline) => {
+                const ex = guidelines.findIndex((x: CampaignGuideline) => x.campaign === g.campaign);
+                if (ex >= 0) {
+                  const nw = [...guidelines];
+                  nw[ex] = g;
+                  handleUpdateGuidelines(nw);
+                } else {
+                  handleUpdateGuidelines([...guidelines, g]);
+                }
+                addToast("Guidelines saved", "success");
+              }} 
+              invites={invites}
+            />
+          )}
+          {activeTab === 'templates' && (
+            <TabTemplates 
+              templates={templates} 
+              setTemplates={handleUpdateTemplates}
+              addToast={addToast}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

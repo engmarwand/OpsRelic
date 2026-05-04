@@ -71,125 +71,132 @@ export default function Landing() {
             Automate clip tracking, payout calculation, and onboarding so you can scale your short-form agency without the chaos.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <button 
               onClick={() => setAuthMode('signup')}
-              className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold text-lg flex items-center gap-2 transition-all hover:scale-[1.02] shadow-[0_0_40px_rgba(37,99,235,0.4)] w-full sm:w-auto justify-center"
+              className="px-10 py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all hover:scale-[1.02] shadow-[0_0_40px_rgba(37,99,235,0.4)] active:scale-95 w-full sm:w-auto"
             >
-              Get Started Now <ArrowRight className="w-5 h-5" />
+              Get Started <ArrowRight className="w-6 h-6" />
             </button>
             <button 
               onClick={() => {
                  document.getElementById('demo-section')?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl font-bold text-lg flex items-center gap-2 transition-all w-full sm:w-auto justify-center"
+              className="px-10 py-5 bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 w-full sm:w-auto"
             >
-              View Interactive Demo
+              View System Demo
             </button>
           </div>
 
-          <div className="mt-16 pt-8 border-t border-white/5 max-w-4xl mx-auto">
-            <p className="text-[10px] font-bold text-[#555] uppercase tracking-widest mb-6 text-center">Trusted by top creator tracking agencies</p>
-            <div className="flex flex-wrap justify-center gap-8 md:gap-16 items-center opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
-               <div className="flex items-center gap-2 font-bold text-xl text-white"><Zap className="w-6 h-6" /> ViralOps</div>
-               <div className="flex items-center gap-2 font-bold text-xl text-white"><TrendingUp className="w-6 h-6" /> ScaleCreators</div>
-               <div className="flex items-center gap-2 font-black text-xl italic mt-1 text-white">NEXUS</div>
-               <div className="flex items-center gap-2 font-bold text-xl text-white"><Users className="w-6 h-6" /> SocialGrow</div>
+          <div className="mt-20 pt-10 border-t border-white/5 max-w-4xl mx-auto">
+            <p className="text-[10px] font-black text-[#333] uppercase tracking-[0.4em] mb-10 text-center">Engineered for Fast Growing Clipping Agencies</p>
+            <div className="flex flex-wrap justify-center gap-12 md:gap-20 items-center opacity-30 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-700">
+               <div className="flex items-center gap-2 font-black text-xl text-white tracking-tighter"><Zap className="w-7 h-7 text-blue-500" /> VIRAL<span>OPS</span></div>
+               <div className="flex items-center gap-2 font-black text-xl text-white tracking-widest uppercase"><TrendingUp className="w-7 h-7 text-emerald-500" /> SCALER</div>
+               <div className="flex items-center gap-2 font-black text-2xl tracking-tight text-white italic">NEXUS<span>CORE</span></div>
+               <div className="flex items-center gap-1 font-black text-xl text-white"><Users className="w-7 h-7 text-purple-500" /> SOCIAL<span>GROW</span></div>
             </div>
           </div>
         </motion.div>
 
         {/* Interactive Features Hero Bento Grid */}
-        <div className="mt-24 max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-20 perspective-[1000px]">
+        <div id="demo-section" className="mt-32 max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-20">
           
           {/* Box 1: Data Chaos to Order (Toggle) */}
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="col-span-1 lg:col-span-2 bg-[#0A0A0A] rounded-3xl border border-white/10 overflow-hidden shadow-2xl relative h-[400px] group cursor-pointer"
+            className="col-span-1 lg:col-span-2 bg-[#0A0A0A] rounded-[48px] border border-white/5 overflow-hidden shadow-2xl relative h-[480px] group cursor-pointer hover:border-blue-500/30 transition-colors"
             onClick={() => setShowChaos(!showChaos)}
           >
-            <div className="p-6 absolute inset-0 z-40 pointer-events-none flex flex-col justify-between">
+            <div className="p-10 absolute inset-0 z-40 pointer-events-none flex flex-col justify-between">
               <div>
-                <h3 className="text-white font-bold text-2xl drop-shadow-md">Fix the Spreadsheet Chaos</h3>
-                <p className="text-[#888] text-sm mt-1 drop-shadow-md">Click to see how OpsRelic instantly cleans up your data.</p>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-600/10 border border-blue-600/20 rounded-full text-[10px] font-black uppercase tracking-widest text-blue-500 mb-4">Auto Tracking</div>
+                <h3 className="text-white font-black text-4xl tracking-tighter leading-none mb-4">Eliminate Spreadsheet Chaos</h3>
+                <p className="text-[#555] font-bold text-sm tracking-tight max-w-sm">Stop fighting broken formulas and manual entry. OpsRelic auto-detects patterns and keeps your data accurate.</p>
               </div>
-              <div className="self-end bg-black/80 backdrop-blur text-white text-xs px-3 py-1.5 rounded-full border border-white/20 font-bold tracking-widest uppercase shadow-xl pointer-events-auto">
-                {showChaos ? 'Click to Fix 🪄' : 'View Problem 💥'}
+              <div className="self-end bg-blue-600/10 backdrop-blur-xl border border-blue-500/20 text-blue-500 text-[10px] px-6 py-3 rounded-full font-black tracking-widest uppercase shadow-2xl pointer-events-auto hover:bg-blue-600 hover:text-white transition-all shadow-blue-600/20">
+                {showChaos ? 'Fix My Data ✨' : 'See The Mess 💥'}
               </div>
             </div>
 
-            <div className="absolute inset-0 pt-24 px-6 pb-6">
+            <div className="absolute inset-0 pt-32 px-10 pb-10">
               <AnimatePresence mode="wait">
                 {showChaos ? (
                     <motion.div 
                       key="chaos"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.5 }}
-                      className="h-full bg-white rounded-xl p-4 flex flex-col font-mono text-xs overflow-hidden shadow-inner relative border border-gray-200"
+                      initial={{ opacity: 0, filter: 'blur(10px)' }}
+                      animate={{ opacity: 1, filter: 'blur(0px)' }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.4 }}
+                      className="h-full bg-white rounded-3xl p-6 flex flex-col font-mono text-[10px] overflow-hidden shadow-inner relative border border-gray-200"
                     >
-                      <div className="absolute inset-0 bg-red-500/5 backdrop-blur-[0.5px] flex items-center justify-center z-10">
-                        <span className="bg-red-500 text-white px-4 py-2 rounded-lg font-black text-xl shadow-lg flex items-center gap-2 animate-bounce">
-                          <XCircle className="w-5 h-5" /> Data Chaos
+                      <div className="absolute inset-0 bg-red-500/5 backdrop-blur-[1px] flex items-center justify-center z-10 transition-all">
+                        <span className="bg-red-500/10 backdrop-blur-md text-red-500 border border-red-500/20 px-8 py-4 rounded-2xl font-black text-2xl shadow-xl flex items-center gap-3 animate-pulse uppercase tracking-tight">
+                          <XCircle className="w-8 h-8" /> Data Overflow
                         </span>
                       </div>
-                      <div className="flex border-b border-gray-300 bg-gray-100 text-gray-500">
-                        <div className="w-6 border-r border-gray-300 bg-gray-200"></div>
-                        {['A', 'B', 'C', 'D', 'E'].map(c => <div key={c} className="flex-1 px-1 border-r border-gray-300 font-bold truncate">{c}</div>)}
+                      <div className="flex border-b border-gray-300 bg-gray-100 text-gray-500 h-10 items-center">
+                        <div className="w-8 border-r border-gray-300 bg-gray-200"></div>
+                        {['Campaign_ID', 'Creator_Ref', 'Metric_A', 'Status_Bit', 'Calculated'].map(c => <div key={c} className="flex-1 px-4 border-r border-gray-300 font-black truncate text-[9px] uppercase">{c}</div>)}
                       </div>
                       {Array.from({length: 8}).map((_, i) => (
-                        <div key={i} className="flex border-b border-gray-200 text-black h-8 whitespace-nowrap items-center">
-                          <div className="w-6 border-r border-gray-300 bg-gray-100 text-center text-gray-500"></div>
-                          <div className="flex-1 px-1 border-r border-gray-200 truncate">user_{i}</div>
-                          <div className="flex-1 px-1 border-r border-gray-200 text-red-500 font-bold bg-red-50">#REF!</div>
-                          <div className="flex-1 px-1 border-r border-gray-200 text-blue-600 underline truncate">http...</div>
-                          <div className="flex-1 px-1 border-r border-gray-200 bg-yellow-50">{Math.floor(Math.random() * 50000)}</div>
-                          <div className="flex-1 px-1 border-r border-gray-200 truncate">{Math.random() > 0.5 ? 'PAID?' : 'WAIT'}</div>
+                        <div key={i} className="flex border-b border-gray-200 text-black h-10 whitespace-nowrap items-center">
+                          <div className="w-8 border-r border-gray-300 bg-gray-100 text-center text-gray-400 font-bold">{i+1}</div>
+                          <div className="flex-1 px-4 border-r border-gray-200 truncate opacity-40">NODE_{Math.random().toString(36).substr(2, 5).toUpperCase()}</div>
+                          <div className="flex-1 px-4 border-r border-gray-200 text-red-500 font-black bg-red-50">#VALUE!</div>
+                          <div className="flex-1 px-4 border-r border-gray-200 text-blue-600 underline truncate italic opacity-30">ERR_UNDEFINED</div>
+                          <div className="flex-1 px-4 border-r border-gray-200 bg-yellow-50">{Math.floor(Math.random() * 50000)}</div>
+                          <div className="flex-1 px-4 border-r border-gray-200 truncate font-black text-red-600">NULL</div>
                         </div>
                       ))}
                     </motion.div>
                 ) : (
                   <motion.div 
                       key="opsrelic"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.5 }}
-                      className="h-full bg-[#111] border border-white/10 rounded-xl p-4 flex flex-col font-sans relative shadow-inner"
+                      initial={{ opacity: 0, scale: 1.1 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.5, ease: "circOut" }}
+                      className="h-full bg-[#0F0F0F] border border-white/10 rounded-3xl p-8 flex flex-col font-sans relative shadow-inner overflow-hidden"
                     >
-                      <div className="flex justify-between items-center mb-4 z-20">
-                        <div className="bg-[#0A0A0A] border border-[#3B82F6]/30 rounded-lg py-2 px-4 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-                          <p className="text-[9px] text-[#3B82F6] font-bold uppercase tracking-widest mb-0.5">Calculated Payouts</p>
-                          <p className="text-lg font-black text-white">$14,250.00</p>
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none"></div>
+                      <div className="flex justify-between items-center mb-8 z-20">
+                        <div className="bg-[#0A0A0A] border border-blue-600/30 rounded-2xl py-3 px-6 shadow-2xl flex items-center gap-4">
+                           <div className="w-10 h-10 rounded-xl bg-blue-600/20 flex items-center justify-center">
+                             <Wallet className="w-5 h-5 text-blue-500" />
+                           </div>
+                           <div>
+                            <p className="text-[9px] text-[#3B82F6] font-black uppercase tracking-[0.2em] mb-0.5">Total Payouts</p>
+                            <p className="text-2xl font-black text-white tabular-nums tracking-tighter">$14,250.00</p>
+                           </div>
                         </div>
                       </div>
 
-                      <div className="flex-1 border border-white/5 rounded-lg overflow-hidden flex flex-col">
-                        <div className="flex items-center gap-2 border-b border-white/5 pb-2 mb-2 text-[#888] text-[10px] font-bold uppercase tracking-widest px-2 pt-2">
-                          <div className="w-5"></div>
+                      <div className="flex-1 border border-white/5 rounded-2xl overflow-hidden flex flex-col bg-black/40 backdrop-blur-md">
+                        <div className="flex items-center h-12 border-b border-white/5 text-[#333] text-[9px] font-black uppercase tracking-[0.2em] px-6">
+                          <div className="w-8"></div>
                           <div className="flex-[2]">Creator</div>
                           <div className="flex-1 text-right">Views</div>
-                          <div className="flex-1 text-right">Owed</div>
+                          <div className="flex-1 text-right">Payout</div>
                         </div>
-                        <div className="flex-1 overflow-hidden space-y-1 px-2">
+                        <div className="flex-1 space-y-1 p-2">
                           {Array.from({length: 4}).map((_, i) => (
-                              <div key={i} className="flex items-center gap-2 py-2 border-b border-white/5 hover:bg-white/[0.02] rounded px-1 text-xs text-white">
-                                <div className="w-5"><Database className="w-3 h-3 text-emerald-500" /></div>
-                                <div className="flex-[2] font-bold truncate">@creator_{i + 1}</div>
-                                <div className="flex-1 text-right font-medium">{Math.floor(Math.random() * 100)}k</div>
-                                <div className="flex-1 text-right text-emerald-400 font-bold">${Math.floor(Math.random() * 500)}.00</div>
+                              <div key={i} className="flex items-center h-14 border border-transparent hover:border-blue-500/20 hover:bg-blue-500/5 rounded-xl px-4 text-xs group/row transition-all duration-300">
+                                <div className="w-8 flex items-center justify-center opacity-30 group-hover/row:opacity-100"><Database className="w-4 h-4 text-blue-500" /></div>
+                                <div className="flex-[2] font-black text-white truncate tracking-tight uppercase">@Clipper_0{i + 1}</div>
+                                <div className="flex-1 text-right font-black text-[#555] group-hover/row:text-white transition-colors">{Math.floor(Math.random() * 100)}K Views</div>
+                                <div className="flex-1 text-right text-emerald-500 font-black tracking-tighter text-sm">${Math.floor(Math.random() * 500)}.00</div>
                               </div>
                           ))}
                         </div>
                       </div>
                       
-                      <div className="absolute inset-0 bg-[#3B82F6]/5 backdrop-blur-[0.5px] flex items-center justify-center pointer-events-none rounded-xl z-30">
-                        <span className="bg-[#3B82F6] text-white px-4 py-2 rounded-lg font-black text-lg shadow-[0_0_30px_rgba(59,130,246,0.5)] flex items-center gap-2">
-                          <CheckCircle2 className="w-5 h-5" /> OpsRelic Clarity
-                        </span>
+                      <div className="absolute inset-0 bg-blue-600/5 backdrop-blur-[2px] flex items-center justify-center pointer-events-none rounded-3xl z-30 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="bg-blue-600 text-white px-10 py-5 rounded-[24px] font-black text-xl shadow-[0_0_50px_rgba(37,99,235,0.4)] flex items-center gap-4 active:scale-95 transition-transform">
+                          <CheckCircle2 className="w-8 h-8" /> Sync Complete
+                        </div>
                       </div>
                     </motion.div>
                 )}
@@ -202,32 +209,33 @@ export default function Landing() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="col-span-1 bg-[#0A0A0A] rounded-3xl border border-white/10 p-6 shadow-2xl relative h-[400px] overflow-hidden group cursor-pointer"
+            className="col-span-1 bg-[#0A0A0A] rounded-[48px] border border-white/5 p-10 shadow-2xl relative h-[480px] overflow-hidden group cursor-pointer hover:border-emerald-500/30 transition-colors"
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-purple-500/0 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <div className="relative z-10 flex flex-col h-full">
-              <h3 className="text-white font-bold text-xl flex items-center gap-2 mb-2 group-hover:text-purple-400 transition-colors">
-                <Wallet className="w-5 h-5 text-purple-500" /> Live Budgets
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-600/10 border border-emerald-500/20 rounded-full text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-6 w-fit">Budget Control</div>
+              <h3 className="text-white font-black text-3xl tracking-tighter mb-4 group-hover:text-emerald-400 transition-colors leading-none">
+                Expense Alerts
               </h3>
-              <p className="text-[#888] text-sm mb-6">Prevent overspending automatically.</p>
+              <p className="text-[#555] font-bold text-sm mb-10 tracking-tight">Real-time depletion alerts prevent over-payouts before they trigger.</p>
               
-              <div className="space-y-4 flex-1">
+              <div className="space-y-6 flex-1">
                 {[
-                  { name: 'Spring Promo', total: '$10k', percent: 85, color: 'bg-red-500' },
-                  { name: 'TikTok Ads', total: '$5k', percent: 40, color: 'bg-emerald-500' },
-                  { name: 'UGC Masters', total: '$25k', percent: 65, color: 'bg-yellow-500' },
+                  { name: 'Campaign A', total: '$10k', percent: 88, color: 'bg-red-500' },
+                  { name: 'Campaign B', total: '$50k', percent: 42, color: 'bg-emerald-500' },
+                  { name: 'Campaign C', total: '$25k', percent: 68, color: 'bg-blue-500' },
                 ].map((budget, i) => (
-                  <div key={i} className="bg-[#111] border border-white/5 p-3 rounded-xl hover:border-purple-500/30 hover:bg-purple-500/5 transition-all">
-                    <div className="flex justify-between items-center mb-2">
-                       <span className="text-sm font-bold text-white group-hover:text-purple-300">{budget.name}</span>
-                       <span className="text-xs font-black text-[#666]">{budget.total}</span>
+                  <div key={i} className="bg-black/40 border border-white/5 p-5 rounded-2xl hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all">
+                    <div className="flex justify-between items-center mb-3">
+                       <span className="text-xs font-black text-white uppercase tracking-widest group-hover:text-emerald-300">{budget.name}</span>
+                       <span className="text-[10px] font-black text-[#333] tabular-nums">{budget.total}</span>
                     </div>
-                    <div className="h-1.5 w-full bg-black rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-black rounded-full overflow-hidden">
                       <motion.div 
                          initial={{ width: 0 }}
                          whileInView={{ width: `${budget.percent}%` }}
-                         transition={{ duration: 1, delay: 0.5 + (i * 0.2) }}
-                         className={`h-full ${budget.color} rounded-full opacity-80 group-hover:opacity-100`}
+                         transition={{ duration: 1.2, delay: 0.5 + (i * 0.2), ease: "circOut" }}
+                         className={`h-full ${budget.color} rounded-full transition-all group-hover:shadow-[0_0_15px_${budget.color.replace('bg-', '')}]`}
                       />
                     </div>
                   </div>
@@ -334,7 +342,7 @@ export default function Landing() {
             <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">Automated Submission<br />Tracking.</h2>
             <p className="text-[#888] text-xl leading-relaxed">Pasting video links and manually tracking views breaks at scale. Upload raw data from your preferred form, and we do the rest.</p>
             <div className="p-4 bg-blue-500/10 border-l-4 border-blue-500 rounded-r-xl">
-              <p className="text-blue-400 font-bold text-lg">We automatically parse, map, and organize submissions by creator and campaign—eliminating human error.</p>
+              <p className="text-blue-400 font-bold text-lg">We automatically organize submissions by creator and campaign—saving you hours of work.</p>
             </div>
           </div>
           <div className="flex-1 w-full perspective-[1000px] cursor-pointer group">
@@ -353,9 +361,9 @@ export default function Landing() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                  {[
-                   { name: 'Submission Date', mapped: 'Timestamp', req: true },
+                   { name: 'Date', mapped: 'Timestamp', req: true },
                    { name: 'Creator', mapped: 'Username', req: true },
-                   { name: 'Platform', mapped: 'Social Network', req: true },
+                   { name: 'Platform', mapped: 'Network', req: true },
                    { name: 'Views', mapped: 'View Count', req: false },
                  ].map((c, i) => (
                    <motion.div 
@@ -443,7 +451,7 @@ export default function Landing() {
             <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">Streamlined Creator<br />Onboarding.</h2>
             <p className="text-[#888] text-xl leading-relaxed">Stop managing creators via scattered Discord messages. Consolidate your onboarding instructions and assets.</p>
             <div className="p-4 bg-blue-500/10 border-l-4 border-blue-500 rounded-r-xl">
-              <p className="text-blue-400 font-bold text-lg">Deploy branded onboarding portals containing secure asset links, guidelines, and an automated pipeline tracker.</p>
+              <p className="text-blue-400 font-bold text-lg">Create branded onboarding pages containing secure asset links, guidelines, and an automated tracker.</p>
             </div>
           </div>
           <div className="flex-1 w-full perspective-[1000px] cursor-pointer group">
@@ -458,7 +466,7 @@ export default function Landing() {
                <div className="absolute inset-0 bg-gradient-to-t from-blue-500/0 via-blue-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl pointer-events-none"></div>
                <div className="flex justify-between items-center mb-6">
                  <div>
-                   <h3 className="text-lg font-bold text-white flex items-center gap-2 group-hover:text-blue-400 transition-colors"><LayoutDashboard className="w-5 h-5 text-blue-500"/> Creator Pipeline</h3>
+                   <h3 className="text-lg font-bold text-white flex items-center gap-2 group-hover:text-blue-400 transition-colors"><LayoutDashboard className="w-5 h-5 text-blue-500"/> Creator Onboarding</h3>
                    <p className="text-xs text-[#888]">Spring Push 2026</p>
                  </div>
                  <div className="px-3 py-1 bg-white/10 rounded text-xs font-bold text-white border border-white/10 group-hover:bg-blue-500/20 group-hover:text-blue-400 transition-colors">12 Total</div>
@@ -467,7 +475,7 @@ export default function Landing() {
                <div className="flex gap-4 overflow-hidden">
                  <div className="flex-1 bg-black/40 rounded-xl p-3 border border-white/5 hover:border-blue-500/30 transition-colors">
                    <div className="flex justify-between items-center mb-3">
-                     <span className="text-[10px] font-bold text-[#888] uppercase tracking-widest group-hover:text-white transition-colors">Pipeline</span>
+                     <span className="text-[10px] font-bold text-[#888] uppercase tracking-widest group-hover:text-white transition-colors">Pending</span>
                      <span className="text-[10px] bg-white/10 px-1.5 rounded text-white font-bold group-hover:bg-blue-500 group-hover:text-white transition-colors">2</span>
                    </div>
                    <div className="bg-[#1A1A1A] p-2.5 rounded-lg border border-white/5 mb-2 text-xs font-bold text-white shadow-md hover:bg-white/10 transition-colors cursor-grab active:cursor-grabbing">
@@ -502,10 +510,10 @@ export default function Landing() {
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs font-bold text-purple-400 mb-2 uppercase tracking-widest">
               Feature 04
             </div>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">Real-time Budget<br />Enforcement.</h2>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">Real-time Budget<br />Tracking.</h2>
             <p className="text-[#888] text-xl leading-relaxed">Running parallel campaigns across dozens of creators makes it impossible to securely track active spend across teams.</p>
             <div className="p-4 bg-purple-500/10 border-l-4 border-purple-500 rounded-r-xl">
-              <p className="text-purple-400 font-bold text-lg">Define strict budget caps. We aggregate real-time payout liabilities and automatically alert you before you exceed allocation.</p>
+              <p className="text-purple-400 font-bold text-lg">Define strict budget caps. We aggregate real-time estimated payouts and automatically alert you before you exceed your budget.</p>
             </div>
           </div>
           <div className="flex-1 w-full perspective-[1000px] cursor-pointer group">
@@ -556,7 +564,7 @@ export default function Landing() {
             <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">Agency-wide<br />Analytics.</h2>
             <p className="text-[#888] text-xl leading-relaxed">Strategic growth is hampered when your performance metrics are siloed across scattered spreadsheets and disconnected tools.</p>
             <div className="p-4 bg-orange-500/10 border-l-4 border-orange-500 rounded-r-xl">
-              <p className="text-orange-400 font-bold text-lg">Consolidate your intelligence. Immediately identify high-return creators, effective costs per view, and overall profit margins.</p>
+              <p className="text-orange-400 font-bold text-lg">Consolidate your data. Immediately identify high-return creators, costs per view, and overall profit margins.</p>
             </div>
           </div>
           <div className="flex-1 w-full perspective-[1000px] cursor-pointer group">
@@ -610,7 +618,7 @@ export default function Landing() {
             <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">White-labeled<br />Client Reporting.</h2>
             <p className="text-[#888] text-xl leading-relaxed">Clients expect polished presentations detailing what they paid for. Building these manually drains hours of productive agency time.</p>
             <div className="p-4 bg-pink-500/10 border-l-4 border-pink-500 rounded-r-xl">
-              <p className="text-pink-400 font-bold text-lg">Export stunning, white-labeled PDF performance wrap-ups in a single click to explicitly prove your agency's exact ROI.</p>
+              <p className="text-pink-400 font-bold text-lg">Export stunning, white-labeled PDF performance wrap-ups in a single click to show your agency's exact ROI.</p>
             </div>
           </div>
           <div className="flex-1 w-full perspective-[1000px] cursor-pointer group">
@@ -779,91 +787,95 @@ function AuthModal({ mode, onClose, onSwitchMode }: {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="bg-[#0A0A0A] border border-white/10 rounded-3xl p-8 md:p-12 w-full max-w-md relative z-10 shadow-2xl h-[90vh] overflow-y-auto custom-scrollbar"
+        className="bg-[#0A0A0A] border border-white/10 rounded-[48px] p-10 md:p-14 w-full max-w-lg relative z-10 shadow-[0_0_80px_-20px_rgba(37,99,235,0.2)] max-h-[90vh] overflow-y-auto custom-scrollbar"
       >
         <button 
           onClick={onClose}
-          className="absolute top-6 right-6 text-[#555] hover:text-white transition-colors"
+          className="absolute top-8 right-8 text-[#333] hover:text-white transition-colors p-2"
         >
-          <X className="w-5 h-5" />
+          <X className="w-6 h-6" />
         </button>
 
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-2xl mx-auto flex items-center justify-center mb-6 shadow-lg shadow-blue-500/20 transform -rotate-3 text-white">
-            <Zap className="w-8 h-8" />
-          </div>
-          <h2 className="text-3xl font-black mb-2 tracking-tight">{mode === 'login' ? 'Welcome Back' : 'Create Account'}</h2>
-          <p className="text-[#888] text-sm font-medium">
-            {mode === 'login' ? 'Sign in to access your agency dashboard.' : 'Start automating your agency operations today.'}
+        <div className="text-center mb-12">
+          <motion.div 
+            initial={{ rotate: -10, scale: 0.8 }}
+            animate={{ rotate: 0, scale: 1 }}
+            className="w-20 h-20 bg-blue-600 rounded-[32px] mx-auto flex items-center justify-center mb-8 shadow-2xl shadow-blue-600/30 text-white"
+          >
+            <Zap className="w-10 h-10" />
+          </motion.div>
+          <h2 className="text-4xl font-display font-black mb-3 tracking-tighter text-white uppercase">{mode === 'login' ? 'Login' : 'Sign Up'}</h2>
+          <p className="text-[#444] text-[10px] font-black uppercase tracking-[0.3em] leading-relaxed px-4">
+            {mode === 'login' ? 'Sign in to your account.' : 'Create your account to get started.'}
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-500 text-sm font-bold text-center">
-            {error}
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-[10px] font-black uppercase tracking-widest text-center"
+          >
+            Error: {error}
+          </motion.div>
         )}
 
-        <form onSubmit={handleEmailAuth} className="space-y-5">
+        <form onSubmit={handleEmailAuth} className="space-y-6">
           {mode === 'signup' && (
-            <div>
-              <label className="block text-[10px] font-bold text-[#888] uppercase tracking-widest mb-2 pl-1">Agency Name</label>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-[#222] uppercase tracking-[0.3em] ml-1">Agency Name</label>
               <div className="relative group">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555] group-focus-within:text-blue-500 transition-colors" />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#333] group-focus-within:text-blue-500 transition-colors" />
                 <input 
                   type="text" 
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="Acme Media"
-                  className="w-full bg-[#111] border border-white/5 rounded-xl py-3 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:bg-[#151515] hover:border-white/10 transition-all placeholder:text-[#444]"
+                  placeholder="ACME MEDIA"
+                  className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.04] transition-all placeholder:text-[#222] uppercase tracking-widest"
                   required={mode === 'signup'}
                 />
               </div>
             </div>
           )}
-          <div>
-            <label className="block text-[10px] font-bold text-[#888] uppercase tracking-widest mb-2 pl-1">Email Address</label>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-[#222] uppercase tracking-[0.3em] ml-1">Email Address</label>
             <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555] group-focus-within:text-blue-500 transition-colors" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#333] group-focus-within:text-blue-500 transition-colors" />
               <input 
                 type="email" 
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="agency@example.com"
-                className="w-full bg-[#111] border border-white/5 rounded-xl py-3 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:bg-[#151515] hover:border-white/10 transition-all placeholder:text-[#444]"
+                placeholder="AGENCY@EXAMPLE.COM"
+                className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.04] transition-all placeholder:text-[#222] uppercase tracking-widest"
                 required
               />
             </div>
           </div>
-          <div>
-            <label className="block text-[10px] font-bold text-[#888] uppercase tracking-widest mb-2 pl-1 flex justify-between">
-              Password
-            </label>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-[#222] uppercase tracking-[0.3em] ml-1">Password</label>
             <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555] group-focus-within:text-blue-500 transition-colors" />
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#333] group-focus-within:text-blue-500 transition-colors" />
               <input 
                 type="password" 
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-[#111] border border-white/5 rounded-xl py-3 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:bg-[#151515] hover:border-white/10 transition-all placeholder:text-[#444]"
+                className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.04] transition-all placeholder:text-[#222]"
                 required
               />
             </div>
           </div>
           {mode === 'signup' && (
-            <div>
-              <label className="block text-[10px] font-bold text-[#888] uppercase tracking-widest mb-2 pl-1 flex justify-between">
-                Confirm Password
-              </label>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-[#222] uppercase tracking-[0.3em] ml-1">Confirm Password</label>
               <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555] group-focus-within:text-blue-500 transition-colors" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#333] group-focus-within:text-blue-500 transition-colors" />
                 <input 
                   type="password" 
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-[#111] border border-white/5 rounded-xl py-3 pl-11 pr-4 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:bg-[#151515] hover:border-white/10 transition-all placeholder:text-[#444]"
+                  className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold text-white focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.04] transition-all placeholder:text-[#222]"
                   required={mode === 'signup'}
                 />
               </div>
@@ -873,20 +885,20 @@ function AuthModal({ mode, onClose, onSwitchMode }: {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-500 transition-all active:scale-[0.98] mt-6 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(37,99,235,0.2)]"
+            className="w-full bg-blue-600 text-white font-black uppercase tracking-[0.3em] text-[10px] py-5 rounded-2xl hover:bg-blue-500 transition-all active:scale-[0.98] mt-6 flex items-center justify-center gap-3 shadow-[0_0_40px_rgba(37,99,235,0.3)] disabled:opacity-20 disabled:grayscale"
           >
-            {loading && document.activeElement?.getAttribute('type') === 'submit' ? (
+            {loading ? (
               <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
-            ) : mode === 'login' ? 'Sign In' : 'Create Account'}
+            ) : mode === 'login' ? 'Login' : 'Sign Up'}
           </button>
         </form>
 
-        <div className="relative my-6">
+        <div className="relative my-10">
            <div className="absolute inset-0 flex items-center">
-             <div className="w-full border-t border-white/10"></div>
+             <div className="w-full border-t border-white/5"></div>
            </div>
-           <div className="relative flex justify-center text-xs">
-             <span className="bg-[#0A0A0A] px-2 text-[#555] uppercase font-bold tracking-widest">Or continue with</span>
+           <div className="relative flex justify-center text-[9px] font-black uppercase tracking-[0.4em]">
+             <span className="bg-[#0A0A0A] px-4 text-[#222]">Or continue with</span>
            </div>
         </div>
 
@@ -894,7 +906,7 @@ function AuthModal({ mode, onClose, onSwitchMode }: {
           <button 
             onClick={(e) => { e.preventDefault(); handleGoogleLogin(); }}
             disabled={loading}
-            className="w-full bg-[#111] border border-white/5 text-white font-medium py-3.5 rounded-xl hover:bg-white/5 transition-all text-sm flex items-center justify-center gap-3 active:scale-[0.98]"
+            className="w-full bg-white text-black font-black uppercase tracking-[0.2em] text-[10px] py-5 rounded-2xl hover:bg-gray-100 transition-all flex items-center justify-center gap-4 active:scale-[0.98] shadow-xl"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -902,18 +914,18 @@ function AuthModal({ mode, onClose, onSwitchMode }: {
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
-            Continue with Google
+            Sync with Google
           </button>
         </div>
 
-        <div className="mt-8 text-center border-t border-white/5 pt-6">
-          <p className="text-sm font-medium text-[#888]">
-            {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
+        <div className="mt-10 text-center border-t border-white/5 pt-10">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#333]">
+            {mode === 'login' ? "Unauthorized? " : "Provisioned? "}
             <button 
               onClick={() => { setError(''); onSwitchMode(mode === 'login' ? 'signup' : 'login'); }}
-              className="text-white font-bold hover:underline"
+              className="text-blue-500 hover:text-blue-400 transition-colors ml-1"
             >
-              {mode === 'login' ? 'Sign up' : 'Log in'}
+              {mode === 'login' ? 'Create Node' : 'Authenticate Access'}
             </button>
           </p>
         </div>

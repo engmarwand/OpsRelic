@@ -36,11 +36,9 @@ service cloud.firestore {
     }
 
     function isValidWorkspace(data) {
-      // Allow partial updates but ensure types if present for safety
-      // Ensuring it's a map and checking main sub-keys if present
-      return (data.brand == null || (data.brand is map)) &&
-             (data.color == null || (data.color is map)) &&
-             (data.layout == null || (data.layout is map));
+      // Allow partial updates but ensure types if present
+      return (data.brand == null || (data.brand is map && (data.brand.name == null || (data.brand.name is string && data.brand.name.size() <= 100)))) &&
+             (data.color == null || (data.color is map && (data.color.primary == null || (data.color.primary is string && data.color.primary.size() <= 20))));
     }
 
     function isValidCampaign(data) {
@@ -70,27 +68,21 @@ service cloud.firestore {
       allow update: if isOwner(userId) && isValidWorkspace(incoming());
     }
 
-    match /user_config/{userId} {
-      allow get: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-    }
-
     match /campaigns/{campaignId} {
       allow get: if isSignedIn() && existing().userId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid; // Secure Query Enforcer
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() && isValidCampaign(incoming());
       allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidCampaign(incoming()) && 
-                    incoming().userId == existing().userId; // Immortal Field Rule
+                    incoming().userId == existing().userId;
       allow delete: if isSignedIn() && existing().userId == request.auth.uid;
     }
 
     match /submissions/{submissionId} {
       allow get: if isSignedIn() && existing().userId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid; // Secure Query Enforcer
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() && isValidSubmission(incoming());
       allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidSubmission(incoming()) &&
-                    incoming().userId == existing().userId; // Immortal Field Rule
+                    incoming().userId == existing().userId;
       allow delete: if isSignedIn() && existing().userId == request.auth.uid;
     }
   }

@@ -12,47 +12,48 @@ const CustomTooltip = ({
 }: TooltipRenderProps) => {
   return (
     <div {...tooltipProps} className="flex flex-col gap-2 w-[340px] max-w-[90vw] animate-in fade-in zoom-in-95 duration-200">
-      <div className="w-full bg-[#0F0F0F] border border-white/10 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] p-5 flex flex-col gap-3">
-        {step.title && <h3 className="text-[16px] font-bold text-white tracking-tight">{step.title}</h3>}
-        
-        <div className="text-[14px] text-[#A1A1AA] leading-relaxed">
-          {step.content}
-        </div>
-        
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
-          <button 
-            {...closeProps} 
-            className="text-[13px] font-medium text-[#71717A] hover:text-white transition-colors"
-          >
-            Skip for now
-          </button>
+        <div className="w-full bg-[#0A0A0A] border border-white/10 rounded-[32px] shadow-[0_40px_100px_rgba(0,0,0,1)] p-8 flex flex-col gap-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          {step.title && <h3 className="text-2xl font-display font-black text-white italic tracking-widest uppercase">{step.title}</h3>}
           
-          <div className="flex items-center gap-2">
-            {index > 0 && (
-              <button {...backProps} className="text-[13px] font-medium px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-colors">
-                Back
-              </button>
-            )}
-            <button {...primaryProps} className="text-[13px] font-medium px-4 py-1.5 rounded-lg bg-[#3B82F6] hover:bg-[#2563EB] text-white transition-colors shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-              {isLastStep ? 'Done' : 'Next'}
+          <div className="text-sm font-bold text-[#888] leading-relaxed tracking-tight">
+            {step.content}
+          </div>
+          
+          <div className="flex items-center justify-between mt-4 pt-6 border-t border-white/5">
+            <button 
+              {...closeProps} 
+              className="text-[10px] font-black uppercase tracking-[0.2em] text-[#333] hover:text-white transition-colors"
+            >
+              Terminate
             </button>
+            
+            <div className="flex items-center gap-4">
+              {index > 0 && (
+                <button {...backProps} className="text-[10px] font-black uppercase tracking-[0.2em] px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all">
+                  Reverse
+                </button>
+              )}
+              <button {...primaryProps} className="text-[10px] font-black uppercase tracking-[0.2em] px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)]">
+                {isLastStep ? 'Initialize' : 'Advancing'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-      
-      <div className="flex justify-center mt-1">
-        <button 
-          onClick={(e) => {
-            localStorage.setItem('opsrelic_walkthrough_completed_v2', 'true');
-            if (closeProps.onClick) {
-              closeProps.onClick(e);
-            }
-          }} 
-          className="text-[12px] font-semibold text-[#52525B] hover:text-[#FF6B35] transition-colors px-4 py-1.5 rounded-full bg-[#0A0A0A]/50 backdrop-blur-md border border-white/5"
-        >
-          Don't show again
-        </button>
-      </div>
+        
+        <div className="flex justify-center">
+          <button 
+            onClick={(e) => {
+              localStorage.setItem('opsrelic_walkthrough_completed_v2', 'true');
+              if (closeProps.onClick) {
+                closeProps.onClick(e);
+              }
+            }} 
+            className="text-[9px] font-black uppercase tracking-[0.3em] text-[#222] hover:text-blue-500 transition-colors px-6 py-2 rounded-full border border-white/5 group"
+          >
+            MUTE <span className="group-hover:inline hidden">SYSTEM GUIDANCE</span>
+          </button>
+        </div>
     </div>
   );
 };

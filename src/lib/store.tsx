@@ -1,13 +1,50 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AppState, CsvRow, WorkspaceSettings } from '../types';
 import { auth, db } from './firebase';
-import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, setDoc, getDocFromServer } from 'firebase/firestore';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+    },
+    operationType,
+    path
+  };
+  const jsonError = JSON.stringify(errInfo);
+  console.error('Firestore Error context:', jsonError);
+  throw new Error(jsonError);
+}
 import { PLANS, Tier, Plan, PlanFeatures, PlanLimits } from './plans';
 
 interface AppContextType extends AppState {
   setData: (data: CsvRow[]) => void;
   clearData: () => void;
   setWorkspace: (settings: WorkspaceSettings) => void;
+  saveWorkspace: (settings: WorkspaceSettings) => Promise<void>;
   setCurrentTier: (tier: Tier) => void;
   hasFeature: (featureName: keyof PlanFeatures) => boolean;
   getLimit: (limitName: keyof PlanLimits) => number | string;
@@ -15,6 +52,9 @@ interface AppContextType extends AppState {
   trackUsage: (metricName: string, amount?: number) => boolean;
   campaignsList: any[];
   plan: Plan;
+  getCampaignName: (id: string) => string;
+  showPricing: boolean;
+  setShowPricing: (show: boolean) => void;
 }
 
 const defaultWorkspace: WorkspaceSettings = {
@@ -49,6 +89,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<AppState>(defaultState);
   const [userId, setUserId] = useState<string | null>(null);
   const [campaignsList, setCampaignsList] = useState<any[]>([]);
+  const [showPricing, setShowPricing] = useState(false);
 
   useEffect(() => {
     // Configure window.OpsRelicData with plans and initial workspace state
@@ -68,14 +109,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       // Simple logic to create lighter/darker shades for variables if needed:
       document.documentElement.style.setProperty('--color-brand-primary-hover', state.workspace.color.primary); 
     }
-    
-    // Theme application (if needed down the line, although body class could do it)
-    if (state.workspace?.layout?.theme === 'light') {
-      document.documentElement.classList.add('light-mode');
-    } else {
-      document.documentElement.classList.remove('light-mode');
-    }
-  }, [state.workspace?.color?.primary, state.workspace?.layout?.theme]);
+  }, [state.workspace?.color?.primary]);
 
   useEffect(() => {
     return auth.onAuthStateChanged(user => {
@@ -90,35 +124,46 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    // Connection Test
+    const testConnection = async () => {
+      try {
+        // Small delay to ensure auth is settled
+        await getDocFromServer(doc(db, 'users', userId));
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration or connection.");
+        }
+      }
+    };
+    testConnection();
+
     // Fetch user profile and plan
     const userDocRef = doc(db, 'users', userId);
     const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
-        if (docSnap.exists()) {
+        const userEmail = auth.currentUser?.email;
+        const isMasterAdmin = userEmail === 'engmarwand@gmail.com';
+
+        if (isMasterAdmin) {
+            setState(prev => ({ ...prev, currentTier: 'agency' }));
+        } else if (docSnap.exists()) {
             const userData = docSnap.data();
             setState(prev => ({ ...prev, currentTier: userData.plan }));
         } else {
             // No plan set for user
             setState(prev => ({ ...prev, currentTier: undefined }));
         }
+    }, (error) => {
+        handleFirestoreError(error, OperationType.GET, `users/${userId}`);
     });
 
-    const qSubmissions = query(collection(db, 'submissions'), where('userId', '==', userId));
-    const unsubscribeSubmissions = onSnapshot(qSubmissions, (snapshot) => {
-      const data: CsvRow[] = [];
-      snapshot.forEach(doc => {
-        const row = doc.data() as any;
-        data.push({
-          "Submission Date": row.createdAt ? new Date(row.createdAt).toISOString().split('T')[0] : "",
-          Creator: row.creatorId ? row.creatorId.replace('id_creator_', '') : "",
-          "Content Title": row.url || "",
-          Platform: "TikTok", // Simplification since creator platform isn't immediately available here via JOIN
-          Campaign: row.campaignId ? row.campaignId.replace('id_camp_', '') : "",
-          Status: row.status === 'paid' ? 'Paid' : row.status === 'approved' ? 'Approved' : 'Pending',
-          Views: row.views || 0,
-          "Amount Paid": row.payout || 0,
-        });
-      });
-      setState(prev => ({ ...prev, data }));
+    // Fetch workspace settings
+    const workspaceDocRef = doc(db, 'workspaces', userId);
+    const unsubscribeWorkspace = onSnapshot(workspaceDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+            setState(prev => ({ ...prev, workspace: docSnap.data() as WorkspaceSettings }));
+        }
+    }, (error) => {
+        handleFirestoreError(error, OperationType.GET, `workspaces/${userId}`);
     });
 
     const qCampaigns = query(collection(db, 'campaigns'), where('userId', '==', userId));
@@ -128,12 +173,53 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
          list.push({ id: doc.id, ...doc.data() });
        });
        setCampaignsList(list);
+    }, (error) => {
+       handleFirestoreError(error, OperationType.LIST, 'campaigns');
+    });
+
+    const qSubmissions = query(collection(db, 'submissions'), where('userId', '==', userId));
+    const unsubscribeSubmissions = onSnapshot(qSubmissions, (snapshot) => {
+      const data: CsvRow[] = [];
+      snapshot.forEach(doc => {
+        const row = doc.data() as any;
+        
+        let dateStr = "";
+        if (row.submissionDate) {
+           const d = new Date(row.submissionDate);
+           if (!isNaN(d.getTime())) {
+              dateStr = d.toISOString().split('T')[0];
+           }
+        }
+        if (!dateStr) {
+           dateStr = row.createdAt?.toDate ? row.createdAt.toDate().toISOString().split('T')[0] : (row.createdAt ? new Date(row.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+        }
+
+        data.push({
+          "Submission Date": dateStr,
+          Creator: row.creatorId ? row.creatorId.replace(/^(id_)?creator_/, '') : "",
+          "Content Title": row.title || row.url || "",
+          Platform: row.platform ? row.platform.charAt(0).toUpperCase() + row.platform.slice(1) : "Tiktok",
+          Campaign: row.campaignId || "",
+          Status: row.status === 'paid' ? 'Paid' : row.status === 'approved' ? 'Approved' : 'Pending',
+          Views: row.views || 0,
+          "Amount Paid": row.payout || 0,
+          Likes: row.likes || 0,
+          Comments: row.comments || 0,
+          Shares: row.shares || 0,
+          "Submission URL": row.url || "",
+          _campaignId: row.campaignId || "",
+        });
+      });
+      setState(prev => ({ ...prev, data }));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'submissions');
     });
 
     return () => {
        unsubscribeSubmissions();
        unsubscribeCampaigns();
        unsubscribeUser();
+       unsubscribeWorkspace();
     };
   }, [userId]);
 
@@ -154,8 +240,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const saveWorkspace = async (newWorkspace: WorkspaceSettings) => {
+    if (!userId) return;
+    try {
+      await setDoc(doc(db, 'workspaces', userId), newWorkspace);
+      setWorkspace(newWorkspace);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `workspaces/${userId}`);
+    }
+  };
+
   const setCurrentTier = (tier: Tier) => {
-    setState(prev => ({ ...prev, currentTier: tier }));
+    const userEmail = auth.currentUser?.email;
+    const isMasterAdmin = userEmail === 'engmarwand@gmail.com';
+    setState(prev => ({ ...prev, currentTier: isMasterAdmin ? 'agency' : tier }));
   };
 
   const currentPlan = state.currentTier ? PLANS[state.currentTier] : null;
@@ -191,8 +289,38 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return true;
   };
 
+  const getCampaignName = (id: string): string => {
+     const c = campaignsList.find((camp) => camp.id === id);
+     if (c && c.name) return c.name;
+     // fallback
+     return id.replace(/^(id_)?camp_/, '');
+  };
+
+  const contextValue = React.useMemo(() => ({
+    ...state,
+    setData,
+    clearData,
+    setWorkspace,
+    saveWorkspace,
+    setCurrentTier,
+    hasFeature,
+    getLimit,
+    getUsage,
+    trackUsage,
+    campaignsList,
+    plan: currentPlan,
+    getCampaignName,
+    showPricing,
+    setShowPricing
+  }), [
+    state,
+    campaignsList,
+    currentPlan,
+    showPricing
+  ]);
+
   return (
-    <AppContext.Provider value={{ ...state, setData, clearData, setWorkspace, setCurrentTier, hasFeature, getLimit, getUsage, trackUsage, campaignsList, plan: currentPlan }}>
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );
