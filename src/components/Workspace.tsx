@@ -415,7 +415,6 @@ export default function Workspace() {
                 
                 <div className="space-y-3">
                   {[
-                    { id: 'budgetAlerts', label: 'Budget Alerts', desc: 'Notify when a campaign crosses 70% and 80% of total budget.' },
                     { id: 'flagsPending', label: 'Flagger approvals pending', desc: 'Notify when clips are marked for manual review.' },
                     { id: 'weeklySummary', label: 'Weekly performance summary', desc: 'Receive a self-email every Monday morning.' }
                   ].map(notif => (

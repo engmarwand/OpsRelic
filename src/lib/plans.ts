@@ -12,7 +12,6 @@ export interface PlanFeatures {
   dataExport: boolean;
   
   // PRO-ONLY
-  budgetTracker: boolean;
   onboardingPipeline: boolean;
   whiteLabelBranding: boolean;
   unlimitedReports: boolean;
@@ -60,19 +59,18 @@ export interface Plan {
 export const PLANS: Record<Tier, Plan> = {
   starter: {
     id: 'starter',
-    name: "Free", // Renamed for clarity
-    price: 0, // Making first tier free as implied by "free trials"
+    name: "Free",
+    price: 0,
     features: {
       csvUpload: true,
       smartSync: false,
-      campaignReports: false, // Report builder locked in free
+      campaignReports: true, 
       clipperLeaderboard: true,
       platformBreakdown: true,
-      pdfExport: false,
+      pdfExport: true,
       reportTemplates: false,
       dashboardKPIs: true,
       dataExport: true,
-      budgetTracker: false,
       onboardingPipeline: false,
       whiteLabelBranding: false,
       unlimitedReports: false,
@@ -97,7 +95,7 @@ export const PLANS: Record<Tier, Plan> = {
       savedTemplates: false,
     },
     limits: {
-      reportsPerMonth: 0,
+      reportsPerMonth: 3,
       campaigns: 1,
       recordsPerCampaign: 500,
       savedTemplates: 0,
@@ -122,7 +120,6 @@ export const PLANS: Record<Tier, Plan> = {
       reportTemplates: true,
       dashboardKPIs: true,
       dataExport: true,
-      budgetTracker: true,
       onboardingPipeline: false,
       whiteLabelBranding: false,
       unlimitedReports: true,
@@ -147,14 +144,14 @@ export const PLANS: Record<Tier, Plan> = {
       savedTemplates: true,
     },
     limits: {
-      reportsPerMonth: 50,
+      reportsPerMonth: Infinity,
       campaigns: 10,
       recordsPerCampaign: 5000,
       savedTemplates: 5,
       clipperInvites: 50,
       dataRetentionDays: 365,
       exportFrequency: "Unlimited",
-      clientProfiles: 10,
+      clientProfiles: 0,
       scheduledReportTriggers: 5,
     },
   },
@@ -172,7 +169,6 @@ export const PLANS: Record<Tier, Plan> = {
       reportTemplates: true,
       dashboardKPIs: true,
       dataExport: true,
-      budgetTracker: true,
       onboardingPipeline: true,
       whiteLabelBranding: true,
       unlimitedReports: true,

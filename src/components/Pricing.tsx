@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Check, ArrowRight } from 'lucide-react';
+import { Check, ArrowRight, X } from 'lucide-react';
 import { PLANS as APP_PLANS } from '../lib/plans';
+import { WhopCheckoutEmbed } from "@whop/checkout/react";
 
 const DISPLAY_PLANS = [
   { 
@@ -30,7 +31,7 @@ const DISPLAY_PLANS = [
       'Smart Sync (Deduplication)',
       'Custom Report Builder',
       'PDF & CSV Exporting',
-      'Automated Budget Tracking'
+      'Client White-Labeling'
     ], 
     popular: true,
     cta: 'Go Pro Now',
@@ -56,6 +57,7 @@ const DISPLAY_PLANS = [
 
 export default function Pricing({ onClose, requiresAuth, onAuthRequired }: { onClose?: () => void, requiresAuth?: boolean, onAuthRequired?: () => void }) {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [selectedWhopId, setSelectedWhopId] = useState<string | null>(null);
 
   const handleGetStarted = (planId: string) => {
     if (requiresAuth && onAuthRequired) {
@@ -77,8 +79,39 @@ export default function Pricing({ onClose, requiresAuth, onAuthRequired }: { onC
       return;
     }
 
-    window.open(`https://whop.com/checkout/${whopId}?theme=dark`, '_blank');
+    setSelectedWhopId(whopId);
   };
+
+  const handleComplete = (planId: string, receiptId: string) => {
+    console.log('Payment complete for plan:', planId, 'Receipt:', receiptId);
+    // You could also redirect or show success here
+    if (onClose) onClose();
+    // Force a reload or update context to reflect new plan
+    window.location.href = '/?status=success';
+  };
+
+  if (selectedWhopId) {
+    return (
+      <div className="min-h-[600px] bg-[#050505] flex flex-col items-center justify-center p-8 relative">
+        <button 
+          onClick={() => setSelectedWhopId(null)}
+          className="absolute top-8 left-8 text-[#555] hover:text-white flex items-center gap-2 text-xs font-black uppercase tracking-widest"
+        >
+          <ArrowRight className="w-4 h-4 rotate-180" /> Back to plans
+        </button>
+        
+        <div className="w-full max-w-2xl bg-[#0A0A0A] rounded-[42px] border border-white/5 overflow-hidden shadow-2xl">
+          <WhopCheckoutEmbed
+            planId={selectedWhopId}
+            onComplete={handleComplete}
+            theme="dark"
+          />
+        </div>
+
+        <p className="mt-8 text-[10px] text-[#333] font-black uppercase tracking-[0.3em]">opsrelic secured checkout</p>
+      </div>
+    );
+  }
 
   return (
     <div className="py-24 px-6 bg-[#050505] text-white overflow-hidden relative">

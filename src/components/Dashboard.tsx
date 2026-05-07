@@ -206,78 +206,78 @@ export default function Dashboard() {
       {/* Top filter row */}
       <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between z-20 relative">
         <div>
-          <h2 className="text-4xl font-display font-black text-white tracking-tight leading-tight">Dashboard Overview</h2>
-          <p className="text-sm text-[#555] font-bold uppercase tracking-widest mt-1">Real-time performance summary</p>
+          <h2 className="text-3xl font-display font-medium text-white tracking-tight leading-tight">Dashboard Overview</h2>
+          <p className="text-sm text-[#888] font-medium mt-1">Real-time performance summary</p>
         </div>
-        <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-md">
+        <div className="flex items-center gap-2 bg-[#0A0A0A] p-1.5 rounded-full border border-white/5 shadow-2xl backdrop-blur-md">
           <input 
             type="month"
             value={startMonth}
             onChange={e => setStartMonth(e.target.value)}
-            className="bg-transparent text-white text-[11px] font-black uppercase tracking-widest px-4 py-2.5 focus:outline-none placeholder-white/20 cursor-pointer hover:bg-white/5 rounded-xl transition-colors"
+            className="bg-transparent text-white text-[12px] font-medium px-4 py-2 focus:outline-none placeholder-white/20 cursor-pointer hover:bg-white/5 rounded-full transition-colors"
             aria-label="Start Month"
           />
-          <span className="text-[#333] font-black">—</span>
+          <span className="text-[#333] font-medium">—</span>
           <input 
             type="month"
             value={endMonth}
             onChange={e => setEndMonth(e.target.value)}
-            className="bg-transparent text-white text-[11px] font-black uppercase tracking-widest px-4 py-2.5 focus:outline-none placeholder-white/20 cursor-pointer hover:bg-white/5 rounded-xl transition-colors"
+            className="bg-transparent text-white text-[12px] font-medium px-4 py-2 focus:outline-none placeholder-white/20 cursor-pointer hover:bg-white/5 rounded-full transition-colors"
             aria-label="End Month"
           />
           {(startMonth || endMonth) && (
-             <button onClick={() => { setStartMonth(''); setEndMonth(''); }} className="text-[10px] bg-red-500/10 text-red-500 hover:bg-red-500/20 px-4 py-2 rounded-xl font-black uppercase tracking-widest transition-all ml-1">Clear</button>
+             <button onClick={() => { setStartMonth(''); setEndMonth(''); }} className="text-[12px] bg-red-500/10 text-red-500 hover:bg-red-500/20 px-4 py-2 rounded-full font-medium transition-all ml-1">Clear</button>
           )}
         </div>
       </div>
 
       {/* Top Banner Insight */}
-      <div className={`relative overflow-hidden rounded-[40px] border border-white/5 bg-[#0A0A0A] p-10 group/insight ${!hasFeature('aiInsights') ? 'opacity-90' : ''}`} style={{ boxShadow: `0 40px 80px -20px ${primaryColor}15` }}>
+      <div className={`relative overflow-hidden rounded-[32px] border border-white/5 bg-[#0A0A0A] p-8 md:p-10 group/insight ${!hasFeature('aiInsights') ? 'opacity-90' : ''}`}>
         <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-[120px] opacity-10 -translate-y-1/2 translate-x-1/3 pointer-events-none group-hover/insight:opacity-20 transition-opacity duration-1000" style={{ backgroundColor: primaryColor }}></div>
         
         {!hasFeature('aiInsights') && (
           <div className="absolute inset-0 z-50 bg-[#050505]/80 backdrop-blur-md flex items-center justify-center p-6 md:p-12">
-             <div className="bg-[#0A0A0A] p-8 md:p-12 rounded-[48px] border border-white/10 shadow-[0_0_100px_rgba(37,99,235,0.2)] flex flex-col md:flex-row items-center gap-8 md:gap-12 max-w-4xl w-full">
-                <div className="w-20 h-20 shrink-0 bg-blue-600 rounded-[32px] flex items-center justify-center shadow-2xl shadow-blue-600/30 rotate-3">
-                  <Activity className="w-10 h-10 text-white" />
+             <div className="bg-[#0A0A0A] p-8 md:p-12 rounded-[32px] border border-white/10 shadow-[0_0_100px_rgba(37,99,235,0.2)] flex flex-col items-center gap-6 max-w-lg w-full text-center">
+                <div className="w-16 h-16 shrink-0 bg-[#222] rounded-[16px] flex items-center justify-center shadow-2xl">
+                  <Activity className="w-8 h-8 text-white" />
                 </div>
-                <div className="flex-1 text-center md:text-left">
-                   <h4 className="text-white font-display font-black uppercase tracking-[0.2em] text-2xl md:text-3xl mb-3 leading-none italic">AI Insights Locked</h4>
-                   <p className="text-[#444] text-[10px] font-black uppercase tracking-[0.3em] leading-relaxed">Upgrade your plan to unlock deep performance analysis and growth trends across your campaigns.</p>
+                <div>
+                   <h4 className="text-white font-medium text-xl md:text-3xl mb-2">AI Insights Locked</h4>
+                   <p className="text-[#888] text-sm leading-relaxed">Upgrade your plan to unlock deep performance analysis and growth trends across your campaigns.</p>
                 </div>
                 <button 
                   onClick={() => setShowPricing(true)}
-                  className="shrink-0 px-10 py-5 bg-white text-black font-black uppercase tracking-[0.3em] text-[10px] rounded-2xl hover:bg-gray-100 transition-all shadow-2xl active:scale-95 flex items-center gap-3"
+                  className="px-8 py-3 bg-white text-black font-semibold text-sm rounded-full hover:bg-gray-100 transition-all shadow-2xl active:scale-95 flex items-center gap-2 mt-2"
                 >
-                  UPGRADE NOW
+                  Upgrade Now
                   <Zap className="w-4 h-4 fill-current" />
                 </button>
              </div>
           </div>
         )}
 
-        <div className="flex flex-col xl:flex-row gap-10 items-start xl:items-center relative z-10">
-          <div className="max-w-md shrink-0">
+        <div className="flex flex-col xl:flex-row gap-10 items-start xl:items-center relative z-10 w-full">
+          <div className="max-w-md shrink-0 w-full">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover/insight:border-blue-500/30 transition-colors">
-                <Zap className="w-5 h-5 text-blue-500 fill-current" />
+              <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover/insight:border-blue-500/30 transition-colors">
+                <Zap className="w-4 h-4 text-blue-500 fill-current" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#555]">Agency Insights</span>
+              <span className="text-xs font-semibold text-[#888]">Agency Insights</span>
             </div>
-            <h2 className="text-3xl font-display font-black text-white mb-3 tracking-tight">AI Insights</h2>
-            <p className="text-[#666] font-bold text-sm leading-relaxed max-w-xs uppercase tracking-tight">Smart observations about your agency performance.</p>
+            <h2 className="text-2xl font-display font-medium text-white mb-2 tracking-tight">AI Insights</h2>
+            <p className="text-[#888] font-medium text-sm leading-relaxed max-w-xs tracking-tight">Smart observations about your agency performance.</p>
           </div>
           
-          <div className="flex-1 w-full p-8 rounded-[32px] bg-white/[0.02] border border-white/5 flex gap-6 items-start backdrop-blur-xl group-hover/insight:bg-white/[0.04] transition-all duration-500">
-            <div className="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center bg-blue-600 shadow-lg shadow-blue-600/20 mt-1">
-              <TrendingUp className="w-6 h-6 text-white" />
+          <div className="flex-1 w-full p-8 rounded-[24px] bg-white/[0.02] border border-white/5 flex gap-6 items-start backdrop-blur-xl group-hover/insight:bg-white/[0.03] transition-all duration-500">
+            <div className="shrink-0 w-10 h-10 rounded-[14px] flex items-center justify-center bg-blue-500/10 border border-blue-500/20 shadow-lg text-blue-500 mt-1">
+              <TrendingUp className="w-5 h-5" />
             </div>
             <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <p className="font-black text-white uppercase tracking-[0.2em] text-[10px] opacity-40">Live Analysis</p>
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <p className="font-semibold text-white/50 text-[11px] uppercase tracking-wider">Live Analysis</p>
               </div>
-              <p className="text-lg text-white/90 leading-relaxed font-bold tracking-tight">
+              <p className="text-[15px] sm:text-base text-white/90 leading-relaxed font-medium tracking-tight">
                 {hasFeature('aiInsights') ? topInsight : "Upgrade your plan to access trend analysis and ROI strategies."}
               </p>
             </div>
@@ -295,28 +295,27 @@ export default function Dashboard() {
         ].map((kpi, i) => (
           <motion.div 
             key={i} 
-            whileHover={{ y: -5 }}
-            className={`bg-[#0A0A0A] border border-white/5 p-8 rounded-[32px] transition-all duration-500 relative overflow-hidden group shadow-xl hover:bg-[#0F0F0F] hover:border-white/10`}
+            whileHover={{ y: -4 }}
+            className={`bg-[#0A0A0A] border border-white/5 p-8 rounded-[32px] transition-all duration-500 relative overflow-hidden group shadow-lg hover:bg-[#0F0F0F] hover:border-white/10`}
           >
-            <div className="absolute top-0 right-0 w-40 h-40 rounded-full blur-[60px] opacity-0 group-hover:opacity-20 translate-x-1/2 -translate-y-1/2 transition-opacity duration-700 pointer-events-none" style={{ backgroundColor: kpi.color }}></div>
+            <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[40px] opacity-0 group-hover:opacity-10 translate-x-1/2 -translate-y-1/2 transition-opacity duration-700 pointer-events-none" style={{ backgroundColor: kpi.color }}></div>
             
-            <div className="flex justify-between items-start mb-10 relative z-10">
-              <span className="text-[10px] uppercase tracking-[0.3em] text-[#444] group-hover:text-[#888] font-black transition-colors">{workspace?.metrics?.customLabels?.[kpi.key] || kpi.label}</span>
+            <div className="flex justify-between items-start mb-8 relative z-10">
+              <span className="text-sm font-medium text-[#666] group-hover:text-[#888] transition-colors">{workspace?.metrics?.customLabels?.[kpi.key] || kpi.label}</span>
               <div 
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center border border-white/5 shadow-inner transition-all duration-500 group-hover:scale-110`}
-                style={{ backgroundColor: kpi.bg, color: kpi.color }}
+                className={`w-10 h-10 rounded-[14px] flex items-center justify-center border border-white/5 transition-all duration-500 bg-[#111] text-[#888] group-hover:text-white`}
               >
-                 <kpi.icon className="w-5 h-5 shadow-sm" />
+                 <kpi.icon className="w-4.5 h-4.5" style={{ color: kpi.color }} />
               </div>
             </div>
             
             <div className="relative z-10 flex flex-col">
-              <span className="text-5xl font-display font-black leading-none tracking-tighter text-white">
+              <span className="text-4xl font-display font-medium leading-none tracking-tight text-white">
                 <AnimatedNumber value={kpi.value} format={kpi.format} />
               </span>
-              <div className="flex items-center gap-2 mt-4">
+              <div className="flex items-center gap-1.5 mt-4">
                 <ChevronUp className="w-3 h-3 text-emerald-500" />
-                <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">+12.4% vs last period</span>
+                <span className="text-[11px] text-emerald-500 font-medium">+12.4% vs last period</span>
               </div>
             </div>
           </motion.div>
@@ -325,15 +324,15 @@ export default function Dashboard() {
 
       {/* Row 2: Charts */}
       <div className={`grid grid-cols-1 lg:grid-cols-5 ${getGap()}`}>
-        <div className={`lg:col-span-3 bg-[#0A0A0A] border border-white/5 p-8 lg:p-10 rounded-[40px] shadow-2xl relative overflow-hidden group/chart`}>
-          <div className="flex items-center justify-between mb-10">
-            <h3 className="text-[11px] font-black tracking-[0.3em] text-[#444] uppercase group-hover/chart:text-[#888] transition-colors">Views Trend</h3>
+        <div className={`lg:col-span-3 bg-[#0A0A0A] border border-white/5 p-8 lg:p-10 rounded-[32px] shadow-lg relative overflow-hidden group/chart`}>
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-sm font-semibold tracking-tight text-[#888] transition-colors">Views Trend</h3>
             <div className="flex gap-2">
               {['7d', '30d', '90d'].map(t => (
                 <button 
                   key={t} 
                   onClick={() => setTimeRange(t as any)}
-                  className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${t === timeRange ? 'bg-blue-600 text-white shadow-lg' : 'bg-white/5 text-[#555] hover:bg-white/10 hover:text-white'}`}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${t === timeRange ? 'bg-[#222] text-white shadow-sm' : 'bg-transparent text-[#666] hover:bg-white/5 hover:text-white'}`}
                 >
                   {t}
                 </button>
@@ -346,47 +345,47 @@ export default function Dashboard() {
                 <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="colorPrimary" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={primaryColor} stopOpacity={0.3}/>
+                      <stop offset="5%" stopColor={primaryColor} stopOpacity={0.2}/>
                       <stop offset="95%" stopColor={primaryColor} stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" vertical={false} />
-                  <XAxis dataKey="date" stroke="#222" tick={{fill: '#444', fontSize: 10, fontWeight: 900}} tickLine={false} axisLine={false} dy={15} />
-                  <YAxis stroke="#222" tick={{fill: '#444', fontSize: 10, fontWeight: 900}} tickLine={false} axisLine={false} tickFormatter={formatViews} dx={-15} />
+                  <XAxis dataKey="date" stroke="#333" tick={{fill: '#666', fontSize: 11, fontWeight: 500}} tickLine={false} axisLine={false} dy={15} />
+                  <YAxis stroke="#333" tick={{fill: '#666', fontSize: 11, fontWeight: 500}} tickLine={false} axisLine={false} tickFormatter={formatViews} dx={-15} />
                   <Tooltip 
-                    cursor={{ stroke: 'rgba(255,255,255,0.05)', strokeWidth: 2 }}
-                    contentStyle={{ backgroundColor: '#0F0F0F', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px', padding: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}
-                    itemStyle={{ fontSize: 12, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}
-                    labelStyle={{ color: '#555', fontSize: 10, fontWeight: 900, textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.2em' }}
+                    cursor={{ stroke: 'rgba(255,255,255,0.05)', strokeWidth: 1 }}
+                    contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}
+                    itemStyle={{ fontSize: 12, fontWeight: 500, color: '#fff' }}
+                    labelStyle={{ color: '#888', fontSize: 11, fontWeight: 500, marginBottom: '8px' }}
                   />
                   {campaigns.map((c, i) => (
-                    <Area key={c} type="monotone" dataKey={c} isAnimationActive={false} fillOpacity={1} fill="url(#colorPrimary)" stroke={i === 0 ? primaryColor : i === 1 ? "#10B981" : i === 2 ? "#F59E0B" : "#EC4899"} strokeWidth={3} activeDot={{ r: 6, strokeWidth: 0, fill: '#fff' }} />
+                    <Area key={c} type="monotone" dataKey={c} isAnimationActive={false} fillOpacity={1} fill="url(#colorPrimary)" stroke={i === 0 ? primaryColor : i === 1 ? "#10B981" : i === 2 ? "#F59E0B" : "#EC4899"} strokeWidth={2} activeDot={{ r: 5, strokeWidth: 0, fill: '#fff' }} />
                   ))}
                 </AreaChart>
               ) : chartStyle === 'Bar' ? (
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" vertical={false} />
-                  <XAxis dataKey="date" stroke="#222" tick={{fill: '#444', fontSize: 10, fontWeight: 900}} tickLine={false} axisLine={false} dy={15} />
-                  <YAxis stroke="#444" tick={{fill: '#444', fontSize: 10, fontWeight: 900}} tickLine={false} axisLine={false} tickFormatter={formatViews} dx={-15} />
+                  <XAxis dataKey="date" stroke="#333" tick={{fill: '#666', fontSize: 11, fontWeight: 500}} tickLine={false} axisLine={false} dy={15} />
+                  <YAxis stroke="#333" tick={{fill: '#666', fontSize: 11, fontWeight: 500}} tickLine={false} axisLine={false} tickFormatter={formatViews} dx={-15} />
                   <Tooltip 
                     cursor={{ fill: 'rgba(255,255,255,0.02)' }}
-                    contentStyle={{ backgroundColor: '#0F0F0F', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px', padding: '16px' }}
-                    itemStyle={{ fontSize: 12, fontWeight: 900 }}
+                    contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '16px' }}
+                    itemStyle={{ fontSize: 12, fontWeight: 500, color: '#fff' }}
                   />
                   {campaigns.map((c, i) => (
-                    <Bar key={c} dataKey={c} isAnimationActive={false} fill={i === 0 ? primaryColor : i === 1 ? "#10B981" : i === 2 ? "#F59E0B" : "#EC4899"} radius={[6, 6, 0, 0]} />
+                    <Bar key={c} dataKey={c} isAnimationActive={false} fill={i === 0 ? primaryColor : i === 1 ? "#10B981" : i === 2 ? "#F59E0B" : "#EC4899"} radius={[4, 4, 0, 0]} />
                   ))}
                 </BarChart>
               ) : (
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" vertical={false} />
-                  <XAxis dataKey="date" stroke="#222" tick={{fill: '#444', fontSize: 10, fontWeight: 900}} tickLine={false} axisLine={false} dy={15} />
-                  <YAxis stroke="#444" tick={{fill: '#444', fontSize: 10, fontWeight: 900}} tickLine={false} axisLine={false} tickFormatter={formatViews} dx={-15} />
+                  <XAxis dataKey="date" stroke="#333" tick={{fill: '#666', fontSize: 11, fontWeight: 500}} tickLine={false} axisLine={false} dy={15} />
+                  <YAxis stroke="#333" tick={{fill: '#666', fontSize: 11, fontWeight: 500}} tickLine={false} axisLine={false} tickFormatter={formatViews} dx={-15} />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#0F0F0F', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px', padding: '16px' }}
+                    contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '16px' }}
                   />
                   {campaigns.map((c, i) => (
-                    <Line key={c} type="monotone" dataKey={c} isAnimationActive={false} stroke={i === 0 ? primaryColor : i === 1 ? "#10B981" : i === 2 ? "#F59E0B" : "#EC4899"} strokeWidth={4} dot={false} activeDot={{ r: 8, strokeWidth: 0, fill: '#fff' }} />
+                    <Line key={c} type="monotone" dataKey={c} isAnimationActive={false} stroke={i === 0 ? primaryColor : i === 1 ? "#10B981" : i === 2 ? "#F59E0B" : "#EC4899"} strokeWidth={2} dot={false} activeDot={{ r: 5, strokeWidth: 0, fill: '#fff' }} />
                   ))}
                 </LineChart>
               )}
@@ -394,36 +393,25 @@ export default function Dashboard() {
           </div>
         </div>
         
-        <div className={`lg:col-span-2 bg-[#0A0A0A] border border-white/5 p-8 lg:p-10 rounded-[40px] shadow-2xl relative flex flex-col`}>
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-[11px] font-black tracking-[0.3em] text-[#444] uppercase">Platform Distribution</h3>
+        <div className={`lg:col-span-2 bg-[#0A0A0A] border border-white/5 p-8 lg:p-10 rounded-[32px] shadow-lg relative flex flex-col`}>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-sm font-semibold tracking-tight text-[#888]">Platform Distribution</h3>
           </div>
-          <div className="flex-1 flex items-center justify-center relative min-h-[400px]">
+          <div className="flex-1 flex items-center justify-center relative min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart margin={{ top: 40, right: 60, bottom: 40, left: 60 }}>
+              <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <Pie 
                   data={platformData} 
                   cx="50%" 
                   cy="50%" 
-                  innerRadius={55} 
-                  outerRadius={80} 
+                  innerRadius={65} 
+                  outerRadius={90} 
                   paddingAngle={5} 
                   dataKey="value" 
                   stroke="none" 
-                  cornerRadius={10}
+                  cornerRadius={8}
                   isAnimationActive={false}
-                  labelLine={{ stroke: 'white', strokeWidth: 1, opacity: 0.3 }}
-                  label={({ name, percent }) => (
-                    <text
-                      fill="#FFFFFF"
-                      fontSize={10}
-                      fontWeight={900}
-                      textAnchor="middle"
-                      className="font-black uppercase tracking-widest"
-                    >
-                      {`${name} ${(percent * 100).toFixed(0)}%`}
-                    </text>
-                  )}
+                  labelLine={false}
                 >
                   {platformData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={PLATFORM_COLORS[entry.name] || '#888888'} />
@@ -431,22 +419,22 @@ export default function Dashboard() {
                 </Pie>
                 <Tooltip 
                   formatter={(value: number) => formatViews(value)}
-                  contentStyle={{ backgroundColor: '#0F0F0F', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '24px', padding: '12px' }}
-                  itemStyle={{ color: '#fff', fontSize: 11, fontWeight: 900, textTransform: 'uppercase' }}
+                  contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '12px' }}
+                  itemStyle={{ color: '#fff', fontSize: 12, fontWeight: 500 }}
                 />
               </PieChart>
             </ResponsiveContainer>
             {/* Center Summary */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-3xl font-display font-black tracking-tighter text-white/20 tabular-nums leading-none">{platformData.length > 0 ? ((platformData[0].value / totalViews) * 100).toFixed(0) : '0'}%</span>
-              <span className="text-[10px] text-white/10 font-black tracking-[0.4em] uppercase mt-2">{platformData.length > 0 ? platformData[0].name : 'Null'}</span>
+              <span className="text-3xl font-display font-medium tracking-tight text-white/50 tabular-nums leading-none">{platformData.length > 0 ? ((platformData[0].value / totalViews) * 100).toFixed(0) : '0'}%</span>
+              <span className="text-[11px] text-white/30 font-semibold uppercase mt-2">{platformData.length > 0 ? platformData[0].name : 'Null'}</span>
             </div>
           </div>
-          <div className="mt-8 flex flex-wrap justify-center gap-6">
+          <div className="mt-6 flex flex-wrap justify-center gap-4">
             {platformData.map((p, i) => (
               <div key={p.name} className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PLATFORM_COLORS[p.name] || '#888888' }}></div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#666]">{p.name}</span>
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: PLATFORM_COLORS[p.name] || '#888888' }}></div>
+                <span className="text-xs font-semibold text-[#888]">{p.name}</span>
               </div>
             ))}
           </div>
@@ -455,30 +443,30 @@ export default function Dashboard() {
 
       {/* Row 3: Tables */}
       <div className={`grid grid-cols-1 lg:grid-cols-2 ${getGap()}`}>
-        <div className="bg-[#0A0A0A] border border-white/5 rounded-[40px] shadow-2xl overflow-hidden flex flex-col">
-          <div className="p-8 lg:p-10 border-b border-white/5 flex items-center justify-between">
-            <h3 className="text-[11px] font-black tracking-[0.3em] text-[#444] uppercase">Campaign Performance</h3>
-            <span className="px-3 py-1 bg-white/5 rounded-full text-[9px] font-black uppercase tracking-widest text-[#555]">By Volume</span>
+        <div className="bg-[#0A0A0A] border border-white/5 rounded-[32px] shadow-lg overflow-hidden flex flex-col">
+          <div className="p-6 lg:p-8 border-b border-white/5 flex items-center justify-between">
+            <h3 className="text-sm font-semibold tracking-tight text-[#888]">Campaign Performance</h3>
+            <span className="px-3 py-1.5 bg-[#111] rounded-full text-[10px] font-semibold text-[#666]">By Volume</span>
           </div>
-          <div className="overflow-x-auto flex-1 custom-scrollbar">
+          <div className="overflow-x-auto flex-1 custom-scrollbar pb-2">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/5 text-[10px] uppercase tracking-[0.2em] text-[#333] bg-black/20">
-                  <th className="p-6 pl-10 font-black">Campaign</th>
-                  <th className="p-6 font-black text-right">Views</th>
-                  <th className="p-6 font-black text-right">eCPM</th>
-                  <th className="p-6 pr-10 font-black text-right">Paid</th>
+                <tr className="border-b border-white/5 text-xs text-[#555] bg-transparent">
+                  <th className="p-4 pl-8 lg:pl-10 font-medium">Campaign</th>
+                  <th className="p-4 font-medium text-right">Views</th>
+                  <th className="p-4 font-medium text-right">eCPM</th>
+                  <th className="p-4 pr-8 lg:pr-10 font-medium text-right">Paid</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {campaignSummary.map((camp, i) => {
                   const ecpm = camp.views > 0 ? (camp.paid / camp.views) * 1000 : 0;
                   return (
-                    <tr key={i} className="hover:bg-white/[0.02] transition-all group">
-                      <td className="p-6 pl-10 text-sm font-black text-white whitespace-nowrap tracking-tight">{camp.campaign}</td>
-                      <td className="p-6 text-sm text-right tabular-nums font-bold text-[#888]">{formatViews(camp.views)}</td>
-                      <td className="p-6 text-sm text-right tabular-nums text-[#444] font-bold">{formatMoney(ecpm)}</td>
-                      <td className="p-6 pr-10 text-sm text-right tabular-nums text-emerald-500 font-black group-hover:text-emerald-400 transition-colors">{formatMoney(camp.paid)}</td>
+                    <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
+                      <td className="p-4 pl-8 lg:pl-10 text-sm font-medium text-white whitespace-nowrap tracking-tight">{camp.campaign}</td>
+                      <td className="p-4 text-sm text-right tabular-nums text-[#888]">{formatViews(camp.views)}</td>
+                      <td className="p-4 text-sm text-right tabular-nums text-[#666]">{formatMoney(ecpm)}</td>
+                      <td className="p-4 pr-8 lg:pr-10 text-sm text-right tabular-nums text-emerald-500 font-medium">{formatMoney(camp.paid)}</td>
                     </tr>
                   )
                 })}
@@ -487,34 +475,34 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-[#0A0A0A] border border-white/5 rounded-[40px] shadow-2xl overflow-hidden flex flex-col">
-          <div className="p-8 lg:p-10 border-b border-white/5 flex items-center justify-between">
-            <h3 className="text-[11px] font-black tracking-[0.3em] text-[#444] uppercase">Top Creators</h3>
-            <span className="px-3 py-1 bg-white/5 rounded-full text-[9px] font-black uppercase tracking-widest text-[#555]">Top 10%</span>
+        <div className="bg-[#0A0A0A] border border-white/5 rounded-[32px] shadow-lg overflow-hidden flex flex-col">
+          <div className="p-6 lg:p-8 border-b border-white/5 flex items-center justify-between">
+            <h3 className="text-sm font-semibold tracking-tight text-[#888]">Top Creators</h3>
+            <span className="px-3 py-1.5 bg-[#111] rounded-full text-[10px] font-semibold text-[#666]">Top 10%</span>
           </div>
-          <div className="overflow-x-auto flex-1 custom-scrollbar">
+          <div className="overflow-x-auto flex-1 custom-scrollbar pb-2">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/5 text-[10px] uppercase tracking-[0.2em] text-[#333] bg-black/20">
-                  <th className="p-6 pl-10 font-black w-16 text-center">Rank</th>
-                  <th className="p-6 font-black">Creator Name</th>
-                  <th className="p-6 font-black text-right">Views</th>
-                  <th className="p-6 font-black text-right">eCPM</th>
-                  <th className="p-6 pr-10 font-black text-right">Payout</th>
+                <tr className="border-b border-white/5 text-xs text-[#555] bg-transparent">
+                  <th className="p-4 pl-8 lg:pl-10 font-medium w-16 text-center">Rank</th>
+                  <th className="p-4 font-medium">Creator Name</th>
+                  <th className="p-4 font-medium text-right">Views</th>
+                  <th className="p-4 font-medium text-right">eCPM</th>
+                  <th className="p-4 pr-8 lg:pr-10 font-medium text-right">Payout</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {clippersMap.slice(0,6).map((c, i) => {
                   const ecpm = c.views > 0 ? (c.earned / c.views) * 1000 : 0;
                   return (
-                    <tr key={i} className="hover:bg-white/[0.02] transition-all group">
-                      <td className="p-6 pl-10 text-sm text-center">
-                        <span className="w-6 h-6 rounded-lg bg-white/5 text-[#444] inline-flex items-center justify-center text-[10px] font-black group-hover:text-white transition-colors">{(i+1).toString().padStart(2, '0')}</span>
+                    <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
+                      <td className="p-4 pl-8 lg:pl-10 text-sm text-center">
+                        <span className="w-6 h-6 rounded-lg bg-white/5 text-[#888] inline-flex items-center justify-center text-xs font-semibold group-hover:bg-white/10 group-hover:text-white transition-colors">{i+1}</span>
                       </td>
-                      <td className="p-6 text-sm font-black text-white whitespace-nowrap tracking-tight">{c.creator}</td>
-                      <td className="p-6 text-sm text-right tabular-nums font-bold text-[#888]">{formatViews(c.views)}</td>
-                      <td className="p-6 text-sm text-right tabular-nums text-[#444] font-bold">{formatMoney(ecpm)}</td>
-                      <td className="p-6 pr-10 text-sm text-right tabular-nums text-emerald-500 font-black group-hover:text-emerald-400 transition-colors">{formatMoney(c.earned)}</td>
+                      <td className="p-4 text-sm font-medium text-white whitespace-nowrap tracking-tight">{c.creator}</td>
+                      <td className="p-4 text-sm text-right tabular-nums text-[#888]">{formatViews(c.views)}</td>
+                      <td className="p-4 text-sm text-right tabular-nums text-[#666]">{formatMoney(ecpm)}</td>
+                      <td className="p-4 pr-8 lg:pr-10 text-sm text-right tabular-nums text-emerald-500 font-medium">{formatMoney(c.earned)}</td>
                     </tr>
                   )
                 })}

@@ -63,8 +63,8 @@ html {
 
 @media print {
   @page {
-    size: auto;
-    margin: 0;
+    size: A4;
+    margin: 15mm;
   }
   
   .print\:hidden {
@@ -102,6 +102,12 @@ html {
     margin: 0 !important;
   }
 
+  /* Force blocks to avoid breaking inside */
+  .break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
   /* Specific structure fix for reports print */
   .flex.flex-col.xl\:flex-row {
     display: block !important;
@@ -114,5 +120,11 @@ html {
   main {
     margin-left: 0 !important;
     padding: 0 !important;
+  }
+
+  /* Ensure chart container holds height */
+  .h-\[350px\] {
+    height: 350px !important;
+    min-height: 350px !important;
   }
 }

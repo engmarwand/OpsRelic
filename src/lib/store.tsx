@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { AppState, CsvRow, WorkspaceSettings } from '../types';
 import { auth, db } from './firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, getDocFromServer } from 'firebase/firestore';
+import { PLANS, Tier, Plan, PlanFeatures, PlanLimits } from './plans';
 
 enum OperationType {
   CREATE = 'create',
@@ -38,7 +39,6 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   console.error('Firestore Error context:', jsonError);
   throw new Error(jsonError);
 }
-import { PLANS, Tier, Plan, PlanFeatures, PlanLimits } from './plans';
 
 interface AppContextType extends AppState {
   setData: (data: CsvRow[]) => void;
@@ -55,6 +55,7 @@ interface AppContextType extends AppState {
   getCampaignName: (id: string) => string;
   showPricing: boolean;
   setShowPricing: (show: boolean) => void;
+  portalContext: { active: boolean; campaignId: string | null; ownerId: string | null; authorized: boolean; authorize: (pw: string) => Promise<boolean> };
 }
 
 const defaultWorkspace: WorkspaceSettings = {
@@ -64,17 +65,30 @@ const defaultWorkspace: WorkspaceSettings = {
   layout: { theme: "dark", layout: "Standard", chartStyle: "Line" },
   clients: [], 
   metrics: { customLabels: {} },
-  notifications: { budgetAlerts: true, flagsPending: true, weeklySummary: false },
+  notifications: { flagsPending: true, weeklySummary: false },
   rollingDates: false
 };
 
 const defaultState: AppState = {
   data: [],
-  budgets: [],
   onboarding: [],
+  clients: [],
+  briefs: [],
+  updates: [
+    {
+      id: "upd1",
+      campaignId: "All",
+      authorId: "system",
+      authorName: "System",
+      content: "Welcome to your new Campaign Dashboard!",
+      timestamp: new Date().toISOString(),
+      clientVisible: true
+    }
+  ],
   workspace: defaultWorkspace,
   currentTier: undefined, 
-  reportsGeneratedMonth: 0
+  reportsGeneratedMonth: 0,
+  userRole: 'agency'
 };
 
 declare global {
@@ -90,6 +104,42 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [userId, setUserId] = useState<string | null>(null);
   const [campaignsList, setCampaignsList] = useState<any[]>([]);
   const [showPricing, setShowPricing] = useState(false);
+  const [portalContext, setPortalContext] = useState<{ active: boolean; campaignId: string | null; ownerId: string | null; authorized: boolean }>({
+    active: false,
+    campaignId: null,
+    ownerId: null,
+    authorized: false
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const portalParam = params.get('portal');
+    if (portalParam) {
+      // The portal URL might look like slug-form-of-name---DOCUMENTID or just DOCUMENTID
+      const campaignId = portalParam.includes('---') 
+        ? portalParam.split('---').slice(1).join('---') 
+        : portalParam;
+        
+      setPortalContext(prev => ({ ...prev, active: true, campaignId }));
+    }
+  }, []);
+
+  const authorizePortal = async (password: string): Promise<boolean> => {
+    if (!portalContext.campaignId) return false;
+    try {
+      const campSnap = await getDocFromServer(doc(db, 'campaigns', portalContext.campaignId));
+      if (campSnap.exists()) {
+        const data = campSnap.data();
+        if (data.portalPassword === password) {
+          setPortalContext(prev => ({ ...prev, authorized: true, ownerId: data.userId }));
+          return true;
+        }
+      }
+    } catch (err) {
+      console.error("Portal auth failed", err);
+    }
+    return false;
+  };
 
   useEffect(() => {
     // Configure window.OpsRelicData with plans and initial workspace state
@@ -118,17 +168,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (!userId) {
-      setState(defaultState);
-      setCampaignsList([]);
-      return;
+    const effectiveUserId = userId || portalContext.ownerId;
+    if (!effectiveUserId) {
+      if (!portalContext.active || !portalContext.ownerId) {
+        setState(defaultState);
+        setCampaignsList([]);
+        return;
+      }
     }
 
     // Connection Test
     const testConnection = async () => {
       try {
         // Small delay to ensure auth is settled
-        await getDocFromServer(doc(db, 'users', userId));
+        await getDocFromServer(doc(db, 'users', effectiveUserId));
       } catch (error) {
         if (error instanceof Error && error.message.includes('the client is offline')) {
           console.error("Please check your Firebase configuration or connection.");
@@ -138,35 +191,40 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     testConnection();
 
     // Fetch user profile and plan
-    const userDocRef = doc(db, 'users', userId);
+    const userDocRef = doc(db, 'users', effectiveUserId);
     const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
         const userEmail = auth.currentUser?.email;
         const isMasterAdmin = userEmail === 'engmarwand@gmail.com';
 
-        if (isMasterAdmin) {
-            setState(prev => ({ ...prev, currentTier: 'agency' }));
+        if (isMasterAdmin && !portalContext.active) {
+            setState(prev => ({ ...prev, currentTier: 'agency', userRole: 'agency', reportsGeneratedMonth: 0 }));
         } else if (docSnap.exists()) {
             const userData = docSnap.data();
-            setState(prev => ({ ...prev, currentTier: userData.plan }));
+            setState(prev => ({ 
+              ...prev, 
+              currentTier: userData.plan, 
+              reportsGeneratedMonth: userData.reportsGeneratedMonth || 0,
+              userRole: portalContext.active ? 'client' : (userData.role || 'agency') 
+            }));
         } else {
             // No plan set for user
-            setState(prev => ({ ...prev, currentTier: undefined }));
+            setState(prev => ({ ...prev, currentTier: undefined, userRole: portalContext.active ? 'client' : 'agency', reportsGeneratedMonth: 0 }));
         }
     }, (error) => {
-        handleFirestoreError(error, OperationType.GET, `users/${userId}`);
+        handleFirestoreError(error, OperationType.GET, `users/${effectiveUserId}`);
     });
 
     // Fetch workspace settings
-    const workspaceDocRef = doc(db, 'workspaces', userId);
+    const workspaceDocRef = doc(db, 'workspaces', effectiveUserId);
     const unsubscribeWorkspace = onSnapshot(workspaceDocRef, (docSnap) => {
         if (docSnap.exists()) {
             setState(prev => ({ ...prev, workspace: docSnap.data() as WorkspaceSettings }));
         }
     }, (error) => {
-        handleFirestoreError(error, OperationType.GET, `workspaces/${userId}`);
+        handleFirestoreError(error, OperationType.GET, `workspaces/${effectiveUserId}`);
     });
 
-    const qCampaigns = query(collection(db, 'campaigns'), where('userId', '==', userId));
+    const qCampaigns = query(collection(db, 'campaigns'), where('userId', '==', effectiveUserId));
     const unsubscribeCampaigns = onSnapshot(qCampaigns, (snapshot) => {
        const list: any[] = [];
        snapshot.forEach(doc => {
@@ -177,7 +235,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
        handleFirestoreError(error, OperationType.LIST, 'campaigns');
     });
 
-    const qSubmissions = query(collection(db, 'submissions'), where('userId', '==', userId));
+    const qSubmissions = portalContext.active && portalContext.campaignId
+      ? query(collection(db, 'submissions'), where('userId', '==', effectiveUserId), where('campaignId', '==', portalContext.campaignId))
+      : query(collection(db, 'submissions'), where('userId', '==', effectiveUserId));
+
     const unsubscribeSubmissions = onSnapshot(qSubmissions, (snapshot) => {
       const data: CsvRow[] = [];
       snapshot.forEach(doc => {
@@ -278,12 +339,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (metricName === 'reportsPerMonth') {
       const limit = getLimit('reportsPerMonth');
       const current = getUsage('reportsPerMonth');
-      if (limit !== 'unlimited' && typeof limit === 'number') {
+      if (limit !== Infinity && typeof limit === 'number') {
         if (current + amount > limit) {
           return false; // Limit exceeded
         }
       }
-      setState(prev => ({ ...prev, reportsGeneratedMonth: (prev.reportsGeneratedMonth || 0) + amount }));
+      
+      const newCount = (state.reportsGeneratedMonth || 0) + amount;
+      setState(prev => ({ ...prev, reportsGeneratedMonth: newCount }));
+      
+      // Persist to Firestore
+      if (userId) {
+        setDoc(doc(db, 'users', userId), { reportsGeneratedMonth: newCount }, { merge: true })
+          .catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${userId}`));
+      }
+      
       return true;
     }
     return true;
@@ -311,12 +381,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     plan: currentPlan,
     getCampaignName,
     showPricing,
-    setShowPricing
+    setShowPricing,
+    portalContext: { ...portalContext, authorize: authorizePortal }
   }), [
     state,
     campaignsList,
     currentPlan,
-    showPricing
+    showPricing,
+    portalContext
   ]);
 
   return (

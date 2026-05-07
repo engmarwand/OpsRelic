@@ -77,20 +77,21 @@ service cloud.firestore {
     }
 
     match /campaigns/{campaignId} {
-      allow get: if isSignedIn() && existing().userId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid; // Secure Query Enforcer
+      allow get: if true; // Allow public lookups for portal verification
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() && isValidCampaign(incoming());
       allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidCampaign(incoming()) && 
-                    incoming().userId == existing().userId; // Immortal Field Rule
+                    incoming().userId == existing().userId;
       allow delete: if isSignedIn() && existing().userId == request.auth.uid;
     }
 
     match /submissions/{submissionId} {
-      allow get: if isSignedIn() && existing().userId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid; // Secure Query Enforcer
+      allow get: if true; // Allow public lookups for portal view
+      allow list: if (isSignedIn() && resource.data.userId == request.auth.uid) || 
+                    (resource.data.campaignId != null); // Allow public list for portals
       allow create: if isSignedIn() && isValidSubmission(incoming());
       allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidSubmission(incoming()) &&
-                    incoming().userId == existing().userId; // Immortal Field Rule
+                    incoming().userId == existing().userId;
       allow delete: if isSignedIn() && existing().userId == request.auth.uid;
     }
   }

@@ -14,18 +14,42 @@ export interface CsvRow {
   _campaignId?: string;
 }
 
-export interface Budget {
-  campaign: string;
-  cap: number;
-  rate: number;
-}
-
 export interface InvitedClipper {
   creator: string;
   campaign: string;
   status: "Invited" | "Guidelines Sent" | "Test Submitted" | "Approved" | "Active" | "Rejected";
   invitedDate: string;
   lastUpdated: string;
+}
+
+export interface ClientProfile {
+  id: string;
+  campaignId: string;
+  name: string;
+  email: string;
+  companyName: string;
+  status: 'Invited' | 'Onboarding' | 'Active';
+}
+
+export interface CampaignBrief {
+  campaignId: string;
+  brandOverview: string;
+  offerContent: string;
+  goals: string;
+  targetAudience: string;
+  keyMessages: string;
+  assetsUrl?: string;
+  status: 'Draft' | 'Final';
+}
+
+export interface CampaignUpdate {
+  id: string;
+  campaignId: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  timestamp: string;
+  clientVisible: boolean;
 }
 
 export interface WorkspaceSettings {
@@ -35,15 +59,19 @@ export interface WorkspaceSettings {
   layout: { theme: string; layout: string; chartStyle: string };
   clients: any[]; // Array of client profile objects
   metrics: { customLabels: Record<string, string> };
-  notifications: { budgetAlerts: boolean; flagsPending: boolean; weeklySummary: boolean };
+  notifications: { flagsPending: boolean; weeklySummary: boolean };
   rollingDates: boolean;
 }
 
 export interface AppState {
   data: CsvRow[];
-  budgets: Budget[];
+  clients: ClientProfile[];
+  briefs: CampaignBrief[];
+  updates: CampaignUpdate[];
   onboarding: InvitedClipper[];
   workspace?: WorkspaceSettings;
   currentTier?: import('./lib/plans').Tier;
   reportsGeneratedMonth?: number;
+  userRole?: 'agency' | 'client'; // Added
+  campaignsList?: any[]; // Keep the existing context
 }

@@ -83,23 +83,23 @@ export default function Walkthrough() {
       placement: 'center',
     },
     {
+      target: 'a[href="#dashboard"]',
+      content: 'Review high-level agency performance, real-time metrics, and strategic insights at a glance.',
+      placement: 'right',
+    },
+    {
       target: 'a[href="#upload"]',
       content: 'Start here to import your CSV data. The Upload tool parses it automatically to compute payouts based on views.',
       placement: 'right',
     },
     {
-      target: 'a[href="#budget"]',
-      content: 'Track campaign budgets, allocate funds, and monitor your spending across all active campaigns.',
+      target: 'a[href="#campaigns"]',
+      content: 'Manage individual campaigns, view granular performance data, and monitor clippers.',
       placement: 'right',
     },
     {
-      target: 'a[href="#onboarding"]',
-      content: 'Manage creator funnels. Send invitations, set guidelines, and handle test assignments easily.',
-      placement: 'right',
-    },
-    {
-      target: 'a[href="#reports"]',
-      content: 'Generate stunning client reports and deep-dive into campaign analytics to showcase performance.',
+      target: 'a[href="#workspace"]',
+      content: 'Tailor your agency identity, branding, and notification preferences.',
       placement: 'right',
     },
     {

@@ -68,7 +68,7 @@ function GatedFeature({
 }
 
 export default function Reports() {
-  const { data, workspace, setWorkspace, hasFeature, trackUsage, getLimit, getUsage, setShowPricing } = useAppContext();
+  const { data, workspace, setWorkspace, hasFeature, trackUsage, getLimit, getUsage, setShowPricing, plan, currentTier } = useAppContext();
   
   // Local Config State
   const [activeConfigTab, setActiveConfigTab] = useState<'content' | 'branding' | 'sharing'>('content');
@@ -209,28 +209,27 @@ export default function Reports() {
     return Object.keys(viewsByDate).map(date => ({ date, views: viewsByDate[date] }));
   }, [reportData]);
 
-  const { currentTier, plan } = useAppContext();
-  // Lock builder if on free tier or no plan
-  const isLocked = !plan || plan.id === 'starter';
+  // Lock builder if no plan
+  const isLocked = !plan;
 
   return (
     <div className="flex flex-col xl:flex-row gap-8 items-start min-h-[calc(100vh-100px)]">
       
       {/* SIDEBAR EDITOR */}
-      <div className="w-full xl:w-[450px] shrink-0 print:hidden space-y-8 relative">
+      <div className="w-full xl:w-[450px] shrink-0 print:hidden space-y-6 lg:space-y-8 relative">
         {isLocked && (
-          <div className="absolute inset-0 z-50 bg-[#0A0A0A]/40 backdrop-blur-[4px] flex flex-col items-center justify-center p-8 text-center rounded-[48px] border border-white/5">
-             <div className="bg-[#0A0A0A] p-10 rounded-[40px] border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.8)] max-w-sm relative">
-                <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-amber-500 rounded-3xl flex items-center justify-center shadow-2xl shadow-amber-500/30">
+          <div className="absolute inset-0 z-50 bg-[#0A0A0A]/40 backdrop-blur-[4px] flex flex-col items-center justify-center p-8 text-center rounded-[32px] border border-white/5">
+             <div className="bg-[#0A0A0A] p-10 rounded-[32px] border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.8)] max-w-sm relative">
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-amber-500 rounded-[20px] flex items-center justify-center shadow-2xl">
                   <Crown className="w-10 h-10 text-white" />
                 </div>
-                <h3 className="text-3xl font-display font-black text-white uppercase tracking-tighter mb-4 mt-8 italic">Builder Locked</h3>
-                <p className="text-[10px] text-[#444] font-black uppercase tracking-[0.2em] leading-relaxed mb-10">
+                <h3 className="text-2xl md:text-3xl font-display font-semibold text-white tracking-tight mb-4 mt-8">Builder Locked</h3>
+                <p className="text-sm text-[#888] font-medium leading-relaxed mb-8">
                   Provision higher clearance to unlock manual report generation and automated scheduling modules.
                 </p>
                 <button 
                   onClick={() => setShowPricing(true)}
-                  className="w-full py-5 bg-white text-black font-black uppercase tracking-[0.3em] text-[10px] rounded-2xl hover:bg-gray-100 transition-all font-sans shadow-xl active:scale-95"
+                  className="w-full py-4 bg-white text-black font-semibold text-sm rounded-full hover:bg-gray-100 transition-all shadow-xl active:scale-95"
                 >
                   Upgrade Access
                 </button>
@@ -239,16 +238,16 @@ export default function Reports() {
         )}
         
             {/* Header/Limit Info */}
-        <div className="bg-[#0A0A0A] border border-white/[0.05] rounded-[32px] p-8 shadow-2xl relative overflow-hidden">
+        <div className="bg-[#0A0A0A] border border-white/[0.05] rounded-[32px] p-8 shadow-lg relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-blue-600/10 blur-[60px] rounded-full -translate-y-1/2 translate-x-1/2"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-600/10 rounded-2xl border border-blue-500/20 shadow-lg text-blue-400">
+                <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20 shadow-sm text-blue-400">
                   <FileText className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-[10px] font-black text-[#555] uppercase tracking-[0.3em]">Module</h3>
+                  <h3 className="text-xs font-semibold text-[#888] tracking-wider uppercase mb-1">Module</h3>
                   <p className="text-xl font-display font-black text-white tracking-widest uppercase italic mt-1">Audit Builder</p>
                 </div>
               </div>
@@ -302,7 +301,7 @@ export default function Reports() {
         </div>
 
         {/* Floating Navigation Tabs */}
-        <div className="flex p-2 bg-[#0A0A0A] rounded-[24px] border border-white/5 shadow-2xl">
+        <div className="flex p-1.5 bg-[#111] rounded-[24px] border border-white/5 shadow-lg">
           {[
             { id: 'content', label: 'Content', icon: Layout },
             { id: 'branding', label: 'Design', icon: Palette },
@@ -311,7 +310,7 @@ export default function Reports() {
             <button
               key={tab.id}
               onClick={() => setActiveConfigTab(tab.id as any)}
-              className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeConfigTab === tab.id ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]' : 'text-[#444] hover:text-[#888]'}`}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[18px] text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 ${activeConfigTab === tab.id ? 'bg-[#222] text-white shadow-sm' : 'text-[#666] hover:text-white hover:bg-white/[0.02]'}`}
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
@@ -320,34 +319,34 @@ export default function Reports() {
         </div>
 
         {/* Scrollable Config Area */}
-        <div className="bg-[#111] border border-white/5 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100vh-280px)] xl:max-h-[700px]">
-          <div className="p-6 space-y-8 overflow-y-auto no-scrollbar pb-10">
+        <div className="bg-[#111] border border-white/5 rounded-[32px] shadow-lg overflow-hidden flex flex-col max-h-[calc(100vh-280px)] xl:max-h-[700px]">
+          <div className="p-8 space-y-10 overflow-y-auto no-scrollbar pb-10">
             
             {/* CONTENT TAB */}
             {activeConfigTab === 'content' && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <section className="space-y-4">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#555] flex items-center gap-2">
-                    <Settings2 className="w-3 h-3" /> Report Data Source
+                <section className="space-y-5">
+                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#666] flex items-center gap-2">
+                    <Settings2 className="w-4 h-4" /> Report Data Source
                   </h4>
                   <div className="space-y-4">
                     <div className="group/field">
-                      <label className="block text-[10px] font-black text-[#555] uppercase tracking-widest mb-2 pl-1 group-focus-within/field:text-blue-400 transition-colors">Campaign Source</label>
+                      <label className="block text-[11px] font-semibold text-[#888] mb-2 pl-1 group-focus-within/field:text-blue-400 transition-colors">Campaign Source</label>
                       <select 
                         value={selectedCampaign}
                         onChange={(e) => setSelectedCampaign(e.target.value)}
-                        className="w-full bg-[#0F0F0F] border border-white/5 rounded-2xl px-4 py-3.5 text-xs text-white/90 focus:outline-none focus:border-blue-500/30 transition-all font-bold"
+                        className="w-full bg-[#1A1A1A] border border-white/5 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/30 transition-all font-medium appearance-none"
                       >
                         <option value="All">All Campaigns (Global View)</option>
                         {campaigns.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                     <div className="group/field">
-                      <label className="block text-[10px] font-black text-[#555] uppercase tracking-widest mb-2 pl-1 group-focus-within/field:text-blue-400 transition-colors">Date Selection</label>
+                      <label className="block text-[11px] font-semibold text-[#888] mb-2 pl-1 group-focus-within/field:text-blue-400 transition-colors">Date Selection</label>
                       <select 
                         value={timelineMode}
                         onChange={(e) => setTimelineMode(e.target.value as any)}
-                        className="w-full bg-[#0F0F0F] border border-white/5 rounded-2xl px-4 py-3.5 text-xs text-white/90 focus:outline-none focus:border-blue-500/30 transition-all font-bold"
+                        className="w-full bg-[#1A1A1A] border border-white/5 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/30 transition-all font-medium appearance-none"
                       >
                         <option value="Full">Full History</option>
                         <option value="Last7">Last 7 Days</option>
@@ -355,48 +354,48 @@ export default function Reports() {
                         <option value="Custom">Custom Range</option>
                       </select>
                       {timelineMode === 'Custom' && (
-                        <div className="grid grid-cols-2 gap-2 mt-3 p-1.5 bg-black/20 rounded-xl animate-in zoom-in-95 duration-200">
-                          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border border-white/5 rounded-lg px-3 py-2 text-[10px] text-white font-bold" />
-                          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border border-white/5 rounded-lg px-3 py-2 text-[10px] text-white font-bold" />
+                        <div className="grid grid-cols-2 gap-3 mt-4 p-2 bg-[#1A1A1A] rounded-2xl animate-in zoom-in-95 duration-200">
+                          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none px-3 py-2 text-xs text-white font-medium focus:outline-none" />
+                          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none px-3 py-2 text-xs text-white font-medium focus:outline-none" />
                         </div>
                       )}
                     </div>
                   </div>
                 </section>
 
-                <section className="space-y-4 pt-4 border-t border-white/5">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#555] flex items-center gap-2">
-                    <FileText className="w-3 h-3" /> Report Metadata
+                <section className="space-y-5 pt-8 border-t border-white/5">
+                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#666] flex items-center gap-2">
+                    <FileText className="w-4 h-4" /> Report Metadata
                   </h4>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-[11px] font-bold text-[#888] uppercase tracking-wider mb-2 pl-1">Primary Title</label>
+                      <label className="block text-[11px] font-semibold text-[#888] mb-2 pl-1">Primary Title</label>
                       <input 
                         type="text" 
                         value={reportTitle}
                         onChange={(e) => setReportTitle(e.target.value)}
                         placeholder="e.g. Q4 Performance Audit"
-                        className="w-full bg-[#0A0A0A] border border-white/5 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-all shadow-inner"
+                        className="w-full bg-[#1A1A1A] border border-white/5 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#3B82F6]/50 transition-all shadow-inner placeholder-[#666]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-[#888] uppercase tracking-wider mb-2 pl-1">Subtitle / Reference</label>
+                      <label className="block text-[11px] font-semibold text-[#888] mb-2 pl-1">Subtitle / Reference</label>
                       <input 
                         type="text" 
                         value={reportSubtitle}
                         onChange={(e) => setReportSubtitle(e.target.value)}
                         placeholder="Internal Use Only"
-                        className="w-full bg-[#0A0A0A] border border-white/5 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-all shadow-inner"
+                        className="w-full bg-[#1A1A1A] border border-white/5 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#3B82F6]/50 transition-all shadow-inner placeholder-[#666]"
                       />
                     </div>
                   </div>
                 </section>
 
-                <section className="space-y-4 pt-4 border-t border-white/5">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#555] flex items-center gap-2">
-                    <Maximize2 className="w-3 h-3" /> Module Visibility
+                <section className="space-y-5 pt-8 border-t border-white/5">
+                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#666] flex items-center gap-2">
+                    <Maximize2 className="w-4 h-4" /> Module Visibility
                   </h4>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {[
                       { label: 'Executive Summary', state: showSummary, set: setShowSummary, featureId: 'perClientBranding', desc: 'Qualitative analysis for Agency clients' },
                       { label: 'Key Metrics Grid', state: showKpiSection, set: setShowKpiSection },
@@ -642,11 +641,11 @@ export default function Reports() {
         {/* Device Wrapper Emulation */}
         <div className="rounded-[32px] overflow-hidden min-h-[1000px] shadow-2xl transition-all duration-500 text-black p-0 relative print:rounded-none print:shadow-none print:min-h-0" style={{ fontFamily: reportFont, backgroundColor: reportBgColor, color: reportHeadingColor }}>
           
-          <div className="mx-auto max-w-4xl py-16 px-12 md:px-20 min-h-screen print:py-10 print:px-10">
+          <div className="mx-auto max-w-4xl py-16 px-12 md:px-20 min-h-screen print:py-0 print:px-0 print:max-w-none print:w-full">
             
             {/* Cover Page */}
             {workspace?.reports?.coverPage && (
-              <div className="flex flex-col items-center justify-center min-h-[900px] text-center mb-20 border-b-8 border-black/5 animate-in fade-in duration-700 print:min-h-screen print:mb-0 print:break-after-page">
+              <div className="flex flex-col items-center justify-center min-h-[900px] text-center mb-20 border-b-8 border-black/5 animate-in fade-in duration-700 print:min-h-screen print:mb-0 break-after-page">
                 {workspace?.brand?.logoUrl ? (
                   <img src={workspace.brand.logoUrl} alt="Logo" className="w-24 h-24 object-contain mb-12" />
                 ) : (
@@ -690,7 +689,7 @@ export default function Reports() {
 
               {/* Summary Module */}
               {showSummary && (
-                <div className="relative group/module">
+                <div className="relative group/module break-inside-avoid">
                   <div className={`bg-black/5 rounded-[32px] p-10 border-l-[12px] transition-all ${hasFeature('perClientBranding') ? '' : 'filter blur-[2px] opacity-40 select-none pointer-events-none'}`} style={{ borderColor: reportAccentColor }}>
                     <h3 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-30 mb-6" style={{ color: reportHeadingColor }}>Agency Commentary</h3>
                     <div className="text-lg font-medium opacity-70 leading-relaxed space-y-4" style={{ color: reportHeadingColor }}>
@@ -717,26 +716,26 @@ export default function Reports() {
 
               {/* KPI Module */}
               {showKpiSection && (
-                 <div className="grid grid-cols-2 gap-8">
+                 <div className="grid grid-cols-2 gap-8 break-inside-avoid">
                    <div className="bg-black/5 p-12 rounded-[40px] border border-black/5 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-black/5 rounded-full -translate-y-1/2 translate-x-1/2 transition-transform group-hover:scale-110"></div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.25em] opacity-30 mb-4 relative z-10" style={{ color: reportHeadingColor }}>Total Verified Impressions</p>
-                      <p className="text-7xl font-black tracking-tighter leading-none relative z-10" style={{ color: reportAccentColor }}>{formatViews(totalViews)}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest opacity-30 mb-4 relative z-10" style={{ color: reportHeadingColor }}>Total Views</p>
+                      <p className="text-5xl md:text-6xl font-bold tracking-tight leading-none relative z-10" style={{ color: reportAccentColor }}>{formatViews(totalViews)}</p>
                    </div>
                    <div className="bg-black/5 p-12 rounded-[40px] border border-black/5 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-black/5 rounded-full -translate-y-1/2 translate-x-1/2 transition-transform group-hover:scale-110"></div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.25em] opacity-30 mb-4 relative z-10" style={{ color: reportHeadingColor }}>Total Payouts (USD)</p>
-                      <p className="text-7xl font-black tracking-tighter leading-none relative z-10" style={{ color: reportHeadingColor }}>{formatMoney(totalPaidOut)}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest opacity-30 mb-4 relative z-10" style={{ color: reportHeadingColor }}>Total Payouts (USD)</p>
+                      <p className="text-5xl md:text-6xl font-bold tracking-tight leading-none relative z-10" style={{ color: reportHeadingColor }}>{formatMoney(totalPaidOut)}</p>
                    </div>
                  </div>
               )}
 
               {/* Chart Module */}
               {showChart && (
-                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150 break-inside-avoid">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-black tracking-tight flex items-center gap-3" style={{ color: reportHeadingColor }}>
-                      Performance Trajectory
+                    <h3 className="text-xl font-bold tracking-tight flex items-center gap-3" style={{ color: reportHeadingColor }}>
+                      Performance Over Time
                       <div className="w-1.5 h-1.5 rounded-full opacity-10" style={{ backgroundColor: reportHeadingColor }}></div>
                       <span className="text-xs font-bold opacity-30 uppercase tracking-widest">{chartData.length} Data Points</span>
                     </h3>
@@ -762,21 +761,21 @@ export default function Reports() {
 
               {/* Table Module */}
               {showPerformerTable && (
-                <div className="relative group/module print:break-before-page">
+                <div className="relative group/module print:break-before-page break-inside-avoid">
                   <div className={`space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 transition-all ${hasFeature('reportReordering') ? '' : 'filter blur-[2px] opacity-40 select-none pointer-events-none'}`}>
-                    <h3 className="text-xl font-black tracking-tight" style={{ color: reportHeadingColor }}>Contributor Yield Audit</h3>
+                    <h3 className="text-xl font-bold tracking-tight" style={{ color: reportHeadingColor }}>Top Creators</h3>
                     <div className="overflow-hidden border border-black/5 rounded-[32px]">
                       <table className="w-full text-left">
                         <thead className="bg-black/5 border-b border-black/5">
-                          <tr className="text-[10px] font-black uppercase tracking-widest opacity-40" style={{ color: reportHeadingColor }}>
-                            <th className="px-8 py-5">Asset Intelligence</th>
-                            <th className="px-8 py-5 text-right">Yield</th>
-                            <th className="px-8 py-5 text-right print:hidden">Audit Link</th>
+                          <tr className="text-[10px] font-bold uppercase tracking-widest opacity-40" style={{ color: reportHeadingColor }}>
+                            <th className="px-8 py-5">Asset</th>
+                            <th className="px-8 py-5 text-right">Views</th>
+                            <th className="px-8 py-5 text-right print:hidden">Link</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-black/5 text-sm font-medium">
                           {reportData.sort((a,b) => b.Views - a.Views).slice(0, 15).map((row, i) => (
-                             <tr key={i} className="hover:bg-black/[0.02] transition-colors">
+                             <tr key={i} className="hover:bg-black/[0.02] transition-colors break-inside-avoid">
                               <td className="px-8 py-6">
                                  <p className="font-bold leading-tight" style={{ color: reportHeadingColor }}>{row["Content Title"]}</p>
                                  <span className="text-[10px] uppercase font-black opacity-20 tracking-wider flex items-center gap-2 mt-1" style={{ color: reportHeadingColor }}>

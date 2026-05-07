@@ -526,12 +526,12 @@ export default function Upload() {
             onDragOver={(e) => { e.preventDefault(); if (targetType === 'new' ? campaignName : selectedCampaignId) setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
-            className={`block border-2 border-dashed rounded-[32px] p-20 text-center transition-all duration-500 relative z-10 ${
+            className={`block border-2 border-dashed rounded-[32px] p-16 text-center transition-all duration-500 relative z-10 overflow-hidden ${
               !(targetType === 'new' ? campaignName : selectedCampaignId) 
-                ? 'opacity-20 cursor-not-allowed border-white/5 bg-white/[0.01]' 
+                ? 'opacity-30 cursor-not-allowed border-white/5 bg-white/[0.01]' 
                 : isDragging 
-                  ? 'border-blue-600 bg-blue-600/10 scale-[1.01] cursor-pointer shadow-[0_0_50px_rgba(37,99,235,0.2)]' 
-                  : 'border-white/5 hover:border-blue-500/30 hover:bg-white/[0.02] cursor-pointer'
+                  ? 'border-blue-500 bg-blue-600/10 scale-[1.02] cursor-pointer shadow-[0_0_80px_rgba(37,99,235,0.15)]' 
+                  : 'border-white/10 hover:border-blue-500/50 hover:bg-white/[0.03] cursor-pointer group'
             }`}
           >
             <input 
