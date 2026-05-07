@@ -30,9 +30,12 @@ service cloud.firestore {
     // --- Entity Validations ---
 
     function isValidUser(data) {
-      return data.keys().hasAll(['plan']) && 
-             data.keys().size() == 1 &&
-             data.plan in ['starter', 'pro', 'agency'];
+      // Validate plan is valid
+      let validPlan = (data.plan in ['starter', 'pro', 'agency'] && data.plan is string);
+      let validCode = (data.passwordResetCode == null || (data.passwordResetCode is string && data.passwordResetCode.size() == 6));
+      let validCreatedAt = (data.codeCreatedAt == null || data.codeCreatedAt is timestamp);
+      
+      return validPlan && validCode && validCreatedAt;
     }
 
     function isValidWorkspace(data) {
@@ -64,9 +67,11 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUser(incoming());
-      // Users can't update their own plan (tier) - would be done via server/stripe
-      allow update: if false; 
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().keys().hasAll(['plan']);
+      allow update: if isOwner(userId) && 
+                    (incoming().diff(existing()).affectedKeys().hasOnly(['passwordResetCode', 'codeCreatedAt']) &&
+                     incoming().passwordResetCode is string && incoming().passwordResetCode.size() == 6 &&
+                     incoming().codeCreatedAt is timestamp);
     }
 
     match /workspaces/{userId} {
