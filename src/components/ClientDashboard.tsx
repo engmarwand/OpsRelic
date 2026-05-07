@@ -124,7 +124,7 @@ export default function ClientDashboard({ campaignId }: { campaignId?: string })
       </div>
 
       {/* Advanced Filters */}
-      <div className="bg-[#0A0A0A] p-6 lg:p-8 rounded-[32px] border border-white/[0.05] shadow-lg space-y-6 relative z-10">
+      <div className="bg-[#0A0A0A] p-6 lg:p-8 rounded-[48px] border border-white/[0.05] shadow-lg space-y-6 relative z-10">
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
           <div className="relative flex-1 max-w-sm">
             <Search className="w-4 h-4 text-[#888] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -254,7 +254,7 @@ export default function ClientDashboard({ campaignId }: { campaignId?: string })
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
          {/* All Clippers in Campaign */}
-         <div className="lg:col-span-1 bg-[#0A0A0A] border border-white/[0.05] p-6 lg:p-8 rounded-[32px] shadow-lg flex flex-col max-h-[420px]">
+         <div className="lg:col-span-1 bg-[#0A0A0A] border border-white/[0.05] p-6 lg:p-8 rounded-[48px] shadow-lg flex flex-col max-h-[420px]">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-xs font-bold tracking-widest text-[#888] uppercase">Top Creators</h3>
             {selectedClipper && (
@@ -292,7 +292,7 @@ export default function ClientDashboard({ campaignId }: { campaignId?: string })
         </div>
 
         {/* Raw Data Table */}
-        <div className="lg:col-span-3 bg-[#0A0A0A] border border-white/[0.05] rounded-[32px] shadow-2xl overflow-hidden flex flex-col h-[420px]">
+        <div className="lg:col-span-3 bg-[#0A0A0A] border border-white/[0.05] rounded-[48px] shadow-2xl overflow-hidden flex flex-col h-[420px]">
           <div className="p-6 lg:p-8 border-b border-white/[0.05] flex items-center justify-between shrink-0">
             <h3 className="text-xs font-bold tracking-widest text-[#888] uppercase">Submissions {selectedClipper && <span className="text-white ml-2">({selectedClipper})</span>}</h3>
             <span className="text-[#888] text-[10px] uppercase tracking-widest font-bold bg-white/5 px-3 py-1.5 rounded-full">{filteredData.length} results</span>

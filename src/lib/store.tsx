@@ -50,6 +50,7 @@ interface AppContextType extends AppState {
   getLimit: (limitName: keyof PlanLimits) => number | string;
   getUsage: (metricName: string) => number;
   trackUsage: (metricName: string, amount?: number) => boolean;
+  deductCredits: (amount: number) => Promise<boolean>;
   campaignsList: any[];
   plan: Plan;
   getCampaignName: (id: string) => string;
@@ -66,7 +67,8 @@ const defaultWorkspace: WorkspaceSettings = {
   clients: [], 
   metrics: { customLabels: {} },
   notifications: { flagsPending: true, weeklySummary: false },
-  rollingDates: false
+  rollingDates: false,
+  credits: 0
 };
 
 const defaultState: AppState = {
@@ -113,14 +115,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const portalParam = params.get('portal');
-    if (portalParam) {
-      // The portal URL might look like slug-form-of-name---DOCUMENTID or just DOCUMENTID
-      const campaignId = portalParam.includes('---') 
-        ? portalParam.split('---').slice(1).join('---') 
-        : portalParam;
-        
-      setPortalContext(prev => ({ ...prev, active: true, campaignId }));
+    const portalId = params.get('portal');
+    if (portalId) {
+      setPortalContext(prev => ({ ...prev, active: true, campaignId: portalId }));
     }
   }, []);
 
@@ -218,7 +215,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const workspaceDocRef = doc(db, 'workspaces', effectiveUserId);
     const unsubscribeWorkspace = onSnapshot(workspaceDocRef, (docSnap) => {
         if (docSnap.exists()) {
-            setState(prev => ({ ...prev, workspace: docSnap.data() as WorkspaceSettings }));
+            const data = docSnap.data() as WorkspaceSettings;
+            // If credits is missing, we initialize it later once the plan is known
+            setState(prev => ({ ...prev, workspace: data }));
         }
     }, (error) => {
         handleFirestoreError(error, OperationType.GET, `workspaces/${effectiveUserId}`);
@@ -233,6 +232,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
        setCampaignsList(list);
     }, (error) => {
        handleFirestoreError(error, OperationType.LIST, 'campaigns');
+    });
+
+    const qClients = query(collection(db, 'clients'), where('userId', '==', effectiveUserId));
+    const unsubscribeClients = onSnapshot(qClients, (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach(doc => {
+        list.push({ id: doc.id, ...doc.data() });
+      });
+      setState(prev => ({ ...prev, clients: list }));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'clients');
     });
 
     const qSubmissions = portalContext.active && portalContext.campaignId
@@ -279,6 +289,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return () => {
        unsubscribeSubmissions();
        unsubscribeCampaigns();
+       unsubscribeClients();
        unsubscribeUser();
        unsubscribeWorkspace();
     };
@@ -359,6 +370,35 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return true;
   };
 
+  const deductCredits = async (amount: number): Promise<boolean> => {
+    if (!userId || !state.workspace) return false;
+    const currentCredits = state.workspace.credits || 0;
+    
+    if (currentCredits < amount) return false;
+    
+    const newCredits = currentCredits - amount;
+    const updatedWorkspace = { ...state.workspace, credits: newCredits };
+    
+    try {
+      await setDoc(doc(db, 'workspaces', userId), { credits: newCredits }, { merge: true });
+      setWorkspace(updatedWorkspace);
+      return true;
+    } catch (err) {
+      console.error("Failed to deduct credits", err);
+      return false;
+    }
+  };
+
+  // Handle AI Credits initialization if missing
+  useEffect(() => {
+    if (userId && state.workspace && state.currentTier && state.workspace.credits === undefined) {
+      const plan = PLANS[state.currentTier];
+      if (plan) {
+         setDoc(doc(db, 'workspaces', userId), { credits: plan.limits.aiCredits }, { merge: true });
+      }
+    }
+  }, [userId, state.workspace?.credits, state.currentTier]);
+
   const getCampaignName = (id: string): string => {
      const c = campaignsList.find((camp) => camp.id === id);
      if (c && c.name) return c.name;
@@ -377,6 +417,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     getLimit,
     getUsage,
     trackUsage,
+    deductCredits,
     campaignsList,
     plan: currentPlan,
     getCampaignName,

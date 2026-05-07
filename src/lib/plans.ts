@@ -46,6 +46,7 @@ export interface PlanLimits {
   exportFrequency: string;
   clientProfiles: number;
   scheduledReportTriggers: number;
+  aiCredits: number; // Added for Phase 2
 }
 
 export interface Plan {
@@ -104,6 +105,7 @@ export const PLANS: Record<Tier, Plan> = {
       exportFrequency: "None",
       clientProfiles: 0,
       scheduledReportTriggers: 0,
+      aiCredits: 0,
     },
   },
   pro: {
@@ -153,6 +155,7 @@ export const PLANS: Record<Tier, Plan> = {
       exportFrequency: "Unlimited",
       clientProfiles: 0,
       scheduledReportTriggers: 5,
+      aiCredits: 100,
     },
   },
   agency: {
@@ -202,6 +205,7 @@ export const PLANS: Record<Tier, Plan> = {
       exportFrequency: "Unlimited",
       clientProfiles: Infinity,
       scheduledReportTriggers: Infinity,
+      aiCredits: 500,
     },
   }
 };

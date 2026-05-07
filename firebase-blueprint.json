@@ -44,6 +44,23 @@
         }
       }
     },
+    "ClientAccount": {
+      "title": "ClientAccount",
+      "description": "Represents a client or prospect in the CRM pipeline",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "website": { "type": "string" },
+        "stage": { "type": "string", "enum": ["Lead", "Qualified", "Proposal", "Won/Onboarding", "Active Client"] },
+        "notes": { "type": "string" },
+        "nextStep": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "stage", "userId"]
+    },
     "Campaign": {
       "title": "Campaign",
       "description": "Tracking campaign for agency projects",
@@ -51,9 +68,25 @@
       "properties": {
         "name": { "type": "string" },
         "userId": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "clientId": { "type": "string" },
+        "status": { "type": "string", "enum": ["Draft", "Review", "Active", "Complete"] },
+        "intake": { "type": "object" },
+        "brief": { 
+          "type": "object",
+          "properties": {
+            "summary": { "type": "string" },
+            "objective": { "type": "string" },
+            "angle": { "type": "string" },
+            "nextSteps": { "type": "string" },
+            "platforms": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "budget": { "type": "number" },
+        "portalPassword": { "type": "string" }
       },
-      "required": ["name", "userId"]
+      "required": ["name", "userId", "status"]
     },
     "Submission": {
       "title": "Submission",
@@ -94,6 +127,10 @@
     "/campaigns/{campaignId}": {
       "schema": "Campaign",
       "description": "Campaign documents"
+    },
+    "/clients/{clientId}": {
+      "schema": "ClientAccount",
+      "description": "Client and relationship documents"
     },
     "/submissions/{submissionId}": {
       "schema": "Submission",

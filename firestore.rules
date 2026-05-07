@@ -43,10 +43,15 @@ service cloud.firestore {
              (data.layout == null || (data.layout is map));
     }
 
+    function isValidClient(data) {
+      return data.name is string && data.name.size() <= 200 &&
+             data.userId == request.auth.uid &&
+             data.stage in ['Lead', 'Qualified', 'Proposal', 'Won/Onboarding', 'Active Client'];
+    }
+
     function isValidCampaign(data) {
-      return data.keys().hasAll(['name', 'userId']) &&
-             data.name is string && data.name.size() <= 200 &&
-             data.userId == request.auth.uid;
+      return data.name is string && data.name.size() <= 200 &&
+             (data.status == null || data.status in ['Draft', 'Review', 'Active', 'Complete']);
     }
 
     function isValidSubmission(data) {
@@ -76,12 +81,20 @@ service cloud.firestore {
       allow update: if isOwner(userId);
     }
 
-    match /campaigns/{campaignId} {
-      allow get: if true; // Allow public lookups for portal verification
+    match /clients/{clientId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidCampaign(incoming());
-      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidCampaign(incoming()) && 
+      allow create: if isSignedIn() && isValidClient(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidClient(incoming()) && 
                     incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /campaigns/{campaignId} {
+      allow get: if true; 
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidCampaign(incoming()) && incoming().userId == request.auth.uid;
+      allow update: if (isSignedIn() && existing().userId == request.auth.uid && isValidCampaign(incoming()) && incoming().userId == existing().userId);
       allow delete: if isSignedIn() && existing().userId == request.auth.uid;
     }
 

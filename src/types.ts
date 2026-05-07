@@ -31,6 +31,59 @@ export interface ClientProfile {
   status: 'Invited' | 'Onboarding' | 'Active';
 }
 
+export type CampaignStatus = 'Draft' | 'Review' | 'Active' | 'Complete';
+export type ClientStage = 'Lead' | 'Qualified' | 'Proposal' | 'Won/Onboarding' | 'Active Client';
+
+export interface ClientAccount {
+  id: string;
+  name: string;
+  email?: string;
+  website?: string;
+  stage: ClientStage;
+  notes?: string;
+  nextStep?: string;
+  retainer?: number; // Custom billing amount
+  billingCycle?: 'Monthly' | 'Quarterly' | 'Yearly';
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CampaignIntake {
+  brandName: string;
+  website: string;
+  productDescription: string;
+  mainOffer: string;
+  targetAudience: string;
+  campaignGoal: string;
+  platforms: string[];
+  toneStyle: string;
+  constraints: string;
+  submittedAt?: string;
+}
+
+export interface Campaign {
+  id: string;
+  userId: string;
+  clientId?: string; // Link to ClientAccount
+  name: string;
+  status: CampaignStatus;
+  intakeToken?: string; // For public link access
+  intake?: CampaignIntake;
+  brief?: {
+    summary: string;
+    objective: string;
+    angle: string;
+    nextSteps: string;
+    platforms: string[];
+  };
+  createdAt: string;
+  updatedAt: string;
+  budget?: number; // This can be used for the campaign specific retainer
+  retainer?: number; // Explicit retainer field
+  portalPassword?: string;
+}
+
 export interface CampaignBrief {
   campaignId: string;
   brandOverview: string;
@@ -61,6 +114,7 @@ export interface WorkspaceSettings {
   metrics: { customLabels: Record<string, string> };
   notifications: { flagsPending: boolean; weeklySummary: boolean };
   rollingDates: boolean;
+  credits?: number; // Added for Phase 2
 }
 
 export interface AppState {
@@ -73,5 +127,5 @@ export interface AppState {
   currentTier?: import('./lib/plans').Tier;
   reportsGeneratedMonth?: number;
   userRole?: 'agency' | 'client'; // Added
-  campaignsList?: any[]; // Keep the existing context
+  campaignsList?: Campaign[]; // Updated to use Campaign type
 }

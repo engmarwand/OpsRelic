@@ -485,7 +485,7 @@ export default function Workspace() {
                 </div>
                 
                 {/* Mock Chart Area */}
-                <div className="p-8 rounded-[32px] bg-black/[0.02] border border-black/5 h-48 flex flex-col justify-end gap-2 items-end">
+                <div className="p-8 rounded-[48px] bg-black/[0.02] border border-black/5 h-48 flex flex-col justify-end gap-2 items-end">
                    <div className="w-full flex items-end justify-between h-24 px-4">
                      {[30, 50, 40, 70, 45, 80, 60].map((h, i) => (
                        <div key={i} className="w-6 rounded-t-lg transition-all duration-500" style={{ height: `${h}%`, backgroundColor: previewColor, opacity: 0.3 + (i * 0.1) }}></div>

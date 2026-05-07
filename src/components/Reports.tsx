@@ -23,10 +23,20 @@ import {
   Monitor,
   ExternalLink,
   Save,
-  FolderOpen
+  FolderOpen,
+  TrendingUp,
+  DollarSign,
+  Users,
+  Target,
+  BarChart2,
+  Settings,
+  ArrowRight
 } from 'lucide-react';
-import { AreaChart, Area, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { getFeatureMinTier } from '../lib/plans';
+import { PageHeader, StatCard } from './ui/Shared';
+import { cn } from '../lib/utils';
+import { motion } from 'motion/react';
 
 const PRESET_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
@@ -67,8 +77,12 @@ function GatedFeature({
   );
 }
 
-export default function Reports() {
+// ... (TierBadge, GatedFeature, etc remain same)
+
+export default function IntelligenceHub() {
   const { data, workspace, setWorkspace, hasFeature, trackUsage, getLimit, getUsage, setShowPricing, plan, currentTier } = useAppContext();
+  
+  const [view, setView] = useState<'dashboard' | 'builder'>('dashboard');
   
   // Local Config State
   const [activeConfigTab, setActiveConfigTab] = useState<'content' | 'branding' | 'sharing'>('content');
@@ -213,23 +227,90 @@ export default function Reports() {
   const isLocked = !plan;
 
   return (
-    <div className="flex flex-col xl:flex-row gap-8 items-start min-h-[calc(100vh-100px)]">
+    <div className="space-y-12 pb-20">
+      <PageHeader 
+        title="Intelligence Hub" 
+        description="Unified Agency performance & report builder"
+        icon={BarChart2}
+        badge="Analytics Engine"
+        actions={
+          <div className="flex bg-white/[0.02] border border-white/5 p-1 rounded-2xl">
+            <button 
+              onClick={() => setView('dashboard')}
+              className={cn(
+                "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                view === 'dashboard' ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-[#444] hover:text-[#888]"
+              )}
+            >
+              Real-time Analytics
+            </button>
+            <button 
+              onClick={() => setView('builder')}
+              className={cn(
+                "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                view === 'builder' ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "text-[#444] hover:text-[#888]"
+              )}
+            >
+              Report Builder
+            </button>
+          </div>
+        }
+      />
+
+      {view === 'dashboard' ? (
+        <div className="space-y-12 animate-in fade-in duration-500">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <StatCard label="Network Reach" value={formatViews(totalViews)} icon={Eye} trend={{ value: "+24%", isUp: true }} />
+            <StatCard label="System Payouts" value={formatMoney(totalPaidOut)} icon={DollarSign} />
+            <StatCard label="Active Contributors" value={totalCreators} icon={Users} />
+            <StatCard label="Capital Efficiency" value={formatMoney(ecpm)} icon={Target} description="eCPM" />
+          </div>
+
+          <div className="bg-[#0A0A0A] border border-white/[0.05] p-10 rounded-[48px] shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+            <h3 className="text-[10px] font-black text-[#444] uppercase tracking-[0.3em] mb-10">Cross-Campaign Growth Trajectory</h3>
+            <div className="h-[400px]">
+              <ResponsiveContainer width="100%" height="100%">
+                 <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="viewsGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
+                    <XAxis dataKey="date" stroke="#444" tick={{fill: '#444', fontSize: 10, fontWeight: 700}} tickLine={false} axisLine={false} dy={15} />
+                    <YAxis stroke="#444" tick={{fill: '#444', fontSize: 10, fontWeight: 700}} tickLine={false} axisLine={false} tickFormatter={formatViews} dx={-15} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', padding: '12px' }}
+                      itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
+                      cursor={{ stroke: '#3B82F6', strokeWidth: 2 }}
+                    />
+                    <Area type="monotone" dataKey="views" fillOpacity={1} fill="url(#viewsGradient)" stroke="#3B82F6" strokeWidth={4} activeDot={{ r: 6, strokeWidth: 0, fill: '#fff' }} />
+                 </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col xl:flex-row gap-8 items-start animate-in fade-in duration-500">
+          {/* Builder content... current reports logic */}
       
       {/* SIDEBAR EDITOR */}
-      <div className="w-full xl:w-[450px] shrink-0 print:hidden space-y-6 lg:space-y-8 relative">
+      <div className="w-full xl:w-[450px] shrink-0 print:hidden space-y-8 relative">
         {isLocked && (
-          <div className="absolute inset-0 z-50 bg-[#0A0A0A]/40 backdrop-blur-[4px] flex flex-col items-center justify-center p-8 text-center rounded-[32px] border border-white/5">
-             <div className="bg-[#0A0A0A] p-10 rounded-[32px] border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.8)] max-w-sm relative">
-                <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-amber-500 rounded-[20px] flex items-center justify-center shadow-2xl">
+          <div className="absolute inset-0 z-50 bg-[#0A0A0A]/40 backdrop-blur-[4px] flex flex-col items-center justify-center p-8 text-center rounded-[48px] border border-white/5">
+             <div className="bg-[#0A0A0A] p-10 rounded-[48px] border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.8)] max-w-sm relative">
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 bg-amber-500 rounded-3xl flex items-center justify-center shadow-2xl shadow-amber-500/30">
                   <Crown className="w-10 h-10 text-white" />
                 </div>
-                <h3 className="text-2xl md:text-3xl font-display font-semibold text-white tracking-tight mb-4 mt-8">Builder Locked</h3>
-                <p className="text-sm text-[#888] font-medium leading-relaxed mb-8">
+                <h3 className="text-3xl font-display font-black text-white uppercase tracking-tighter mb-4 mt-8 italic">Builder Locked</h3>
+                <p className="text-[10px] text-[#444] font-black uppercase tracking-[0.2em] leading-relaxed mb-10">
                   Provision higher clearance to unlock manual report generation and automated scheduling modules.
                 </p>
                 <button 
                   onClick={() => setShowPricing(true)}
-                  className="w-full py-4 bg-white text-black font-semibold text-sm rounded-full hover:bg-gray-100 transition-all shadow-xl active:scale-95"
+                  className="w-full py-5 bg-white text-black font-black uppercase tracking-[0.3em] text-[10px] rounded-2xl hover:bg-gray-100 transition-all font-sans shadow-xl active:scale-95"
                 >
                   Upgrade Access
                 </button>
@@ -238,16 +319,16 @@ export default function Reports() {
         )}
         
             {/* Header/Limit Info */}
-        <div className="bg-[#0A0A0A] border border-white/[0.05] rounded-[32px] p-8 shadow-lg relative overflow-hidden">
+        <div className="bg-[#0A0A0A] border border-white/[0.05] rounded-[32px] p-8 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-blue-600/10 blur-[60px] rounded-full -translate-y-1/2 translate-x-1/2"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20 shadow-sm text-blue-400">
+                <div className="p-3 bg-blue-600/10 rounded-2xl border border-blue-500/20 shadow-lg text-blue-400">
                   <FileText className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-semibold text-[#888] tracking-wider uppercase mb-1">Module</h3>
+                  <h3 className="text-[10px] font-black text-[#555] uppercase tracking-[0.3em]">Module</h3>
                   <p className="text-xl font-display font-black text-white tracking-widest uppercase italic mt-1">Audit Builder</p>
                 </div>
               </div>
@@ -301,7 +382,7 @@ export default function Reports() {
         </div>
 
         {/* Floating Navigation Tabs */}
-        <div className="flex p-1.5 bg-[#111] rounded-[24px] border border-white/5 shadow-lg">
+        <div className="flex p-2 bg-[#0A0A0A] rounded-[24px] border border-white/5 shadow-2xl">
           {[
             { id: 'content', label: 'Content', icon: Layout },
             { id: 'branding', label: 'Design', icon: Palette },
@@ -310,7 +391,7 @@ export default function Reports() {
             <button
               key={tab.id}
               onClick={() => setActiveConfigTab(tab.id as any)}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-[18px] text-[11px] font-semibold uppercase tracking-wider transition-all duration-300 ${activeConfigTab === tab.id ? 'bg-[#222] text-white shadow-sm' : 'text-[#666] hover:text-white hover:bg-white/[0.02]'}`}
+              className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${activeConfigTab === tab.id ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]' : 'text-[#444] hover:text-[#888]'}`}
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
@@ -319,34 +400,34 @@ export default function Reports() {
         </div>
 
         {/* Scrollable Config Area */}
-        <div className="bg-[#111] border border-white/5 rounded-[32px] shadow-lg overflow-hidden flex flex-col max-h-[calc(100vh-280px)] xl:max-h-[700px]">
-          <div className="p-8 space-y-10 overflow-y-auto no-scrollbar pb-10">
+        <div className="bg-[#111] border border-white/5 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100vh-280px)] xl:max-h-[700px]">
+          <div className="p-6 space-y-8 overflow-y-auto no-scrollbar pb-10">
             
             {/* CONTENT TAB */}
             {activeConfigTab === 'content' && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <section className="space-y-5">
-                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#666] flex items-center gap-2">
-                    <Settings2 className="w-4 h-4" /> Report Data Source
+                <section className="space-y-4">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#555] flex items-center gap-2">
+                    <Settings2 className="w-3 h-3" /> Report Data Source
                   </h4>
                   <div className="space-y-4">
                     <div className="group/field">
-                      <label className="block text-[11px] font-semibold text-[#888] mb-2 pl-1 group-focus-within/field:text-blue-400 transition-colors">Campaign Source</label>
+                      <label className="block text-[10px] font-black text-[#555] uppercase tracking-widest mb-2 pl-1 group-focus-within/field:text-blue-400 transition-colors">Campaign Source</label>
                       <select 
                         value={selectedCampaign}
                         onChange={(e) => setSelectedCampaign(e.target.value)}
-                        className="w-full bg-[#1A1A1A] border border-white/5 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/30 transition-all font-medium appearance-none"
+                        className="w-full bg-[#0F0F0F] border border-white/5 rounded-2xl px-4 py-3.5 text-xs text-white/90 focus:outline-none focus:border-blue-500/30 transition-all font-bold"
                       >
                         <option value="All">All Campaigns (Global View)</option>
                         {campaigns.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                     <div className="group/field">
-                      <label className="block text-[11px] font-semibold text-[#888] mb-2 pl-1 group-focus-within/field:text-blue-400 transition-colors">Date Selection</label>
+                      <label className="block text-[10px] font-black text-[#555] uppercase tracking-widest mb-2 pl-1 group-focus-within/field:text-blue-400 transition-colors">Date Selection</label>
                       <select 
                         value={timelineMode}
                         onChange={(e) => setTimelineMode(e.target.value as any)}
-                        className="w-full bg-[#1A1A1A] border border-white/5 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/30 transition-all font-medium appearance-none"
+                        className="w-full bg-[#0F0F0F] border border-white/5 rounded-2xl px-4 py-3.5 text-xs text-white/90 focus:outline-none focus:border-blue-500/30 transition-all font-bold"
                       >
                         <option value="Full">Full History</option>
                         <option value="Last7">Last 7 Days</option>
@@ -354,48 +435,48 @@ export default function Reports() {
                         <option value="Custom">Custom Range</option>
                       </select>
                       {timelineMode === 'Custom' && (
-                        <div className="grid grid-cols-2 gap-3 mt-4 p-2 bg-[#1A1A1A] rounded-2xl animate-in zoom-in-95 duration-200">
-                          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none px-3 py-2 text-xs text-white font-medium focus:outline-none" />
-                          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none px-3 py-2 text-xs text-white font-medium focus:outline-none" />
+                        <div className="grid grid-cols-2 gap-2 mt-3 p-1.5 bg-black/20 rounded-xl animate-in zoom-in-95 duration-200">
+                          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border border-white/5 rounded-lg px-3 py-2 text-[10px] text-white font-bold" />
+                          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border border-white/5 rounded-lg px-3 py-2 text-[10px] text-white font-bold" />
                         </div>
                       )}
                     </div>
                   </div>
                 </section>
 
-                <section className="space-y-5 pt-8 border-t border-white/5">
-                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#666] flex items-center gap-2">
-                    <FileText className="w-4 h-4" /> Report Metadata
+                <section className="space-y-4 pt-4 border-t border-white/5">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#555] flex items-center gap-2">
+                    <FileText className="w-3 h-3" /> Report Metadata
                   </h4>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-[11px] font-semibold text-[#888] mb-2 pl-1">Primary Title</label>
+                      <label className="block text-[11px] font-bold text-[#888] uppercase tracking-wider mb-2 pl-1">Primary Title</label>
                       <input 
                         type="text" 
                         value={reportTitle}
                         onChange={(e) => setReportTitle(e.target.value)}
                         placeholder="e.g. Q4 Performance Audit"
-                        className="w-full bg-[#1A1A1A] border border-white/5 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#3B82F6]/50 transition-all shadow-inner placeholder-[#666]"
+                        className="w-full bg-[#0A0A0A] border border-white/5 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-all shadow-inner"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-[#888] mb-2 pl-1">Subtitle / Reference</label>
+                      <label className="block text-[11px] font-bold text-[#888] uppercase tracking-wider mb-2 pl-1">Subtitle / Reference</label>
                       <input 
                         type="text" 
                         value={reportSubtitle}
                         onChange={(e) => setReportSubtitle(e.target.value)}
                         placeholder="Internal Use Only"
-                        className="w-full bg-[#1A1A1A] border border-white/5 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#3B82F6]/50 transition-all shadow-inner placeholder-[#666]"
+                        className="w-full bg-[#0A0A0A] border border-white/5 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-all shadow-inner"
                       />
                     </div>
                   </div>
                 </section>
 
-                <section className="space-y-5 pt-8 border-t border-white/5">
-                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#666] flex items-center gap-2">
-                    <Maximize2 className="w-4 h-4" /> Module Visibility
+                <section className="space-y-4 pt-4 border-t border-white/5">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[#555] flex items-center gap-2">
+                    <Maximize2 className="w-3 h-3" /> Module Visibility
                   </h4>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {[
                       { label: 'Executive Summary', state: showSummary, set: setShowSummary, featureId: 'perClientBranding', desc: 'Qualitative analysis for Agency clients' },
                       { label: 'Key Metrics Grid', state: showKpiSection, set: setShowKpiSection },
@@ -636,7 +717,7 @@ export default function Reports() {
         </div>
       </div>
 
-      <div className="flex-1 w-full bg-[#111] p-1 lg:p-4 rounded-[40px] border border-white/5 shadow-2xl relative group print:p-0 print:border-none print:shadow-none print:bg-white">
+      <div className="flex-1 w-full bg-[#111] p-1 lg:p-4 rounded-[48px] border border-white/5 shadow-2xl relative group print:p-0 print:border-none print:shadow-none print:bg-white">
         
         {/* Device Wrapper Emulation */}
         <div className="rounded-[32px] overflow-hidden min-h-[1000px] shadow-2xl transition-all duration-500 text-black p-0 relative print:rounded-none print:shadow-none print:min-h-0" style={{ fontFamily: reportFont, backgroundColor: reportBgColor, color: reportHeadingColor }}>
@@ -717,12 +798,12 @@ export default function Reports() {
               {/* KPI Module */}
               {showKpiSection && (
                  <div className="grid grid-cols-2 gap-8 break-inside-avoid">
-                   <div className="bg-black/5 p-12 rounded-[40px] border border-black/5 relative overflow-hidden group">
+                   <div className="bg-black/5 p-12 rounded-[48px] border border-black/5 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-black/5 rounded-full -translate-y-1/2 translate-x-1/2 transition-transform group-hover:scale-110"></div>
                       <p className="text-[10px] font-bold uppercase tracking-widest opacity-30 mb-4 relative z-10" style={{ color: reportHeadingColor }}>Total Views</p>
                       <p className="text-5xl md:text-6xl font-bold tracking-tight leading-none relative z-10" style={{ color: reportAccentColor }}>{formatViews(totalViews)}</p>
                    </div>
-                   <div className="bg-black/5 p-12 rounded-[40px] border border-black/5 relative overflow-hidden group">
+                   <div className="bg-black/5 p-12 rounded-[48px] border border-black/5 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-black/5 rounded-full -translate-y-1/2 translate-x-1/2 transition-transform group-hover:scale-110"></div>
                       <p className="text-[10px] font-bold uppercase tracking-widest opacity-30 mb-4 relative z-10" style={{ color: reportHeadingColor }}>Total Payouts (USD)</p>
                       <p className="text-5xl md:text-6xl font-bold tracking-tight leading-none relative z-10" style={{ color: reportHeadingColor }}>{formatMoney(totalPaidOut)}</p>
@@ -843,7 +924,8 @@ export default function Reports() {
         </button>
 
       </div>
-
+    </div>
+  )}
     </div>
   );
 }
