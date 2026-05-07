@@ -1,12 +1,13 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { getFirestore, doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId); // CRITICAL
 export const auth = getAuth();
 export const googleProvider = new GoogleAuthProvider();
+export { doc, setDoc, getDoc, serverTimestamp, updateDoc };
 
 export const loginWithGoogle = async () => {
     try {
@@ -61,5 +62,14 @@ export const logout = async () => {
         await signOut(auth);
     } catch (error) {
         console.error("Error signing out: ", error);
+    }
+};
+
+export const resetPassword = async (email: string) => {
+    try {
+        await sendPasswordResetEmail(auth, email);
+    } catch (error) {
+        console.error("Error sending password reset email: ", error);
+        throw error;
     }
 };

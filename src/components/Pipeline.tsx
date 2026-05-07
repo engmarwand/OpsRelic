@@ -219,16 +219,27 @@ export default function Pipeline() {
                               ))}
                            </div>
                            
-                           <button 
+                           <div className="flex gap-2">
+                            <button 
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               // TODO: Open edit modal
+                             }}
+                             className="p-1.5 bg-white/[0.02] hover:bg-white/10 rounded-lg text-[#333] hover:text-blue-400 transition-all opacity-0 group-hover:opacity-100"
+                           >
+                             <Plus className="w-3.5 h-3.5" />
+                           </button>
+                            <button 
                              onClick={(e) => {
                                e.stopPropagation();
                                const next = STAGES[STAGES.findIndex(s => s.id === stage.id) + 1]?.id;
                                if (next) updateStage(client.id, next);
                              }}
-                             className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[#333] hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                             className="p-1.5 bg-white/[0.02] hover:bg-white/10 rounded-lg text-[#333] hover:text-white transition-all opacity-0 group-hover:opacity-100"
                            >
                              <ChevronRight className="w-3.5 h-3.5" />
                            </button>
+                           </div>
                         </div>
                       </div>
                     </motion.div>

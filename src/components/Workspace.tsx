@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../lib/store';
+import { auth, resetPassword, db, doc, updateDoc, serverTimestamp } from '../lib/firebase';
 import { Settings, Image as ImageIcon, Palette, LayoutDashboard, Bell, FileText, UploadCloud, X, Check, Lock, ChevronDown, Monitor, GripVertical, AlertCircle, Plus, Mail, Save, Loader2 } from 'lucide-react';
 import { getFeatureMinTier } from '../lib/plans';
 import type { PlanFeatures } from '../lib/plans';
@@ -26,7 +27,7 @@ function FeatureLock({ feature }: { feature: keyof PlanFeatures }) {
 
 export default function Workspace() {
   const { workspace: globalWorkspace, saveWorkspace, hasFeature } = useAppContext();
-  const [activeTab, setActiveTab] = useState<'brand' | 'customization' | 'notificationPreferences'>('brand');
+  const [activeTab, setActiveTab] = useState<'brand' | 'customization' | 'notificationPreferences' | 'security'>('brand');
   const [localWorkspace, setLocalWorkspace] = useState<WorkspaceSettings | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -128,6 +129,7 @@ export default function Workspace() {
             { id: 'brand', label: 'Brand & Identity', icon: Palette },
             { id: 'customization', label: 'Customization', icon: LayoutDashboard },
             { id: 'notificationPreferences', label: 'Notifications', icon: Bell },
+            { id: 'security', label: 'Security', icon: Lock },
           ].map(t => (
             <button
               key={t.id}
@@ -430,6 +432,58 @@ export default function Workspace() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* SECURITY TAB */}
+          {activeTab === 'security' && (
+            <div className="p-10 md:p-14 space-y-10">
+              <div>
+                <h3 className="text-2xl font-display font-black text-white tracking-widest uppercase italic">
+                  Security
+                </h3>
+                <p className="text-[10px] font-black text-[#333] uppercase tracking-[0.2em] mt-2">Manage your account authentication settings.</p>
+              </div>
+
+              <div className="bg-[#0F0F0F] p-6 rounded-xl border border-white/5 space-y-4">
+                <h4 className="text-sm font-bold text-white">Password Management</h4>
+                <p className="text-xs text-[#888]">
+                  Click the button below to send a secure password reset link to your email address ({auth.currentUser?.email}).
+                </p>
+                <button 
+                  onClick={async () => {
+                     const user = auth.currentUser;
+                     console.log("Password reset button clicked, user:", user);
+                     if (user?.email) {
+                        try {
+                           // 1. Generate a random 6-character code
+                           const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+                           console.log("Generated code:", code);
+                           
+                           // 2. Store the code in Firestore associated with this user
+                           await updateDoc(doc(db, 'users', user.uid), {
+                             passwordResetCode: code,
+                             codeCreatedAt: serverTimestamp()
+                           });
+                           
+                           // 3. Stub sending email
+                           alert("Code generated: " + code + ". (In production, this would be sent to " + user.email + ")");
+                           
+                           // TODO: Implement actual email sending service
+                        } catch (e) {
+                           console.error("Error generating code:", e);
+                           alert("Error generating code: " + (e instanceof Error ? e.message : String(e)));
+                        }
+                     } else {
+                        console.error("No user logged in.");
+                        alert("No user logged in.");
+                     }
+                  }}
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                >
+                  Generate Reset Code
+                </button>
               </div>
             </div>
           )}
