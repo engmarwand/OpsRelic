@@ -50,7 +50,6 @@ interface AppContextType extends AppState {
   getLimit: (limitName: keyof PlanLimits) => number | string;
   getUsage: (metricName: string) => number;
   trackUsage: (metricName: string, amount?: number) => boolean;
-  deductCredits: (amount: number) => Promise<boolean>;
   campaignsList: any[];
   plan: Plan;
   getCampaignName: (id: string) => string;
@@ -68,7 +67,6 @@ const defaultWorkspace: WorkspaceSettings = {
   metrics: { customLabels: {} },
   notifications: { flagsPending: true, weeklySummary: false },
   rollingDates: false,
-  credits: 0
 };
 
 const defaultState: AppState = {
@@ -223,8 +221,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         handleFirestoreError(error, OperationType.GET, `workspaces/${effectiveUserId}`);
     });
 
-    const qCampaigns = query(collection(db, 'campaigns'), where('userId', '==', effectiveUserId));
-    const unsubscribeCampaigns = onSnapshot(qCampaigns, (snapshot) => {
+    const qCampaigns = !portalContext.active && userId
+      ? query(collection(db, 'campaigns'), where('userId', '==', userId))
+      : null;
+
+    const unsubscribeCampaigns = qCampaigns ? onSnapshot(qCampaigns, (snapshot) => {
        const list: any[] = [];
        snapshot.forEach(doc => {
          list.push({ id: doc.id, ...doc.data() });
@@ -232,10 +233,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
        setCampaignsList(list);
     }, (error) => {
        handleFirestoreError(error, OperationType.LIST, 'campaigns');
-    });
+    }) : () => {};
 
-    const qClients = query(collection(db, 'clients'), where('userId', '==', effectiveUserId));
-    const unsubscribeClients = onSnapshot(qClients, (snapshot) => {
+    const qClients = !portalContext.active && userId
+      ? query(collection(db, 'clients'), where('userId', '==', userId))
+      : null;
+
+    const unsubscribeClients = qClients ? onSnapshot(qClients, (snapshot) => {
       const list: any[] = [];
       snapshot.forEach(doc => {
         list.push({ id: doc.id, ...doc.data() });
@@ -243,11 +247,42 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setState(prev => ({ ...prev, clients: list }));
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'clients');
+    }) : () => {};
+
+    const qBriefs = portalContext.active && portalContext.campaignId
+      ? query(collection(db, 'campaign_briefs'), where('campaignId', '==', portalContext.campaignId))
+      : query(collection(db, 'campaign_briefs'), where('userId', '==', effectiveUserId));
+
+    const unsubscribeBriefs = onSnapshot(qBriefs, (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach(doc => {
+        list.push({ id: doc.id, ...doc.data() });
+      });
+      setState(prev => ({ ...prev, briefs: list }));
+    }, (error) => {
+      // Small graceful fail for legacy environments
+      console.warn("Briefs fetch fail", error);
     });
 
     const qSubmissions = portalContext.active && portalContext.campaignId
       ? query(collection(db, 'submissions'), where('userId', '==', effectiveUserId), where('campaignId', '==', portalContext.campaignId))
       : query(collection(db, 'submissions'), where('userId', '==', effectiveUserId));
+
+    const qUpdates = portalContext.active && portalContext.campaignId
+      ? query(collection(db, 'campaign_updates'), where('campaignId', 'in', ['All', portalContext.campaignId]), where('clientVisible', '==', true))
+      : query(collection(db, 'campaign_updates'), where('authorId', '==', effectiveUserId));
+
+    const unsubscribeUpdates = onSnapshot(qUpdates, (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach(doc => {
+        list.push({ id: doc.id, ...doc.data() });
+      });
+      // Sort by timestamp descending
+      list.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setState(prev => ({ ...prev, updates: list.length > 0 ? list : defaultState.updates }));
+    }, (error) => {
+       handleFirestoreError(error, OperationType.LIST, 'campaign_updates');
+    });
 
     const unsubscribeSubmissions = onSnapshot(qSubmissions, (snapshot) => {
       const data: CsvRow[] = [];
@@ -287,13 +322,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => {
+       unsubscribeUpdates();
+       unsubscribeBriefs();
        unsubscribeSubmissions();
        unsubscribeCampaigns();
        unsubscribeClients();
        unsubscribeUser();
        unsubscribeWorkspace();
     };
-  }, [userId]);
+  }, [userId, portalContext.active, portalContext.ownerId, portalContext.authorized, portalContext.campaignId]);
 
   const setData = async (newData: CsvRow[]) => {
     setState(prev => ({ ...prev, data: newData }));
@@ -370,35 +407,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return true;
   };
 
-  const deductCredits = async (amount: number): Promise<boolean> => {
-    if (!userId || !state.workspace) return false;
-    const currentCredits = state.workspace.credits || 0;
-    
-    if (currentCredits < amount) return false;
-    
-    const newCredits = currentCredits - amount;
-    const updatedWorkspace = { ...state.workspace, credits: newCredits };
-    
-    try {
-      await setDoc(doc(db, 'workspaces', userId), { credits: newCredits }, { merge: true });
-      setWorkspace(updatedWorkspace);
-      return true;
-    } catch (err) {
-      console.error("Failed to deduct credits", err);
-      return false;
-    }
-  };
-
-  // Handle AI Credits initialization if missing
-  useEffect(() => {
-    if (userId && state.workspace && state.currentTier && state.workspace.credits === undefined) {
-      const plan = PLANS[state.currentTier];
-      if (plan) {
-         setDoc(doc(db, 'workspaces', userId), { credits: plan.limits.aiCredits }, { merge: true });
-      }
-    }
-  }, [userId, state.workspace?.credits, state.currentTier]);
-
   const getCampaignName = (id: string): string => {
      const c = campaignsList.find((camp) => camp.id === id);
      if (c && c.name) return c.name;
@@ -417,7 +425,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     getLimit,
     getUsage,
     trackUsage,
-    deductCredits,
     campaignsList,
     plan: currentPlan,
     getCampaignName,

@@ -27,6 +27,10 @@ service cloud.firestore {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'engmarwand@gmail.com' && request.auth.token.email_verified == true;
+    }
+
     // --- Entity Validations ---
 
     function isValidUser(data) {
@@ -49,12 +53,14 @@ service cloud.firestore {
     function isValidClient(data) {
       return data.name is string && data.name.size() <= 200 &&
              data.userId == request.auth.uid &&
-             data.stage in ['Lead', 'Qualified', 'Proposal', 'Won/Onboarding', 'Active Client'];
+             data.stage in ['Lead', 'Onboarding', 'Briefing', 'Active'];
     }
 
     function isValidCampaign(data) {
       return data.name is string && data.name.size() <= 200 &&
-             (data.status == null || data.status in ['Draft', 'Review', 'Active', 'Complete']);
+             (data.status == null || data.status in ['Draft', 'Review', 'Active', 'Complete', 'Intake Completed']) &&
+             (data.intake == null || data.intake is map) &&
+             (data.brief == null || data.brief is map);
     }
 
     function isValidSubmission(data) {
@@ -63,21 +69,26 @@ service cloud.firestore {
              data.title is string && data.title.size() <= 500;
     }
 
+    function isValidUpdate(data) {
+      return data.campaignId is string &&
+             data.content is string && data.content.size() <= 2000 &&
+             data.authorId == request.auth.uid;
+    }
+
     // --- Rules ---
 
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().keys().hasAll(['plan']);
-      allow update: if isOwner(userId) && 
-                    (incoming().diff(existing()).affectedKeys().hasOnly(['passwordResetCode', 'codeCreatedAt']) &&
-                     incoming().passwordResetCode is string && incoming().passwordResetCode.size() == 6 &&
-                     incoming().codeCreatedAt is timestamp);
+      allow update: if (isOwner(userId) || isAdmin()) && 
+                    incoming().passwordResetCode is string && incoming().passwordResetCode.size() == 6 &&
+                    incoming().codeCreatedAt is timestamp;
     }
 
     match /workspaces/{userId} {
-      allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidWorkspace(incoming());
-      allow update: if isOwner(userId) && isValidWorkspace(incoming());
+      allow get: if true; // Public for branding
+      allow create: if isOwner(userId) || isAdmin();
+      allow update: if (isOwner(userId) || isAdmin()) && isValidWorkspace(incoming());
     }
 
     match /user_config/{userId} {
@@ -87,19 +98,26 @@ service cloud.firestore {
     }
 
     match /clients/{clientId} {
-      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow list: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
       allow create: if isSignedIn() && isValidClient(incoming());
-      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidClient(incoming()) && 
-                    incoming().userId == existing().userId;
-      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      allow update: if (isSignedIn() && existing().userId == request.auth.uid && isValidClient(incoming()) && 
+                    incoming().userId == existing().userId) || isAdmin();
+      allow delete: if (isSignedIn() && existing().userId == request.auth.uid) || isAdmin();
     }
 
     match /campaigns/{campaignId} {
       allow get: if true; 
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() && isValidCampaign(incoming()) && incoming().userId == request.auth.uid;
-      allow update: if (isSignedIn() && existing().userId == request.auth.uid && isValidCampaign(incoming()) && incoming().userId == existing().userId);
+      allow update: if (
+        (isSignedIn() && existing().userId == request.auth.uid && isValidCampaign(incoming()) && incoming().userId == existing().userId)
+        ||
+        (
+          isValidCampaign(incoming()) && 
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['intake', 'status', 'name', 'brief', 'updatedAt'])
+        )
+      );
       allow delete: if isSignedIn() && existing().userId == request.auth.uid;
     }
 
@@ -111,6 +129,22 @@ service cloud.firestore {
       allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidSubmission(incoming()) &&
                     incoming().userId == existing().userId;
       allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    match /briefs/{briefId} {
+      allow get: if isSignedIn() && resource.data.campaignId != null;
+      allow list: if isSignedIn() && resource.data.campaignId != null;
+      allow create: if isSignedIn() && incoming().campaignId != null;
+      allow update: if isSignedIn() && existing().campaignId != null;
+      allow delete: if isSignedIn() && existing().campaignId != null;
+    }
+
+    match /campaign_updates/{updateId} {
+      allow list: if isAdmin() || (isSignedIn() && (resource.data.authorId == request.auth.uid || resource.data.campaignId == 'All')) ||
+                    (resource.data.clientVisible == true); 
+      allow create: if isSignedIn() && isValidUpdate(incoming());
+      allow update: if isAdmin() || (isSignedIn() && existing().authorId == request.auth.uid && isValidUpdate(incoming()));
+      allow delete: if isAdmin() || (isSignedIn() && existing().authorId == request.auth.uid);
     }
   }
 }

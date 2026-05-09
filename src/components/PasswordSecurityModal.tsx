@@ -13,6 +13,7 @@ export default function PasswordSecurityModal({ isOpen, onClose, email }: Props)
   const [step, setStep] = useState<'verify' | 'newPassword'>('verify');
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -40,6 +41,10 @@ export default function PasswordSecurityModal({ isOpen, onClose, email }: Props)
   };
 
   const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+        setError('Passwords do not match.');
+        return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -49,7 +54,7 @@ export default function PasswordSecurityModal({ isOpen, onClose, email }: Props)
             onClose();
         }
     } catch (err) {
-        setError('Error updating password.');
+        setError('Error updating password: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
         setLoading(false);
     }
@@ -83,6 +88,13 @@ export default function PasswordSecurityModal({ isOpen, onClose, email }: Props)
                     value={newPassword} 
                     onChange={(e) => setNewPassword(e.target.value)} 
                     placeholder="New password" 
+                    className="w-full bg-white/[0.02] border border-white/5 rounded-2xl p-4 text-white"
+                />
+                <input 
+                    type="password"
+                    value={confirmPassword} 
+                    onChange={(e) => setConfirmPassword(e.target.value)} 
+                    placeholder="Confirm new password" 
                     className="w-full bg-white/[0.02] border border-white/5 rounded-2xl p-4 text-white"
                 />
                 <button onClick={handleChangePassword} className="w-full bg-blue-600 text-white rounded-2xl p-4 font-bold">

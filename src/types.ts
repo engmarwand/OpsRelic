@@ -12,6 +12,7 @@ export interface CsvRow {
   Comments?: number;
   Shares?: number;
   _campaignId?: string;
+  [key: string]: any;
 }
 
 export interface InvitedClipper {
@@ -32,7 +33,7 @@ export interface ClientProfile {
 }
 
 export type CampaignStatus = 'Draft' | 'Review' | 'Active' | 'Complete';
-export type ClientStage = 'Lead' | 'Qualified' | 'Proposal' | 'Won/Onboarding' | 'Active Client';
+export type ClientStage = 'Lead' | 'Onboarding' | 'Briefing' | 'Active';
 
 export interface ClientAccount {
   id: string;
@@ -85,13 +86,14 @@ export interface Campaign {
 }
 
 export interface CampaignBrief {
+  id: string;
   campaignId: string;
-  brandOverview: string;
-  offerContent: string;
-  goals: string;
-  targetAudience: string;
-  keyMessages: string;
-  assetsUrl?: string;
+  content: string; // The markdown/text content for agency editing
+  summary?: string;
+  objective?: string;
+  angle?: string;
+  nextSteps?: string;
+  updatedAt: string;
   status: 'Draft' | 'Final';
 }
 
@@ -109,17 +111,16 @@ export interface WorkspaceSettings {
   brand: { name: string; tagline: string; logo: string | null; logoUrl: string | null };
   color: { primary: string; preset: string };
   reports: { coverPage: boolean; fullReportBranding?: boolean; defaultDateRange: string; defaultPlatforms: string[]; template: Record<string, boolean>; emailSignature: string; fromName: string; replyTo: string };
-  layout: { theme: string; layout: string; chartStyle: string };
+  layout: { theme: string; layout: string; chartStyle: string; defaultView?: string; };
   clients: any[]; // Array of client profile objects
   metrics: { customLabels: Record<string, string> };
   notifications: { flagsPending: boolean; weeklySummary: boolean };
   rollingDates: boolean;
-  credits?: number; // Added for Phase 2
 }
 
 export interface AppState {
   data: CsvRow[];
-  clients: ClientProfile[];
+  clients: ClientAccount[];
   briefs: CampaignBrief[];
   updates: CampaignUpdate[];
   onboarding: InvitedClipper[];

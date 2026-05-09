@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, Database, Users, TrendingUp, Zap, CheckCircle2, DollarSign, LayoutDashboard, Mail, Lock, User, ArrowRight, XCircle, X, Wallet, FileText, Activity, PieChart } from 'lucide-react';
-import { cn } from '../lib/utils';
-import Pricing from './Pricing';
+import { cn } from '../../lib/utils';
+import Pricing from '../../components/Pricing';
 
 export default function Landing() {
   const [authMode, setAuthMode] = useState<'login' | 'signup' | null>(null);
@@ -710,7 +710,7 @@ export default function Landing() {
   );
 }
 
-import { loginWithGoogle, loginWithEmail, registerWithEmail } from '../lib/firebase';
+import { loginWithGoogle, loginWithEmail, registerWithEmail } from '../../lib/firebase';
 
 function AuthModal({ mode, onClose, onSwitchMode }: { 
   mode: 'login' | 'signup', 

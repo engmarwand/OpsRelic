@@ -1,130 +1,155 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Space+Grotesk:wght@300..700&family=Outfit:wght@100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
-@theme {
-  --color-brand-primary: #3B82F6;
-  --color-brand-primary-hover: #2563EB;
-  --color-surface-base: #0A0A0A;
-  --color-surface-elevated: #111111;
-  --color-surface-hover: #161616;
+:root {
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --transition: 150ms cubic-bezier(0.16,1,0.3,1);
+  --sidebar-w: 228px;
+  --topbar-h: 54px;
+}
+
+[data-theme="dark"], :root {
+  --color-bg: #080c10;
+  --color-bg2: #0d1117;
+  --color-surface: #111820;
+  --color-surface2: #151d28;
+  --color-surface3: #1a2232;
+  --color-surface-hover: #1e2a3a;
   
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-display: "Space Grotesk", sans-serif;
+  --color-border-subtle: rgba(99,179,237,0.1);
+  --color-border-strong: rgba(99,179,237,0.2);
+  --color-divider: rgba(255,255,255,0.04);
+  
+  --color-text-main: #e8edf4;
+  --color-text-muted: #7a8fa6;
+  --color-text-faint: #3d5068;
+  
+  --color-cyan: #00d4e8;
+  --color-cyan-dim: rgba(0,212,232,0.1);
+  --color-cyan-glow: rgba(0,212,232,0.22);
+  --color-cyan-hover: #00bcd4;
+  --color-cyan-on: #001f26;
+  
+  --color-green: #00e5a0;
+  --color-green-dim: rgba(0,229,160,0.1);
+  --color-yellow: #ffd166;
+  --color-yellow-dim: rgba(255,209,102,0.1);
+  
+  --color-red: #ff6b8a;
+  --color-red-dim: rgba(255,107,138,0.1);
+  --color-purple: #c084fc;
+  --color-purple-dim: rgba(192,132,252,0.1);
+  
+  --color-orange: #ff9f43;
+  --color-orange-dim: rgba(255,159,67,0.1);
+  --color-blue: #60a5fa;
+  --color-blue-dim: rgba(96,165,250,0.1);
+  
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.5);
+  --shadow-md: 0 6px 24px rgba(0,0,0,0.6);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,0.7);
+  --shadow-glow: 0 0 40px rgba(0,212,232,0.14);
+}
+
+[data-theme="light"] {
+  --color-bg: #f0f4f8;
+  --color-bg2: #e8eef5;
+  --color-surface: #ffffff;
+  --color-surface2: #f5f8fb;
+  --color-surface3: #edf2f7;
+  --color-surface-hover: #f0f5fb;
+  
+  --color-border-subtle: rgba(0,0,0,0.07);
+  --color-border-strong: rgba(0,0,0,0.14);
+  --color-divider: rgba(0,0,0,0.04);
+  
+  --color-text-main: #1a202c;
+  --color-text-muted: #4a5568;
+  --color-text-faint: #a0aec0;
+  
+  --color-cyan: #007b8a;
+  --color-cyan-dim: rgba(0,123,138,0.08);
+  --color-cyan-glow: rgba(0,123,138,0.15);
+  --color-cyan-hover: #006b78;
+  --color-cyan-on: #ffffff;
+  
+  --color-green: #065f46;
+  --color-green-dim: rgba(6,95,70,0.08);
+  --color-yellow: #92400e;
+  --color-yellow-dim: rgba(146,64,14,0.08);
+  
+  --color-red: #9f1239;
+  --color-red-dim: rgba(159,18,57,0.08);
+  --color-purple: #6d28d9;
+  --color-purple-dim: rgba(109,40,217,0.08);
+  
+  --color-orange: #c05621;
+  --color-orange-dim: rgba(192,86,33,0.08);
+  --color-blue: #1d4ed8;
+  --color-blue-dim: rgba(29,78,216,0.08);
+  
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 6px 24px rgba(0,0,0,0.09);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,0.12);
+  --shadow-glow: 0 0 32px rgba(0,123,138,0.1);
+}
+
+@theme {
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+
+  --color-brand-primary: var(--color-cyan);
+  
+  --color-background: var(--color-bg);
+  --color-background-secondary: var(--color-bg2);
+  
+  --color-surface-base: var(--color-surface);
+  --color-surface-elevated: var(--color-surface2);
+  --color-surface-hover: var(--color-surface-hover);
+  
+  --color-border-subtle: var(--color-border-subtle);
+  --color-border-strong: var(--color-border-strong);
 }
 
 body {
-  --primary-color: var(--color-brand-primary);
-  background-color: #050505;
-  color: #F0F0F0;
   font-family: var(--font-sans);
-  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--color-text-main);
+  background-color: var(--color-bg);
   -webkit-font-smoothing: antialiased;
-  print-color-adjust: exact;
-  -webkit-print-color-adjust: exact;
-  color-scheme: dark;
+  text-rendering: optimizeLegibility;
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
+  background: var(--color-border-strong);
+  border-radius: 3px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-
-html {
-  scroll-behavior: smooth;
+  background: var(--color-text-muted);
 }
 
 @layer utilities {
-  .glass {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
+  .text-muted { color: var(--color-text-muted); }
+  .text-faint { color: var(--color-text-faint); }
+  
+  .border-subtle { border-color: var(--color-border-subtle); }
+  .border-strong { border-color: var(--color-border-strong); }
 }
 
-
 @media print {
-  @page {
-    size: A4;
-    margin: 15mm;
-  }
-  
-  .print\:hidden {
-    display: none !important;
-  }
-  
+  @page { size: A4; margin: 15mm; }
+  .print\:hidden { display: none !important; }
   body {
     background-color: white !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    padding: 0 !important; margin: 0 !important;
     color: black !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-  }
-
-  /* Ensure background colors print */
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .print\:shadow-none {
-    box-shadow: none !important;
-  }
-
-  .print\:border-none {
-    border: none !important;
-  }
-
-  .print\:p-0 {
-    padding: 0 !important;
-  }
-
-  .print\:m-0 {
-    margin: 0 !important;
-  }
-
-  /* Force blocks to avoid breaking inside */
-  .break-inside-avoid {
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-  }
-
-  /* Specific structure fix for reports print */
-  .flex.flex-col.xl\:flex-row {
-    display: block !important;
-  }
-
-  aside.fixed {
-    display: none !important;
-  }
-
-  main {
-    margin-left: 0 !important;
-    padding: 0 !important;
-  }
-
-  /* Ensure chart container holds height */
-  .h-\[350px\] {
-    height: 350px !important;
-    min-height: 350px !important;
   }
 }

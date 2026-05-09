@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
+import { db } from '../../lib/firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { motion } from 'motion/react';
 import { Wand2, Zap, CheckCircle2, AlertCircle, Terminal } from 'lucide-react';
-import { Campaign, CampaignIntake, CampaignStatus } from '../types';
+import { Campaign, CampaignIntake, CampaignStatus } from '../../types';
 import { GoogleGenAI, Type } from "@google/genai";
 
 export default function ClientIntake() {
@@ -173,14 +173,20 @@ export default function ClientIntake() {
   return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 py-20 relative overflow-hidden">
       {/* Background elements */}
-      <div className="fixed inset-0 pointer-events-none opacity-[0.02] z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/5 rounded-full blur-[150px] pointer-events-none"></div>
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-[-10%] right-[-10%] w-[800px] h-[800px] bg-blue-600/10 blur-[150px] rounded-full animate-pulse-slow"></div>
+        <div className="absolute bottom-[-5%] left-[-5%] w-[600px] h-[600px] bg-emerald-600/10 blur-[120px] rounded-full"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(37,99,235,0.05)_0,transparent_70%)]"></div>
+      </div>
+      
+      <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
 
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-3xl bg-[#0A0A0A] border border-white/5 rounded-[56px] shadow-2xl p-12 lg:p-20 relative z-10"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-3xl bg-[#0A0A0A]/40 backdrop-blur-3xl border border-white/5 rounded-[56px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)] p-12 lg:p-20 relative z-10"
       >
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16">
           <div className="flex items-center gap-6">
             <div className="w-16 h-16 rounded-[28px] bg-blue-600 flex items-center justify-center shadow-2xl shadow-blue-600/30">

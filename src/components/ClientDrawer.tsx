@@ -12,7 +12,7 @@ interface ClientDrawerProps {
   onCreateCampaign: (client: ClientAccount) => void;
 }
 
-const STAGES: ClientStage[] = ['Lead', 'Qualified', 'Proposal', 'Won/Onboarding', 'Active Client'];
+const STAGES: ClientStage[] = ['Lead', 'Onboarding', 'Briefing', 'Active'];
 
 export default function ClientDrawer({ client, onClose, onCreateCampaign }: ClientDrawerProps) {
   const { addToast } = useToast();
@@ -24,6 +24,8 @@ export default function ClientDrawer({ client, onClose, onCreateCampaign }: Clie
     const q = query(collection(db, 'campaigns'), where('clientId', '==', client.id));
     return onSnapshot(q, (snapshot) => {
       setCampaigns(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Campaign)));
+    }, (error) => {
+      console.error("ClientDrawer: snapshot error", error);
     });
   }, [client]);
 

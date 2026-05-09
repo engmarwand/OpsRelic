@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useAppContext } from '../lib/store';
-import { auth, resetPassword, db, doc, updateDoc, serverTimestamp } from '../lib/firebase';
-import PasswordSecurityModal from './PasswordSecurityModal';
+import { useAppContext } from '../../lib/store';
+import { auth, resetPassword, db, doc, updateDoc, serverTimestamp } from '../../lib/firebase';
+import PasswordSecurityModal from '../../components/PasswordSecurityModal';
 import { Settings, Image as ImageIcon, Palette, LayoutDashboard, Bell, FileText, UploadCloud, X, Check, Lock, ChevronDown, Monitor, GripVertical, AlertCircle, Plus, Mail, Save, Loader2 } from 'lucide-react';
-import { getFeatureMinTier } from '../lib/plans';
-import type { PlanFeatures } from '../lib/plans';
-import type { WorkspaceSettings } from '../types';
+import { getFeatureMinTier } from '../../lib/plans';
+import type { PlanFeatures } from '../../lib/plans';
+import type { WorkspaceSettings } from '../../types';
 
 function TierBadge({ tier }: { tier: 'starter' | 'pro' | 'agency' }) {
   if (tier === 'starter') return null;
@@ -26,7 +26,7 @@ function FeatureLock({ feature }: { feature: keyof PlanFeatures }) {
   );
 }
 
-export default function Workspace() {
+export default function WorkspacePage() {
   const { workspace: globalWorkspace, saveWorkspace, hasFeature } = useAppContext();
   const [activeTab, setActiveTab] = useState<'brand' | 'customization' | 'notificationPreferences' | 'security'>('brand');
   const [showSecurityModal, setShowSecurityModal] = useState(false);
@@ -92,6 +92,11 @@ export default function Workspace() {
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 w-full max-w-[1600px] mx-auto min-h-[calc(100vh-120px)] relative">
+      {/* Background Visual Artifacts */}
+      <div className="fixed top-0 left-0 w-full h-full pointer-events-none overflow-hidden -z-10">
+        <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-blue-600/5 blur-[120px] rounded-full animate-pulse-slow"></div>
+        <div className="absolute bottom-[5%] left-[-10%] w-[500px] h-[500px] bg-purple-600/5 blur-[100px] rounded-full"></div>
+      </div>
       
       {/* Save Button Overlay */}
       {isDirty && (
@@ -126,7 +131,7 @@ export default function Workspace() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex space-x-2 bg-[#111] p-1.5 rounded-xl border border-white/5 overflow-x-auto no-scrollbar">
+        <div className="flex space-x-2 bg-[#0A0A0A]/40 backdrop-blur-xl p-2 rounded-2xl border border-white/5 overflow-x-auto no-scrollbar shadow-xl relative z-10">
           {[
             { id: 'brand', label: 'Brand & Identity', icon: Palette },
             { id: 'customization', label: 'Customization', icon: LayoutDashboard },
@@ -146,7 +151,7 @@ export default function Workspace() {
         </div>
 
         {/* Tab Content Area */}
-        <div className="bg-[#0A0A0A] border border-white/5 rounded-[48px] shadow-2xl flex-1 overflow-hidden">
+        <div className="bg-[#0A0A0A]/40 backdrop-blur-xl border border-white/5 rounded-[48px] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)] flex-1 overflow-hidden relative z-10">
           
           {/* BRAND & IDENTITY TAB */}
           {activeTab === 'brand' && (
@@ -198,208 +203,126 @@ export default function Workspace() {
                   </div>
                 </div>
 
-                <div className="flex gap-6 items-start">
-                  <label className="flex-1 border-2 border-dashed border-white/10 rounded-xl p-6 text-center hover:bg-white/5 transition-colors cursor-pointer bg-[#0F0F0F]">
-                    <UploadCloud className="w-8 h-8 text-[#555] mx-auto mb-3" />
-                    <p className="text-sm font-semibold text-white/80">Click to upload logo</p>
-                    <p className="text-xs text-[#555] mt-1">PNG, JPG or SVG (Max 2MB)</p>
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      accept="image/png, image/jpeg, image/svg+xml"
-                      disabled={!hasFeature('whiteLabelBranding')}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            updateBrand('logoUrl', reader.result);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                    />
-                  </label>
-                  <div className="w-32 h-32 bg-[#0F0F0F] border border-white/5 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative group">
+                <div className="flex items-center gap-6 mt-4">
+                  <div className="w-24 h-24 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-center overflow-hidden">
                     {localWorkspace?.brand?.logoUrl ? (
-                      <>
-                        <img src={localWorkspace.brand.logoUrl} alt="Logo" className="w-full h-full object-contain p-2" />
-                        <button 
-                          onClick={() => updateBrand('logoUrl', null)}
-                          className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-bold"
-                        >
-                          Remove
-                        </button>
-                      </>
+                      <img src={localWorkspace?.brand.logoUrl} alt="Logo" className="w-full h-full object-contain p-2" />
                     ) : (
-                      <ImageIcon className="w-8 h-8 text-[#333]" />
+                      <ImageIcon className="w-8 h-8 text-[#555]" />
                     )}
                   </div>
-                </div>
-              </div>
-
-              {/* Custom Domains (Agency) */}
-              <div className={`space-y-4 pt-8 border-t border-white/5 ${hasFeature('customDomains') ? '' : 'opacity-50'}`}>
-                <div>
-                  <h3 className="text-lg font-bold text-white flex items-center">
-                    Custom Domain
-                    <TierBadge tier={getFeatureMinTier('customDomains')} />
-                    <FeatureLock feature="customDomains" />
-                  </h3>
-                  <p className="text-xs text-[#888] mt-1">Host client reports on your own domain.</p>
-                </div>
-                <div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex-1">
                     <input 
-                      type="text" 
-                      disabled={!hasFeature('customDomains')}
-                      placeholder="reports.myagency.com"
-                      className="flex-1 bg-[#0F0F0F] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[var(--primary-color)] transition-colors disabled:opacity-50"
+                      type="url" 
+                      value={localWorkspace?.brand?.logoUrl || ''} 
+                      onChange={(e) => updateBrand('logoUrl', e.target.value)}
+                      disabled={!hasFeature('whiteLabelBranding')}
+                      placeholder="https://example.com/logo.png"
+                      className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-[#333]"
                     />
-                    <div className="shrink-0 bg-white/5 text-white/50 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider border border-white/5">
-                      Not configured
-                    </div>
+                    <p className="text-[10px] text-[#555] font-bold uppercase tracking-widest mt-2">Paste a direct image URL (PNG/SVG transparent recommended)</p>
                   </div>
-                  <p className="text-[10px] text-white/40 mt-2">Connect your custom domain in Settings → Domain Configuration (Coming Soon).</p>
                 </div>
               </div>
 
-              {/* Accent Color Section */}
-              <div className="space-y-4 pt-8 border-t border-white/5">
+              {/* Brand Colors */}
+              <div className="space-y-6 pt-8 border-t border-white/5">
                 <div>
-                  <h3 className="text-lg font-bold text-white flex items-center">
-                    Accent Color
-                  </h3>
-                  <p className="text-xs text-[#888] mt-1">Replaces the default blue globally across charts, buttons, and reports.</p>
+                  <h3 className="text-lg font-bold text-white">Color Palette</h3>
+                  <p className="text-xs text-[#888] mt-1">Defines the primary accent color across the app.</p>
                 </div>
-
-                <div className="flex items-start gap-8">
-                  {/* Single Color Picker (Pro+) */}
-                  <div className={hasFeature('colorSchemePresets') ? '' : 'opacity-40'}>
-                    <label className="flex items-center text-xs font-bold text-white/70 uppercase tracking-wider mb-3">
-                      Custom Hex
-                      {!hasFeature('colorSchemePresets') && <TierBadge tier="pro" />}
-                      {!hasFeature('colorSchemePresets') && <FeatureLock feature="colorSchemePresets" />}
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <div className={`relative w-12 h-12 rounded-xl border border-white/20 overflow-hidden shadow-lg shrink-0 ${hasFeature('colorSchemePresets') ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                        <input 
-                          type="color" 
-                          disabled={!hasFeature('colorSchemePresets')}
-                          value={localWorkspace?.color?.primary || '#00D4FF'} 
-                          onChange={(e) => updateColor('primary', e.target.value)}
-                          className={`absolute -inset-2 w-16 h-16 ${hasFeature('colorSchemePresets') ? 'cursor-pointer' : 'cursor-not-allowed'}`}
-                        />
-                      </div>
-                      <input 
-                        type="text" 
-                        disabled={!hasFeature('colorSchemePresets')}
-                        value={localWorkspace?.color?.primary || '#00D4FF'} 
-                        onChange={(e) => updateColor('primary', e.target.value)}
-                        className="bg-[#0F0F0F] border border-white/10 rounded-lg px-3 py-2 text-sm text-white uppercase w-24 font-mono focus:outline-none focus:border-[var(--primary-color)] disabled:opacity-50"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Preset Colors (Pro) */}
-                  <div className={`flex-1 ${hasFeature('colorSchemePresets') ? '' : 'opacity-40'}`}>
-                    <label className="flex items-center text-xs font-bold text-white/70 uppercase tracking-wider mb-3">
-                      Color Presets
-                      <TierBadge tier={getFeatureMinTier('colorSchemePresets')} />
-                      <FeatureLock feature="colorSchemePresets" />
-                    </label>
-                    <div className="flex flex-wrap gap-3">
-                      {[
-                        { name: 'Electric Blue', hex: '#00D4FF' },
-                        { name: 'Emerald Green', hex: '#10B981' },
-                        { name: 'Violet Purple', hex: '#8B5CF6' },
-                        { name: 'Amethyst Mango', hex: '#F97316' },
-                      ].map(preset => (
-                        <button
-                          key={preset.hex}
-                          disabled={!hasFeature('colorSchemePresets')}
-                          onClick={() => {
-                            updateColor('preset', preset.name);
-                            updateColor('primary', preset.hex);
-                          }}
-                          className={`w-10 h-10 rounded-full border-2 transition-transform shadow-lg ${localWorkspace?.color?.primary === preset.hex ? 'border-white scale-110' : 'border-transparent hover:scale-110'}`}
-                          style={{ backgroundColor: preset.hex }}
-                          title={preset.name}
-                        />
-                      ))}
-                    </div>
-                  </div>
+                
+                <div className="grid grid-cols-5 gap-3">
+                  {[
+                    '#3B82F6', // Blue
+                    '#10B981', // Emerald
+                    '#F59E0B', // Amber
+                    '#EF4444', // Red
+                    '#8B5CF6', // Purple
+                    '#EC4899', // Pink
+                    '#14B8A6', // Teal
+                    '#F97316', // Orange
+                    '#06B6D4', // Cyan
+                    '#6366F1', // Indigo
+                  ].map((presetColor) => (
+                    <button
+                      key={presetColor}
+                      onClick={() => updateColor('primary', presetColor)}
+                      className={`h-12 rounded-xl border-2 transition-all hover:scale-105 active:scale-95 ${localWorkspace?.color?.primary === presetColor ? 'border-white' : 'border-transparent'}`}
+                      style={{ backgroundColor: presetColor }}
+                    />
+                  ))}
+                </div>
+                <div className="pt-2">
+                   <label className="text-xs font-bold text-[#666] uppercase tracking-wider mb-2 block">Custom Hex</label>
+                   <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-lg border border-white/10" style={{ backgroundColor: localWorkspace?.color?.primary || '#3B82F6' }}></div>
+                     <input 
+                       type="text" 
+                       value={localWorkspace?.color?.primary || '#3B82F6'} 
+                       onChange={(e) => updateColor('primary', e.target.value)}
+                       className="w-32 bg-white/[0.02] border border-white/5 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 transition-all"
+                     />
+                   </div>
                 </div>
               </div>
-
             </div>
           )}
 
           {/* CUSTOMIZATION TAB */}
           {activeTab === 'customization' && (
-            <div className="p-8 space-y-10">
+            <div className="p-10 md:p-14 space-y-14">
               
-              {/* Workspace Layout Preference (Agency) */}
-              <div className={`space-y-4 ${hasFeature('layoutStyles') ? '' : 'opacity-50'}`}>
-                <h3 className="text-lg font-bold text-white flex items-center">
-                  Dashboard Layout
-                  <TierBadge tier={getFeatureMinTier('layoutStyles')} />
-                  <FeatureLock feature='layoutStyles' />
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-[#0F0F0F] p-4 rounded-xl border border-white/5">
-                    <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2">Data Density</label>
-                    <select disabled={!hasFeature('layoutStyles')} value={localWorkspace?.layout?.layout || 'Standard'} onChange={(e) => updateLayout('layout', e.target.value)} className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none disabled:opacity-50">
-                      <option value="Standard">Standard Layout</option>
-                      <option value="Condensed">Condensed (More data visible)</option>
-                      <option value="Expanded">Expanded (Larger cards)</option>
-                    </select>
-                  </div>
-                  <div className="bg-[#0F0F0F] p-4 rounded-xl border border-white/5">
-                    <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2">Chart Style Preference</label>
-                    <select disabled={!hasFeature('layoutStyles')} value={localWorkspace?.layout?.chartStyle || 'Line'} onChange={(e) => updateLayout('chartStyle', e.target.value)} className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none disabled:opacity-50">
-                      <option value="Line">Smoothed Line Chart</option>
-                      <option value="Bar">Vertical Bar Chart</option>
-                      <option value="Area">Filled Area Chart</option>
-                    </select>
-                  </div>
+              {/* Dashboard Layout */}
+              <div className={`space-y-6 ${hasFeature('workspaceCustomization') ? '' : 'opacity-50'}`}>
+                <div>
+                   <h3 className="text-2xl font-display font-black text-white tracking-widest uppercase italic flex items-center">
+                    Dashboard Layout
+                    <TierBadge tier={getFeatureMinTier('workspaceCustomization')} />
+                    <FeatureLock feature="workspaceCustomization" />
+                  </h3>
+                  <p className="text-[10px] font-black text-[#555] uppercase tracking-[0.2em] mt-2">Adjust the primary view characteristics.</p>
                 </div>
-              </div>
-
-              {/* Custom Metric Labels (Agency) */}
-              <div className={`space-y-4 pt-8 border-t border-white/5 ${hasFeature('metricLabelCustomization') ? '' : 'opacity-50'}`}>
-                <h3 className="text-lg font-bold text-white flex items-center">
-                  Custom Metric Labels
-                  <TierBadge tier={getFeatureMinTier('metricLabelCustomization')} />
-                  <FeatureLock feature="metricLabelCustomization" />
-                </h3>
-                <div className="bg-[#0F0F0F] border border-white/5 rounded-xl overflow-hidden">
-                  <div className="grid grid-cols-2 bg-black/40 p-3 border-b border-white/5 text-xs font-bold text-[#888] uppercase tracking-wider">
-                    <div>System Metric</div>
-                    <div>How it appears to clients</div>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-[#0F0F0F] border border-white/5 rounded-xl">
+                     <div className="flex items-center gap-3">
+                       <Monitor className="w-5 h-5 text-[#888]" />
+                       <div>
+                         <p className="text-sm font-bold text-white">Default View Category</p>
+                         <p className="text-xs text-[#555]">What stats show first?</p>
+                       </div>
+                     </div>
+                     <select 
+                       disabled={!hasFeature('workspaceCustomization')}
+                       value={localWorkspace?.layout?.defaultView || 'Creators'}
+                       onChange={(e) => updateLayout('defaultView', e.target.value)}
+                       className="bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none"
+                     >
+                       <option value="Creators">Creators List</option>
+                       <option value="Platforms">Platform Distribution</option>
+                       <option value="Timeline">Timeline / Growth</option>
+                     </select>
                   </div>
-                  <div className="p-3 space-y-3">
-                    {[
-                      { key: 'Views', default: 'Views' },
-                      { key: 'Amount Paid', default: 'Amount Paid' },
-                      { key: 'Clippers', default: 'Clippers' },
-                      { key: 'Avg Views/Clip', default: 'Avg Views/Clip' }
-                    ].map(metric => (
-                      <div key={metric.key} className="grid grid-cols-2 gap-4 items-center">
-                        <div className="text-sm font-semibold text-white/90 pl-2">{metric.default}</div>
-                        <input 
-                          type="text"
-                          disabled={!hasFeature('metricLabelCustomization')}
-                          placeholder={`e.g. ${metric.default}`}
-                          value={localWorkspace?.metrics?.customLabels?.[metric.key] || ''}
-                          onChange={(e) => {
-                             if(!localWorkspace) return;
-                             setLocalWorkspace({...localWorkspace, metrics: { ...localWorkspace.metrics, customLabels: { ...(localWorkspace.metrics?.customLabels || {}), [metric.key]: e.target.value }}})
-                          }}
-                          className="w-full bg-black border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[var(--primary-color)] disabled:opacity-50"
-                        />
-                      </div>
-                    ))}
+                  
+                  <div className="flex items-center justify-between p-4 bg-[#0F0F0F] border border-white/5 rounded-xl">
+                     <div className="flex items-center gap-3">
+                       <LayoutDashboard className="w-5 h-5 text-[#888]" />
+                       <div>
+                         <p className="text-sm font-bold text-white">Chart Style</p>
+                         <p className="text-xs text-[#555]">Primary visualization format.</p>
+                       </div>
+                     </div>
+                     <select 
+                       disabled={!hasFeature('workspaceCustomization')}
+                       value={localWorkspace?.layout?.chartStyle || 'Line'}
+                       onChange={(e) => updateLayout('chartStyle', e.target.value)}
+                       className="bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none"
+                     >
+                       <option value="Line">Clean Line Chart</option>
+                       <option value="Area">Filled Area Chart</option>
+                       <option value="Bar">Vertical Bar Chart</option>
+                     </select>
                   </div>
                 </div>
               </div>
@@ -491,7 +414,9 @@ export default function Workspace() {
         <h3 className="text-[10px] font-black text-[#333] uppercase tracking-[0.3em] pl-1">Live Preview</h3>
         
         {/* Preview Container */}
-        <div className="bg-[#0A0A0A] rounded-[48px] shadow-[0_0_80px_-20px_rgba(0,0,0,1)] overflow-hidden border border-white/5 relative group p-6" style={{ minHeight: '600px' }}>
+        <div className="relative group">
+           <div className="absolute -inset-4 bg-blue-600/10 blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 -z-10"></div>
+           <div className="bg-[#0A0A0A]/60 backdrop-blur-3xl rounded-[48px] shadow-[0_40px_100px_-20px_rgba(0,0,0,1)] overflow-hidden border border-white/10 relative p-6 transition-all duration-500 group-hover:border-white/20" style={{ minHeight: '600px' }}>
           
           {/* Mock Browser Frame */}
           <div className="bg-white/5 px-6 py-4 flex items-center justify-between rounded-t-[32px] border border-white/5 border-b-0">
@@ -551,6 +476,7 @@ export default function Workspace() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
