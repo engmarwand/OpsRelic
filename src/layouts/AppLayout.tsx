@@ -127,7 +127,7 @@ export const AppLayout = ({
                 {user?.displayName ? user.displayName.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : 'M')}
               </div>
               <div>
-                <div className="text-xs font-semibold text-[var(--color-text-main)] truncate max-w-[120px]">{user?.displayName || user?.email || 'Marwan Hossam'}</div>
+                <div className="text-xs font-semibold text-[var(--color-text-main)] truncate max-w-[120px]">{user?.displayName || user?.email || 'John Doe'}</div>
                 <div className="text-[0.62rem] text-faint">{userRole === 'client' ? 'Client' : 'Agency Owner · Pro'}</div>
               </div>
             </button>

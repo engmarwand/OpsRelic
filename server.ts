@@ -54,10 +54,13 @@ async function startServer() {
     if (event.action === "membership.went_active" || event.action === "membership.updated") {
       const { user_id, email, plan_id } = event.data;
       
-      // Determine plan name from plan_id (you should map these to your plan names)
-      let planName = 'pro'; // default
-      // Whop plan mapping (example)
-      if (plan_id.includes('agency')) planName = 'agency';
+      // Whop plan mapping
+      let planName: 'starter' | 'pro' | 'agency' = 'pro';
+      if (plan_id === 'plan_5bnzRrzNEhrt7') planName = 'agency';
+      else if (plan_id === 'plan_3abAVC0tgumce') planName = 'pro';
+      else if (plan_id.includes('agency')) planName = 'agency';
+      else if (plan_id.includes('pro')) planName = 'pro';
+      else if (plan_id.includes('starter') || plan_id === 'free') planName = 'starter';
       
       console.log(`Whop Membership activated for ${email} (${user_id}). Plan: ${planName}`);
 
@@ -92,6 +95,25 @@ async function startServer() {
   // API Health Check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  // Waitlist Proxy
+  app.post("/api/waitlist", express.json(), async (req, res) => {
+    const WAITLIST_WEBHOOK_URL = 'https://hook.us2.make.com/jnip5ahp27yedlkkxp67tqye2y4imo78';
+    try {
+      const response = await fetch(WAITLIST_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body)
+      });
+
+      if (!response.ok) throw new Error('Make.com returned an error');
+      
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Waitlist proxy error:", err.message);
+      res.status(500).json({ error: "Failed to submit waitlist" });
+    }
   });
 
   // Clip Analytics Endpoint

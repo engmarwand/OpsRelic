@@ -9,10 +9,17 @@ export const auth = getAuth();
 export const googleProvider = new GoogleAuthProvider();
 export { doc, setDoc, getDoc, serverTimestamp, updateDoc };
 
+export const ALLOWED_EMAILS = ['engmarwand@gmail.com', 'marwan.1206@gmail.com'];
+
 export const loginWithGoogle = async () => {
     try {
         const result = await signInWithPopup(auth, googleProvider);
         const user = result.user;
+
+        if (!user.email || !ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
+            await signOut(auth);
+            throw new Error("This account is not authorized to access OpsRelic.");
+        }
         
         // Ensure user document exists 
         const userDocRef = doc(db, 'users', user.uid);
@@ -25,6 +32,7 @@ export const loginWithGoogle = async () => {
                 createdAt: serverTimestamp()
             });
         }
+        return user;
     } catch (error) {
         console.error("Error signing in with Google: ", error);
         throw error;
@@ -33,6 +41,10 @@ export const loginWithGoogle = async () => {
 
 export const registerWithEmail = async (email: string, password: string, companyName: string) => {
     try {
+        if (!ALLOWED_EMAILS.includes(email.toLowerCase())) {
+            throw new Error("This email is not authorized for registration.");
+        }
+
         const result = await createUserWithEmailAndPassword(auth, email, password);
         const user = result.user;
 
@@ -42,6 +54,7 @@ export const registerWithEmail = async (email: string, password: string, company
             companyName: companyName || 'My Agency',
             createdAt: serverTimestamp()
         });
+        return user;
     } catch (error) {
         console.error("Error registering with email: ", error);
         throw error;
@@ -50,7 +63,11 @@ export const registerWithEmail = async (email: string, password: string, company
 
 export const loginWithEmail = async (email: string, password: string) => {
     try {
-        await signInWithEmailAndPassword(auth, email, password);
+        if (!ALLOWED_EMAILS.includes(email.toLowerCase())) {
+            throw new Error("This account is not authorized.");
+        }
+        const result = await signInWithEmailAndPassword(auth, email, password);
+        return result.user;
     } catch (error) {
         console.error("Error signing in with email: ", error);
         throw error;

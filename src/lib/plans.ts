@@ -51,6 +51,7 @@ export interface PlanLimits {
 
 export interface Plan {
   id: Tier;
+  whopPlanId?: string;
   name: string;
   price: number;
   features: PlanFeatures;
@@ -110,8 +111,9 @@ export const PLANS: Record<Tier, Plan> = {
   },
   pro: {
     id: 'pro',
+    whopPlanId: 'plan_3abAVC0tgumce',
     name: "Pro",
-    price: 79,
+    price: 47,
     features: {
       csvUpload: true,
       smartSync: true,
@@ -160,6 +162,7 @@ export const PLANS: Record<Tier, Plan> = {
   },
   agency: {
     id: 'agency',
+    whopPlanId: 'plan_5bnzRrzNEhrt7',
     name: "Agency",
     price: 247,
     features: {

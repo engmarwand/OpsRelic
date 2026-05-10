@@ -23,7 +23,7 @@ const DISPLAY_PLANS = [
   { 
     id: APP_PLANS.pro.id, 
     name: 'Pro', 
-    price: 79, 
+    price: 47, 
     description: 'For growing agencies managing multiple campaigns.',
     features: [
       '10 Active Campaigns', 

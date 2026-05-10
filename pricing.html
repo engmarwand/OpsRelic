@@ -6,86 +6,132 @@
     <title>Choose Your Plan</title>
     <script async defer src="https://js.whop.com/static/checkout/loader.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Space+Grotesk:wght@700&display=swap');
+        
         :root {
-            --bg: #0f172a;
-            --card-bg: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent: #6366f1;
-            --pro-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            --bg: #080c10;
+            --card-bg: #111820;
+            --text-main: #e8edf4;
+            --text-muted: #7a8fa6;
+            --accent: #00d4e8;
+            --accent-dim: rgba(0,212,232,0.1);
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
             background-color: var(--bg);
             color: var(--text-main);
             margin: 0;
-            padding: 2rem;
+            padding: 4rem 2rem;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        h1 { margin-bottom: 3rem; }
+        h1 { 
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin-bottom: 4rem;
+            letter-spacing: -0.05em;
+        }
 
         .pricing-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2.5rem;
             width: 100%;
             max-width: 1200px;
         }
 
         .card {
             background-color: var(--card-bg);
-            padding: 2rem;
-            border-radius: 1rem;
+            padding: 3rem 2.5rem;
+            border-radius: 2.5rem;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: transform 0.3s ease, border-color 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
+            overflow: hidden;
         }
 
         .card:hover {
-            transform: translateY(-10px);
+            transform: translateY(-8px);
             border-color: var(--accent);
+            box-shadow: 0 0 40px rgba(0,212,232,0.1);
         }
 
         .card.pro {
-            border: 2px solid var(--accent);
+            border: 1px solid var(--accent);
+            background: linear-gradient(180deg, #111820 0%, #151d28 100%);
         }
         
         .card.pro::before {
-            content: "Most Popular";
+            content: "OPERATOR PREFERRED";
             position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--pro-gradient);
-            padding: 0.25rem 1rem;
-            border-radius: 1rem;
-            font-size: 0.8rem;
-            font-weight: bold;
+            top: 20px;
+            right: -35px;
+            transform: rotate(45deg);
+            background: var(--accent);
+            color: #001f26;
+            padding: 0.5rem 3rem;
+            font-size: 0.65rem;
+            font-weight: 900;
+            letter-spacing: 0.1em;
         }
 
-        .price { font-size: 2.5rem; font-weight: bold; margin: 1rem 0; }
+        h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin: 0;
+            color: var(--accent);
+        }
+
+        .price { 
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 4rem; 
+            font-weight: 900; 
+            margin: 1.5rem 0; 
+            letter-spacing: -0.05em;
+        }
         
-        ul { list-style: none; padding: 0; margin-bottom: 2rem; }
-        li { margin-bottom: 0.5rem; color: var(--text-muted); }
-        li::before { content: "✓"; color: var(--accent); margin-right: 0.5rem; }
+        .price span {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-left: 0.5rem;
+            letter-spacing: 0;
+        }
+
+        ul { list-style: none; padding: 0; margin-bottom: 3rem; flex-grow: 1; }
+        li { margin-bottom: 1rem; color: var(--text-muted); font-weight: 500; font-size: 0.95rem; }
+        li::before { content: "→"; color: var(--accent); margin-right: 0.75rem; font-weight: 900; }
 
         .btn {
-            background: var(--pro-gradient);
-            color: white;
-            padding: 1rem;
+            background: var(--accent);
+            color: #001f26;
+            padding: 1.25rem;
             border: none;
-            border-radius: 0.5rem;
+            border-radius: 1.25rem;
             cursor: pointer;
-            font-weight: bold;
+            font-weight: 900;
+            font-size: 0.9rem;
             text-align: center;
             text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            filter: brightness(1.1);
+            transform: scale(1.02);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
         }
 
         /* Modal */
@@ -96,17 +142,19 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(8, 12, 16, 0.9);
+            backdrop-filter: blur(10px);
             justify-content: center;
             align-items: center;
             z-index: 1000;
         }
         .modal-content {
             background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 1rem;
-            max-width: 500px;
+            padding: 3rem;
+            border-radius: 2.5rem;
+            max-width: 550px;
             width: 90%;
+            border: 1px solid var(--accent);
         }
     </style>
 </head>
@@ -117,19 +165,19 @@
     <div class="pricing-container">
         <div class="card">
             <h3>Starter</h3>
-            <div class="price">$47</div>
+            <div class="price">$0</div>
             <ul><li>CSV Upload</li><li>Campaign Reports</li></ul>
-            <button class="btn" onclick="openCheckout('plan_E5ffPT5SleRuU')">Get Started</button>
+            <button class="btn" onclick="openCheckout('free')">Get Started</button>
         </div>
         <div class="card pro">
             <h3>Pro</h3>
-            <div class="price">$97</div>
+            <div class="price">$47</div>
             <ul><li>Everything in Starter</li><li>AI Insights</li></ul>
             <button class="btn" onclick="openCheckout('plan_3abAVC0tgumce')">Get Started</button>
         </div>
         <div class="card">
             <h3>Agency</h3>
-            <div class="price">$297</div>
+            <div class="price">$247</div>
             <ul><li>Everything in Pro</li><li>Custom Domains</li><li>Report Reordering</li></ul>
             <button class="btn" onclick="openCheckout('plan_5bnzRrzNEhrt7')">Get Started</button>
         </div>

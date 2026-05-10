@@ -14,7 +14,7 @@ import ClientDashboardPage from './pages/client-portal/ClientDashboardPage';
 import ReportsPage from './pages/reports/ReportsPage';
 import PipelinePage from './pages/pipeline/PipelinePage';
 import { AppLayout, primaryNavItems, secondaryNavItems, sharingNavItems, systemNavItems } from './layouts/AppLayout';
-import { auth, logout } from './lib/firebase';
+import { auth, logout, ALLOWED_EMAILS } from './lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 
 import { useAppContext } from './lib/store';
@@ -154,7 +154,12 @@ function AppWrapper({ onLogout }: { onLogout: () => void }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+      if (currentUser && currentUser.email && !ALLOWED_EMAILS.includes(currentUser.email.toLowerCase())) {
+        logout();
+        setUser(null);
+      } else {
+        setUser(currentUser);
+      }
       setLoading(false);
     });
     return () => unsubscribe();
