@@ -121,15 +121,27 @@ export const AppLayout = ({
         </nav>
 
         <div className="px-4 py-3 border-t border-[var(--color-divider)] relative z-10 flex-shrink-0">
-          <button onClick={onLogout} className="flex items-center gap-3 w-full text-left" title="Click to Sign Out">
-            <div className="w-[32px] h-[32px] rounded-full bg-gradient-to-br from-[var(--color-cyan)] to-[#0072ff] flex items-center justify-center text-xs font-extrabold text-white flex-shrink-0 shadow-[0_0_12px_var(--color-cyan-glow)]">
-              {user?.displayName ? user.displayName.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : 'M')}
+          <div className="relative group">
+            <button className="flex items-center gap-3 w-full text-left p-2 -mx-2 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors peer">
+              <div className="w-[32px] h-[32px] rounded-full bg-gradient-to-br from-[var(--color-cyan)] to-[#0072ff] flex items-center justify-center text-xs font-extrabold text-white flex-shrink-0 shadow-[0_0_12px_var(--color-cyan-glow)]">
+                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : 'M')}
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-[var(--color-text-main)] truncate max-w-[120px]">{user?.displayName || user?.email || 'Marwan Hossam'}</div>
+                <div className="text-[0.62rem] text-faint">{userRole === 'client' ? 'Client' : 'Agency Owner · Pro'}</div>
+              </div>
+            </button>
+            <div className="absolute bottom-full left-0 mb-2 w-full min-w-[200px] bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible peer-focus:opacity-100 peer-focus:visible hover:opacity-100 hover:visible transition-all flex flex-col z-50 py-1 overflow-hidden">
+               {userRole !== 'client' && (
+                 <>
+                   <a href="#settings" className="px-4 py-2 text-sm text-[var(--color-text-main)] hover:bg-[var(--color-surface-hover)] transition-colors">Settings</a>
+                   <button onClick={() => window.open('https://whop.com', '_blank')} className="px-4 py-2 text-sm text-[var(--color-text-main)] hover:bg-[var(--color-surface-hover)] transition-colors text-left w-full">Plan & Billing</button>
+                   <div className="h-px bg-[var(--color-border-subtle)] my-1"></div>
+                 </>
+               )}
+               <button onClick={onLogout} className="px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors text-left w-full font-medium">Log out</button>
             </div>
-            <div>
-              <div className="text-xs font-semibold text-[var(--color-text-main)] truncate max-w-[120px]">{user?.displayName || user?.email || 'Marwan Hossam'}</div>
-              <div className="text-[0.62rem] text-faint">{userRole === 'client' ? 'Client' : 'Agency Owner · Pro'}</div>
-            </div>
-          </button>
+          </div>
         </div>
       </aside>
 
@@ -139,10 +151,10 @@ export const AppLayout = ({
         
         {userRole !== 'client' && (
           <div className="flex items-center gap-2">
-            <button className="inline-flex items-center gap-2 px-[14px] py-[7px] rounded-md text-sm font-semibold transition-all border border-transparent whitespace-nowrap bg-transparent text-muted hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-main)] hover:border-[var(--color-border-subtle)]">
+            <button onClick={() => window.location.hash = '#clients?new=true'} className="inline-flex items-center gap-2 px-[14px] py-[7px] rounded-md text-sm font-semibold transition-all border border-transparent whitespace-nowrap bg-transparent text-muted hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-main)] hover:border-[var(--color-border-subtle)]">
               <UserPlus className="w-[13px] h-[13px]" /> New Client
             </button>
-            <button className="inline-flex items-center gap-2 px-[14px] py-[7px] rounded-md text-sm font-semibold transition-all border border-transparent whitespace-nowrap bg-gradient-to-br from-[var(--color-cyan)] to-[#0099ff] text-[var(--color-cyan-on)] hover:from-[var(--color-cyan-hover)] hover:to-[#0080e6] shadow-[0_2px_14px_rgba(0,212,232,0.3)] hover:shadow-[0_4px_22px_rgba(0,212,232,0.5)] transform hover:-translate-y-[1px]">
+            <button onClick={() => window.location.hash = '#campaigns?new=true'} className="inline-flex items-center gap-2 px-[14px] py-[7px] rounded-md text-sm font-semibold transition-all border border-transparent whitespace-nowrap bg-gradient-to-br from-[var(--color-cyan)] to-[#0099ff] text-[var(--color-cyan-on)] hover:from-[var(--color-cyan-hover)] hover:to-[#0080e6] shadow-[0_2px_14px_rgba(0,212,232,0.3)] hover:shadow-[0_4px_22px_rgba(0,212,232,0.5)] transform hover:-translate-y-[1px]">
               <Plus className="w-[13px] h-[13px]" /> New Campaign
             </button>
             <button onClick={toggleTheme} className="w-[34px] h-[34px] rounded-md flex items-center justify-center text-muted border border-[var(--color-border-subtle)] transition-all hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-main)] hover:border-strong ml-2">

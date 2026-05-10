@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useAppContext } from '../../lib/store';
 import { 
   FolderOpen, Plus, Search, ChevronRight, BarChart2, Bell, ExternalLink, Settings, 
-  TrendingUp, Users, Target, Key, Lock, ArrowLeft, Copy
+  TrendingUp, Users, Target, Key, Lock, ArrowLeft, Copy, RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Campaign, CampaignStatus } from '../../types';
@@ -10,15 +10,115 @@ import { cn } from '../../lib/utils';
 import Chart from 'chart.js/auto';
 import { db, auth } from '../../lib/firebase';
 import { useToast } from '../../lib/toast';
-import { collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, deleteDoc, query, where, onSnapshot } from 'firebase/firestore';
 
 export default function CampaignsPage() {
-  const { data, campaignsList, clients, updates, briefs } = useAppContext();
+  const { data, campaignsList, clients, updates, briefs, workspace } = useAppContext();
   const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  
+  const [clipUrl, setClipUrl] = useState('');
+  const [isAddingClip, setIsAddingClip] = useState(false);
+  const [clipError, setClipError] = useState('');
+  const [clipMetrics, setClipMetrics] = useState<any[]>([]);
+  const [refreshingClipId, setRefreshingClipId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedCampaign) {
+      setClipMetrics([]);
+      return;
+    }
+    const q = query(collection(db, 'clipMetrics'), where('campaignId', '==', selectedCampaign.id));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const metrics = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setClipMetrics(metrics.sort((a: any, b: any) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)));
+    });
+    return () => unsub();
+  }, [selectedCampaign]);
+
+  const handlePasteClip = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clipUrl) return;
+    setIsAddingClip(true);
+    setClipError('');
+    try {
+      const clipLinkId = doc(collection(db, 'clipMetrics')).id;
+      const res = await fetch('/api/clip-refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clipLinkId,
+          url: clipUrl,
+          campaignId: selectedCampaign?.id,
+          userId: auth.currentUser?.uid
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch tracking data');
+      setClipUrl('');
+      addToast('Clip tracked successfully!', 'success');
+    } catch (err: any) {
+      setClipError(err.message);
+    } finally {
+      setIsAddingClip(false);
+    }
+  };
+
+  const refreshClip = async (clip: any) => {
+    setRefreshingClipId(clip.id);
+    try {
+      const res = await fetch('/api/clip-refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clipLinkId: clip.clipLinkId || clip.id,
+          url: clip.url,
+          campaignId: selectedCampaign?.id,
+          userId: auth.currentUser?.uid
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to sync');
+      addToast('Clip metrics refreshed', 'success');
+    } catch (err: any) {
+      addToast('Refresh failed: ' + err.message, 'error');
+    } finally {
+      setRefreshingClipId(null);
+    }
+  };
+
   const [activeTab, setActiveTab] = useState<'overview' | 'performance' | 'updates' | 'portal' | 'settings'>('overview');
+  const [isEditingOverview, setIsEditingOverview] = useState(false);
+  const [overviewForm, setOverviewForm] = useState<Partial<Campaign>>({});
+
+  useEffect(() => {
+    if (selectedCampaign) {
+      setOverviewForm({
+        name: selectedCampaign.name,
+        status: selectedCampaign.status,
+        startDate: selectedCampaign.startDate || '',
+        endDate: selectedCampaign.endDate || ''
+      });
+    }
+  }, [selectedCampaign]);
+
+  const handleSaveOverview = async () => {
+    if (!selectedCampaign || !overviewForm.name) return;
+    try {
+      await updateDoc(doc(db, 'campaigns', selectedCampaign.id), {
+        ...overviewForm,
+        updatedAt: new Date().toISOString()
+      });
+      addToast("Campaign updated", "success");
+      setSelectedCampaign(prev => prev ? { ...prev, ...overviewForm } as Campaign : null);
+      setIsEditingOverview(false);
+    } catch (err) {
+      addToast("Update failed", "error");
+    }
+  };
+
 
   const [isCreating, setIsCreating] = useState(false);
   const [newCampaign, setNewCampaign] = useState({ name: '', clientId: '', status: 'Active' as CampaignStatus });
@@ -29,6 +129,10 @@ export default function CampaignsPage() {
     if (forClient) {
       setNewCampaign(prev => ({ ...prev, clientId: forClient }));
       setIsCreating(true);
+      window.history.replaceState(null, '', window.location.pathname + '#campaigns');
+    } else if (params.get('new') === 'true') {
+      setIsCreating(true);
+      window.history.replaceState(null, '', window.location.pathname + '#campaigns');
     }
   }, []);
 
@@ -40,8 +144,7 @@ export default function CampaignsPage() {
         ...newCampaign,
         userId: auth.currentUser?.uid,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        portalPassword: Math.random().toString(36).substring(2, 10).toUpperCase()
+        updatedAt: new Date().toISOString()
       });
       setIsCreating(false);
       setNewCampaign({ name: '', clientId: '', status: 'Active' });
@@ -107,9 +210,11 @@ export default function CampaignsPage() {
     if (selectedCampaign) {
       setLocalCampaign({
         name: selectedCampaign.name,
+        clientId: selectedCampaign.clientId,
         status: selectedCampaign.status,
         budget: selectedCampaign.budget || 0,
-        portalPassword: selectedCampaign.portalPassword || ''
+        startDate: selectedCampaign.startDate || '',
+        endDate: selectedCampaign.endDate || ''
       });
     }
   }, [selectedCampaign]);
@@ -127,12 +232,6 @@ export default function CampaignsPage() {
     } catch (err) {
       addToast("Settings update failed", "error");
     }
-  };
-
-  const copyPortalLink = () => {
-    const link = `${window.location.origin}${window.location.pathname}?portal=${selectedCampaign?.id}`;
-    navigator.clipboard.writeText(link);
-    addToast("Portal link copied to clipboard", "success");
   };
 
   const getCampaignColor = (idx: number) => {
@@ -162,11 +261,6 @@ export default function CampaignsPage() {
 
       const labels = Object.keys(viewsByDate);
       const dataPoints = Object.values(viewsByDate);
-
-      if (labels.length === 0) {
-        labels.push('Day 1', 'Day 2', 'Day 3');
-        dataPoints.push(0, 0, 0);
-      }
 
       const ctx = chartRef.current.getContext('2d');
       if (ctx) {
@@ -335,20 +429,66 @@ export default function CampaignsPage() {
             {activeTab === 'overview' && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                  <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
-                   <div className="font-display text-md font-bold text-[var(--color-text-main)] mb-[14px]">Campaign Snapshot</div>
-                   <div className="text-sm text-muted mb-4 leading-relaxed">
-                     This campaign drives distribution for {clients.find(c=>c.id===selectedCampaign.clientId)?.name||'client'}. Track high-level metrics and delivery targets here.
+                   <div className="flex justify-between items-center mb-[14px]">
+                     <div className="font-display text-md font-bold text-[var(--color-text-main)]">Campaign Details</div>
+                     {!isEditingOverview ? (
+                       <button onClick={() => setIsEditingOverview(true)} className="btn btn-ghost btn-sm">Edit</button>
+                     ) : (
+                       <div className="flex gap-2">
+                         <button onClick={() => setIsEditingOverview(false)} className="btn btn-ghost btn-sm">Cancel</button>
+                         <button onClick={handleSaveOverview} className="btn btn-primary btn-sm">Save</button>
+                       </div>
+                     )}
                    </div>
-                   <div className="grid grid-cols-2 gap-3 mt-4">
-                      <div className="bg-[var(--color-surface2)] rounded-xl p-4 border border-[var(--color-border-subtle)]">
-                         <div className="text-xs font-bold text-muted uppercase tracking-[0.07em] mb-1">Total Views</div>
-                         <div className="font-display text-xl font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(campaignData.reduce((s, r) => s + r.Views, 0))}</div>
-                      </div>
-                      <div className="bg-[var(--color-surface2)] rounded-xl p-4 border border-[var(--color-border-subtle)]">
-                         <div className="text-xs font-bold text-muted uppercase tracking-[0.07em] mb-1">Clips</div>
-                         <div className="font-display text-xl font-extrabold text-[var(--color-text-main)] tabular-nums">{campaignData.length}</div>
-                      </div>
-                   </div>
+                   
+                   {isEditingOverview ? (
+                     <div className="space-y-4">
+                       <div className="flex flex-col gap-[5px]">
+                         <label className="text-xs font-bold text-muted uppercase">Campaign Name</label>
+                         <input value={overviewForm.name||''} onChange={e=>setOverviewForm({...overviewForm, name: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-2 text-sm text-[var(--color-text-main)] focus:border-[var(--color-cyan)] outline-none" />
+                       </div>
+                       <div className="flex flex-col gap-[5px]">
+                         <label className="text-xs font-bold text-muted uppercase">Status</label>
+                         <select value={overviewForm.status||'Active'} onChange={e=>setOverviewForm({...overviewForm, status: e.target.value as CampaignStatus})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-2 text-sm text-[var(--color-text-main)] focus:border-[var(--color-cyan)] outline-none cursor-pointer">
+                           <option value="Draft">Draft</option>
+                           <option value="Active">Active</option>
+                           <option value="Complete">Complete</option>
+                         </select>
+                       </div>
+                       <div className="grid grid-cols-2 gap-4">
+                         <div className="flex flex-col gap-[5px]">
+                           <label className="text-xs font-bold text-muted uppercase">Start Date</label>
+                           <input type="date" value={overviewForm.startDate||''} onChange={e=>setOverviewForm({...overviewForm, startDate: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-2 text-sm text-[var(--color-text-main)] focus:border-[var(--color-cyan)] outline-none" />
+                         </div>
+                         <div className="flex flex-col gap-[5px]">
+                           <label className="text-xs font-bold text-muted uppercase">End Date</label>
+                           <input type="date" value={overviewForm.endDate||''} onChange={e=>setOverviewForm({...overviewForm, endDate: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-2 text-sm text-[var(--color-text-main)] focus:border-[var(--color-cyan)] outline-none" />
+                         </div>
+                       </div>
+                     </div>
+                   ) : (
+                     <>
+                       <div className="text-sm text-muted mb-4 leading-relaxed">
+                         This campaign drives distribution for {clients.find(c=>c.id===selectedCampaign.clientId)?.name||'client'}. Track high-level metrics and delivery targets here.
+                       </div>
+                       <div className="grid grid-cols-2 gap-3 mt-4">
+                          <div className="bg-[var(--color-surface2)] rounded-xl p-4 border border-[var(--color-border-subtle)] flex flex-col justify-between">
+                             <div className="text-xs font-bold text-muted uppercase tracking-[0.07em] mb-1">Status & Dates</div>
+                             <div className="text-sm font-semibold text-[var(--color-text-main)] mb-1">{selectedCampaign.status}</div>
+                             {selectedCampaign.startDate && <div className="text-xs text-muted">From: {selectedCampaign.startDate}</div>}
+                             {selectedCampaign.endDate && <div className="text-xs text-muted">To: {selectedCampaign.endDate}</div>}
+                          </div>
+                          <div className="bg-[var(--color-surface2)] rounded-xl p-4 border border-[var(--color-border-subtle)]">
+                             <div className="text-xs font-bold text-muted uppercase tracking-[0.07em] mb-1">Total Views</div>
+                             <div className="font-display text-xl font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(campaignData.reduce((s, r) => s + r.Views, 0) + clipMetrics.reduce((s, c) => s + (c.views || 0), 0))}</div>
+                          </div>
+                          <div className="bg-[var(--color-surface2)] rounded-xl p-4 border border-[var(--color-border-subtle)] col-span-2">
+                             <div className="text-xs font-bold text-muted uppercase tracking-[0.07em] mb-1">Assets & Links</div>
+                             <div className="font-display text-xl font-extrabold text-[var(--color-text-main)] tabular-nums">{campaignData.length + clipMetrics.length}</div>
+                          </div>
+                       </div>
+                     </>
+                   )}
                  </div>
 
                  <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
@@ -375,11 +515,92 @@ export default function CampaignsPage() {
             )}
 
             {activeTab === 'performance' && (
-              <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
-                 <div className="font-display text-md font-bold text-[var(--color-text-main)] mb-6">Views Over Time</div>
-                 <div className="relative h-[300px]">
-                   <canvas ref={chartRef}></canvas>
-                 </div>
+              <div className="space-y-6">
+                <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
+                   <div className="font-display text-md font-bold text-[var(--color-text-main)] mb-6">Views Over Time</div>
+                   {campaignData.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center p-8 text-center bg-[var(--color-surface2)] rounded-xl border border-[var(--color-border-subtle)]">
+                        <BarChart2 className="w-8 h-8 text-faint mb-3" />
+                        <div className="text-sm font-semibold text-[var(--color-text-main)]">No Performance Data</div>
+                        <div className="text-xs text-muted max-w-xs mx-auto mt-1">Upload a CSV down below or add clip links to start tracking views and engagement here.</div>
+                      </div>
+                   ) : (
+                     <div className="relative h-[300px]">
+                       <canvas ref={chartRef}></canvas>
+                     </div>
+                   )}
+                </div>
+
+                <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
+                   <div className="flex items-center justify-between mb-6">
+                     <div className="font-display text-md font-bold text-[var(--color-text-main)]">Live Clip Performance</div>
+                   </div>
+                   
+                   <form onSubmit={handlePasteClip} className="flex gap-2 mb-6">
+                     <input 
+                       type="url" 
+                       required
+                       value={clipUrl}
+                       onChange={e => setClipUrl(e.target.value)}
+                       placeholder="Paste TikTok, Instagram Reel, or YouTube Shorts URL..." 
+                       className="flex-1 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-xl px-4 text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all placeholder:text-muted"
+                     />
+                     <button 
+                       type="submit" 
+                       disabled={isAddingClip}
+                       className="btn btn-primary whitespace-nowrap"
+                     >
+                       {isAddingClip ? 'Fetching...' : 'Track Clip'}
+                     </button>
+                   </form>
+
+                   {clipError && (
+                     <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-semibold">{clipError}</div>
+                   )}
+
+                   <div className="flex flex-col gap-3">
+                     {clipMetrics.length === 0 ? (
+                       <div className="text-sm text-faint py-4 text-center border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl bg-[var(--color-surface2)]">No clip links added yet. Paste a link above to start tracking.</div>
+                     ) : clipMetrics.map(clip => (
+                       <div key={clip.id} className="flex items-center justify-between p-4 bg-[var(--color-surface2)] rounded-xl border border-[var(--color-border-subtle)]">
+                         <div className="flex items-center gap-4 truncate max-w-[50%]">
+                           <div className="w-10 h-10 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border-subtle)] flex items-center justify-center shrink-0">
+                              <ExternalLink className="w-4 h-4 text-muted" />
+                           </div>
+                           <div className="truncate">
+                             <div className="text-sm font-bold text-[var(--color-text-main)] flex items-center gap-2">
+                               {clip.platform}
+                               <a href={clip.url} target="_blank" rel="noreferrer" className="text-[var(--color-cyan)] hover:underline truncate">Link</a>
+                             </div>
+                             <div className="text-xs text-muted">Updated: {clip.updatedAt ? new Date(clip.updatedAt).toLocaleString() : 'Just now'}</div>
+                           </div>
+                         </div>
+                         
+                         <div className="flex items-center gap-6">
+                           <div className="text-right">
+                             <div className="font-display font-bold text-lg tabular-nums text-[var(--color-text-main)]">{formatViews(clip.views)}</div>
+                             <div className="text-[10px] text-muted font-bold uppercase tracking-widest">Views</div>
+                           </div>
+                           <div className="text-right hidden sm:block">
+                             <div className="font-display font-bold text-lg tabular-nums text-[var(--color-text-main)]">{formatViews(clip.likes)}</div>
+                             <div className="text-[10px] text-muted font-bold uppercase tracking-widest">Likes</div>
+                           </div>
+                           <div className="text-right hidden md:block">
+                             <div className="font-display font-bold text-lg tabular-nums text-[var(--color-text-main)]">{clip.engagementRate ? (clip.engagementRate * 100).toFixed(1) + '%' : '0%'}</div>
+                             <div className="text-[10px] text-muted font-bold uppercase tracking-widest">Eng. Rate</div>
+                           </div>
+                           <button 
+                             onClick={() => refreshClip(clip)}
+                             disabled={refreshingClipId === clip.id}
+                             className="w-10 h-10 rounded-lg hover:bg-[var(--color-surface-hover)] flex items-center justify-center transition-colors text-muted hover:text-[var(--color-text-main)] ml-2 disabled:opacity-50"
+                           >
+                             <RefreshCw className={cn("w-[18px] h-[18px]", refreshingClipId === clip.id && "animate-spin")} />
+                           </button>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                </div>
               </div>
             )}
 
@@ -423,27 +644,49 @@ export default function CampaignsPage() {
                  <div className="w-16 h-16 rounded-2xl bg-[var(--color-cyan-dim)] text-[var(--color-cyan)] flex items-center justify-center mx-auto mb-4 border border-[rgba(0,212,232,0.2)] shadow-md">
                    <ExternalLink className="w-7 h-7" />
                  </div>
-                 <h2 className="font-display text-xl font-extrabold text-[var(--color-text-main)] mb-2">Client Portal Active</h2>
-                 <p className="text-sm text-muted mb-6 max-w-md mx-auto">Share this link with your client. They will be able to see performance stats and public updates using their secure password.</p>
+                 <h2 className="font-display text-xl font-extrabold text-[var(--color-text-main)] mb-2">Client Portal</h2>
+                 <p className="text-sm text-muted mb-6 max-w-md mx-auto">Share a clean, read-only view of campaign performance and updates with your client. No login required.</p>
                  
-                 <div className="flex flex-col gap-3 max-w-sm mx-auto mb-6 text-left">
-                   <div className="flex flex-col gap-1">
-                      <span className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Portal Link</span>
-                      <div className="flex items-center gap-2 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg p-2 px-3">
-                         <div className="text-xs font-mono text-[var(--color-text-main)] truncate flex-1">{window.location.origin}?portal={selectedCampaign.id}</div>
-                         <button onClick={copyPortalLink} className="p-1 hover:bg-[var(--color-surface-hover)] rounded text-muted hover:text-[var(--color-text-main)]"><Copy className="w-[14px] h-[14px]" /></button>
-                      </div>
+                 <div className="flex flex-col gap-3 max-w-md mx-auto mb-6 text-left">
+                   <div className="flex items-center justify-between p-4 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-xl">
+                     <div>
+                       <div className="text-sm font-bold text-[var(--color-text-main)]">Enable Portal</div>
+                       <div className="text-xs text-muted mt-1">Make the portal access link public</div>
+                     </div>
+                     <button
+                       onClick={async () => {
+                         const isEnabling = !selectedCampaign.portalEnabled;
+                         const token = selectedCampaign.portalToken || Math.random().toString(36).substring(2, 16) + Date.now().toString(36);
+                         await updateDoc(doc(db, 'campaigns', selectedCampaign.id), {
+                           portalEnabled: isEnabling,
+                           portalToken: token,
+                           updatedAt: new Date().toISOString()
+                         });
+                         setSelectedCampaign(prev => prev ? { ...prev, portalEnabled: isEnabling, portalToken: token } as Campaign : null);
+                       }}
+                       className={cn("relative inline-flex h-6 w-11 items-center rounded-full transition-colors", selectedCampaign.portalEnabled ? "bg-[var(--color-cyan)]" : "bg-[var(--color-surface3)]")}
+                     >
+                       <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white transition-transform", selectedCampaign.portalEnabled ? "translate-x-6" : "translate-x-1")} />
+                     </button>
                    </div>
-                   <div className="flex flex-col gap-1">
-                      <span className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Access Password</span>
-                      <div className="flex items-center gap-2 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg p-2 px-3">
-                         <Key className="w-[14px] h-[14px] text-muted shrink-0" />
-                         <div className="text-xs font-mono font-bold tracking-widest text-[var(--color-text-main)] truncate flex-1">{selectedCampaign.portalPassword || 'Not Set'}</div>
-                      </div>
-                   </div>
+
+                   {selectedCampaign.portalEnabled && selectedCampaign.portalToken && (
+                     <div className="flex flex-col gap-1 mt-2">
+                        <span className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Portal Link</span>
+                        <div className="flex items-center gap-2 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg p-2 px-3">
+                           <div className="text-xs font-mono text-[var(--color-text-main)] truncate flex-1">https://opsrelic.com/portal/{selectedCampaign.portalToken}</div>
+                           <button onClick={() => {
+                              navigator.clipboard.writeText(`https://opsrelic.com/portal/${selectedCampaign.portalToken}`);
+                              addToast("Portal link copied to clipboard", "success");
+                           }} className="p-1 hover:bg-[var(--color-surface-hover)] rounded text-muted hover:text-[var(--color-text-main)]"><Copy className="w-[14px] h-[14px]" /></button>
+                        </div>
+                     </div>
+                   )}
                  </div>
 
-                 <button onClick={() => window.open(`${window.location.origin}?portal=${selectedCampaign.id}`, '_blank')} className="btn btn-primary">Open Preview Panel</button>
+                 {selectedCampaign.portalEnabled && selectedCampaign.portalToken && (
+                   <button onClick={() => window.open(`https://opsrelic.com/portal/${selectedCampaign.portalToken}`, '_blank')} className="btn btn-primary">Open Preview</button>
+                 )}
               </div>
             )}
 
@@ -451,10 +694,31 @@ export default function CampaignsPage() {
               <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm max-w-2xl">
                  <div className="font-display text-md font-bold text-[var(--color-text-main)] mb-6">Campaign Settings</div>
                  <form onSubmit={handleUpdateRegistry} className="space-y-4">
-                    <div className="flex flex-col gap-[5px]">
-                       <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Campaign Name</label>
-                       <input value={localCampaign.name||''} onChange={e=>setLocalCampaign({...localCampaign, name: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-[5px]">
+                         <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Campaign Name</label>
+                         <input value={localCampaign.name||''} onChange={e=>setLocalCampaign({...localCampaign, name: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" />
+                      </div>
+                      <div className="flex flex-col gap-[5px]">
+                         <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Client</label>
+                         <select value={localCampaign.clientId||''} onChange={e=>setLocalCampaign({...localCampaign, clientId: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all cursor-pointer">
+                           <option value="">Select a Client...</option>
+                           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                         </select>
+                      </div>
                     </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-[5px]">
+                         <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Start Date</label>
+                         <input type="date" value={localCampaign.startDate||''} onChange={e=>setLocalCampaign({...localCampaign, startDate: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" />
+                      </div>
+                      <div className="flex flex-col gap-[5px]">
+                         <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">End Date</label>
+                         <input type="date" value={localCampaign.endDate||''} onChange={e=>setLocalCampaign({...localCampaign, endDate: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" />
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="flex flex-col gap-[5px]">
                          <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Status</label>
@@ -463,13 +727,6 @@ export default function CampaignsPage() {
                            <option value="Draft">Draft</option>
                            <option value="Complete">Complete</option>
                          </select>
-                      </div>
-                      <div className="flex flex-col gap-[5px]">
-                         <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Portal Password</label>
-                         <div className="relative">
-                           <Lock className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
-                           <input value={localCampaign.portalPassword||''} onChange={e=>setLocalCampaign({...localCampaign, portalPassword: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md pl-9 pr-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all w-full font-mono uppercase" />
-                         </div>
                       </div>
                     </div>
                     <div className="pt-2 border-t border-[var(--color-border-subtle)]">

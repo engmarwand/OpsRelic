@@ -108,7 +108,7 @@ service cloud.firestore {
 
     match /campaigns/{campaignId} {
       allow get: if true; 
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if (isSignedIn() && resource.data.userId == request.auth.uid) || (resource.data.portalEnabled == true);
       allow create: if isSignedIn() && isValidCampaign(incoming()) && incoming().userId == request.auth.uid;
       allow update: if (
         (isSignedIn() && existing().userId == request.auth.uid && isValidCampaign(incoming()) && incoming().userId == existing().userId)

@@ -78,10 +78,14 @@ export interface Campaign {
     nextSteps: string;
     platforms: string[];
   };
+  startDate?: string;
+  endDate?: string;
   createdAt: string;
   updatedAt: string;
   budget?: number; // This can be used for the campaign specific retainer
   retainer?: number; // Explicit retainer field
+  portalEnabled?: boolean;
+  portalToken?: string;
   portalPassword?: string;
 }
 
@@ -108,13 +112,13 @@ export interface CampaignUpdate {
 }
 
 export interface WorkspaceSettings {
-  brand: { name: string; tagline: string; logo: string | null; logoUrl: string | null };
+  brand: { name: string; tagline: string; logo: string | null; logoUrl: string | null; email?: string; timezone?: string; };
   color: { primary: string; preset: string };
   reports: { coverPage: boolean; fullReportBranding?: boolean; defaultDateRange: string; defaultPlatforms: string[]; template: Record<string, boolean>; emailSignature: string; fromName: string; replyTo: string };
   layout: { theme: string; layout: string; chartStyle: string; defaultView?: string; };
   clients: any[]; // Array of client profile objects
   metrics: { customLabels: Record<string, string> };
-  notifications: { flagsPending: boolean; weeklySummary: boolean };
+  notifications: { flagsPending: boolean; weeklySummary: boolean; uploadAlerts?: boolean; clientPortalViews?: boolean; };
   rollingDates: boolean;
 }
 

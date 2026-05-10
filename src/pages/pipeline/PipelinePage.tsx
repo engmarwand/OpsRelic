@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '../../lib/store';
 import { motion, AnimatePresence } from 'motion/react';
 import { Users, Search, Plus, ArrowLeft, Mail, Phone, User, Briefcase, Plus as PlusIcon, X } from 'lucide-react';
@@ -13,7 +13,18 @@ export default function ClientsPage() {
   const { campaignsList, clients, data } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddingClient, setIsAddingClient] = useState(false);
+  const [isEditingClient, setIsEditingClient] = useState(false);
   const [selectedClient, setSelectedClient] = useState<ClientAccount | null>(null);
+  const [editingClientData, setEditingClientData] = useState<Partial<ClientAccount>>({});
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.split('?')[1]);
+    if (params.get('new') === 'true') {
+      setIsAddingClient(true);
+      // Clean up the URL
+      window.history.replaceState(null, '', window.location.pathname + '#clients');
+    }
+  }, []);
 
   const filteredClients = useMemo(() => {
     return (clients || []).filter(c => 
@@ -42,6 +53,39 @@ export default function ClientsPage() {
       await addDoc(collection(db, 'clients'), newClient);
       addToast("Client created successfully", "success");
       setIsAddingClient(false);
+    } catch (err: any) {
+      addToast(err.message, "error");
+    }
+  };
+
+  const handleEditClient = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedClient) return;
+    try {
+      await setDoc(doc(db, 'clients', selectedClient.id), {
+        ...selectedClient,
+        ...editingClientData,
+        updatedAt: new Date().toISOString()
+      });
+      addToast("Client updated successfully", "success");
+      setIsEditingClient(false);
+      setSelectedClient({ ...selectedClient, ...editingClientData } as ClientAccount);
+    } catch (err: any) {
+      addToast(err.message, "error");
+    }
+  };
+
+  const handleDeleteClient = async () => {
+    if (!selectedClient) return;
+    if (!window.confirm(`Are you sure you want to delete ${selectedClient.name}? This will also delete all associated campaigns.`)) return;
+    try {
+      await deleteDoc(doc(db, 'clients', selectedClient.id));
+      // Delete associated campaigns
+      for (const campaign of selectedClientCampaigns) {
+        await deleteDoc(doc(db, 'campaigns', campaign.id));
+      }
+      addToast("Client deleted successfully", "success");
+      setSelectedClient(null);
     } catch (err: any) {
       addToast(err.message, "error");
     }
@@ -168,7 +212,7 @@ export default function ClientsPage() {
                <div className="w-16 h-16 rounded-xl flex items-center justify-center font-display font-extrabold text-white text-lg shrink-0 z-10 shadow-md" style={{ background: getClientColor(clients.findIndex(c => c.id === selectedClient.id)).gradient }}>
                   {selectedClient.name.substring(0, 2).toUpperCase()}
                </div>
-               <div className="z-10 relative">
+               <div className="z-10 relative flex-1">
                  <div className="font-display text-xl font-extrabold text-[var(--color-text-main)] mb-1">{selectedClient.name}</div>
                  <div className="text-sm text-muted">{selectedClient.website || 'Company Profile'}</div>
                  <div className="flex gap-2 mt-2">
@@ -179,6 +223,13 @@ export default function ClientsPage() {
                      {selectedClientCampaigns.length} campaigns
                    </span>
                  </div>
+               </div>
+               <div className="z-10 flex gap-2">
+                 <button onClick={() => {
+                   setEditingClientData({ ...selectedClient });
+                   setIsEditingClient(true);
+                 }} className="btn btn-ghost btn-sm bg-[var(--color-surface2)] hover:bg-[var(--color-surface-hover)]">Edit</button>
+                 <button onClick={handleDeleteClient} className="btn btn-ghost btn-sm text-[var(--color-red)] bg-[var(--color-red-dim)] hover:bg-[rgba(255,0,0,0.1)] border border-transparent hover:border-[rgba(255,0,0,0.2)]">Delete</button>
                </div>
             </div>
 
@@ -273,6 +324,44 @@ export default function ClientsPage() {
                  <div className="flex justify-end gap-2 p-4 px-6 border-t border-[var(--color-border-subtle)]">
                    <button type="button" onClick={() => setIsAddingClient(false)} className="btn btn-ghost">Cancel</button>
                    <button type="submit" className="btn btn-primary">Create Client</button>
+                 </div>
+               </form>
+             </motion.div>
+           </div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {isEditingClient && selectedClient && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/65 backdrop-blur-[8px]">
+             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="bg-[var(--color-surface)] border border-[var(--color-border-strong)] rounded-2xl w-full max-w-[500px] shadow-lg shadow-glow">
+               <div className="flex items-center justify-between p-5 border-b border-[var(--color-border-subtle)]">
+                 <div className="font-display text-md font-bold text-[var(--color-text-main)]">Edit Client</div>
+                 <button onClick={() => setIsEditingClient(false)} className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-muted hover:bg-[var(--color-surface-hover)] hover:text-white transition-all">&times;</button>
+               </div>
+               <form onSubmit={handleEditClient}>
+                 <div className="p-5 px-6 space-y-4">
+                   <div className="flex flex-col gap-[5px]">
+                      <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Client Name</label>
+                      <input name="name" required value={editingClientData.name || ''} onChange={e => setEditingClientData({...editingClientData, name: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" />
+                   </div>
+                   <div className="flex flex-col gap-[5px]">
+                      <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Company</label>
+                      <input name="website" value={editingClientData.website || ''} onChange={e => setEditingClientData({...editingClientData, website: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" />
+                   </div>
+                   <div className="grid grid-cols-2 gap-4">
+                     <div className="flex flex-col gap-[5px]">
+                        <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Contact Email</label>
+                        <input name="email" type="email" value={editingClientData.email || ''} onChange={e => setEditingClientData({...editingClientData, email: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" />
+                     </div>
+                     <div className="flex flex-col gap-[5px]">
+                        <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Retainer</label>
+                        <input name="retainer" type="number" value={editingClientData.retainer || ''} onChange={e => setEditingClientData({...editingClientData, retainer: Number(e.target.value)})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" />
+                     </div>
+                   </div>
+                 </div>
+                 <div className="flex justify-end gap-2 p-4 px-6 border-t border-[var(--color-border-subtle)]">
+                   <button type="button" onClick={() => setIsEditingClient(false)} className="btn btn-ghost">Cancel</button>
+                   <button type="submit" className="btn btn-primary">Save Changes</button>
                  </div>
                </form>
              </motion.div>

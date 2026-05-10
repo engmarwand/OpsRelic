@@ -1,24 +1,56 @@
-import React, { useState } from 'react';
-import { User, Bell, Shield, CreditCard, Paintbrush, ChevronRight, Save } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, Bell, Shield, CreditCard, Paintbrush, ChevronRight, Save, Palette, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { useToast } from '../../lib/toast';
+import { useAppContext } from '../../lib/store';
+import { PLANS } from '../../lib/plans';
+import { WorkspaceSettings } from '../../types';
 
 export default function SettingsPage() {
+  const { workspace, saveWorkspace, currentTier } = useAppContext();
   const [activeTab, setActiveTab] = useState('profile');
   const { addToast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [localWorkspace, setLocalWorkspace] = useState<WorkspaceSettings | undefined>(workspace);
+
+  useEffect(() => {
+    setLocalWorkspace(workspace);
+  }, [workspace]);
 
   const tabs = [
     { id: 'profile', icon: User, label: 'Profile Settings' },
+    { id: 'appearance', icon: Palette, label: 'Appearance & Branding' },
     { id: 'notifications', icon: Bell, label: 'Notifications' },
-    { id: 'security', icon: Shield, label: 'Security' },
     { id: 'billing', icon: CreditCard, label: 'Billing' },
-    { id: 'display', icon: Paintbrush, label: 'Appearance' },
   ];
 
-  const handleSave = () => {
-    addToast('Settings saved successfully', 'success');
+  const handleSave = async () => {
+    if (!localWorkspace) return;
+    try {
+      await saveWorkspace(localWorkspace);
+      addToast('Settings saved successfully', 'success');
+    } catch (err) {
+      addToast('Failed to save settings', 'error');
+    }
   };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLocalWorkspace(prev => prev ? {
+          ...prev,
+          brand: { ...prev.brand, logoUrl: reader.result as string, logo: reader.result as string }
+        } : undefined);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const currentPlan = currentTier ? PLANS[currentTier] : PLANS.starter;
 
   return (
     <div className="page active p-6 md:p-8 min-h-[calc(100vh-var(--topbar-h))]">
@@ -68,64 +100,114 @@ export default function SettingsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                 >
-                  {activeTab === 'profile' && (
+                  {activeTab === 'profile' && localWorkspace && (
                     <div className="space-y-8 max-w-2xl">
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                          <div className="flex flex-col gap-[5px]">
-                            <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Full Name</label>
-                            <input defaultValue="Agency Admin" className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" />
+                            <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Workspace Name</label>
+                            <input 
+                              value={localWorkspace.brand.name} 
+                              onChange={e => setLocalWorkspace({...localWorkspace, brand: {...localWorkspace.brand, name: e.target.value}})}
+                              className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" 
+                            />
                          </div>
                          <div className="flex flex-col gap-[5px]">
-                            <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Email Address</label>
-                            <input defaultValue="admin@opsrelic.com" className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" />
+                            <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Contact Email</label>
+                            <input 
+                              value={localWorkspace.brand.email || ''} 
+                              onChange={e => setLocalWorkspace({...localWorkspace, brand: {...localWorkspace.brand, email: e.target.value}})}
+                              className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" 
+                            />
                          </div>
                        </div>
                        <div className="flex flex-col gap-[5px]">
-                          <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Company Name</label>
-                          <input defaultValue="OpsRelic Inc." className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" />
+                          <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Timezone</label>
+                          <select 
+                            value={localWorkspace.brand.timezone || 'UTC'} 
+                            onChange={e => setLocalWorkspace({...localWorkspace, brand: {...localWorkspace.brand, timezone: e.target.value}})}
+                            className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all cursor-pointer"
+                          >
+                             <option value="UTC">UTC</option>
+                             <option value="America/New_York">Eastern Time (US & Canada)</option>
+                             <option value="America/Chicago">Central Time (US & Canada)</option>
+                             <option value="America/Denver">Mountain Time (US & Canada)</option>
+                             <option value="America/Los_Angeles">Pacific Time (US & Canada)</option>
+                             <option value="Europe/London">London</option>
+                             <option value="Europe/Berlin">Berlin</option>
+                          </select>
                        </div>
                     </div>
                   )}
 
-                  {activeTab === 'notifications' && (
-                    <div className="space-y-6 max-w-2xl">
-                       {[
-                         { label: 'Weekly Summary', desc: 'Receive a weekly email summarizing campaign performance', active: true },
-                         { label: 'Upload Alerts', desc: 'Notify me when large CSV uploads complete', active: true },
-                         { label: 'Client Portal Views', desc: 'Email digest when clients access their portals', active: false },
-                       ].map((item, i) => (
-                          <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface2)] hover:border-[var(--color-cyan)] transition-colors">
-                             <div>
-                                <div className="text-sm font-semibold text-[var(--color-text-main)]">{item.label}</div>
-                                <div className="text-xs text-muted mt-1">{item.desc}</div>
-                             </div>
-                             <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" className="sr-only peer" defaultChecked={item.active} />
-                                <div className="w-9 h-5 bg-[var(--color-border-strong)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-cyan)]"></div>
-                             </label>
-                          </div>
-                       ))}
-                    </div>
-                  )}
-
-                  {activeTab === 'security' && (
-                    <div className="space-y-6 max-w-2xl">
-                       <div className="p-4 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface2)] mb-6">
-                          <h4 className="text-sm font-semibold text-[var(--color-text-main)] mb-1">Change Password</h4>
-                          <p className="text-xs text-muted mb-4">Ensure your account is using a long, random password to stay secure.</p>
-                          <div className="space-y-3">
-                            <input type="password" placeholder="Current Password" className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-cyan)] transition-all" />
-                            <input type="password" placeholder="New Password" className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-cyan)] transition-all" />
-                            <button onClick={() => addToast('Password updated successfully', 'success')} className="btn btn-primary mt-2">Update Password</button>
+                  {activeTab === 'appearance' && localWorkspace && (
+                    <div className="space-y-8 max-w-2xl">
+                       <div className="flex flex-col gap-4">
+                          <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Workspace Logo</label>
+                          <div className="flex items-center gap-6">
+                            <div className="w-20 h-20 rounded-2xl bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] flex items-center justify-center overflow-hidden">
+                               {localWorkspace.brand.logoUrl ? (
+                                  <img src={localWorkspace.brand.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                               ) : (
+                                  <ImageIcon className="w-8 h-8 text-muted" />
+                               )}
+                            </div>
+                            <div>
+                               <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleLogoUpload} />
+                               <button onClick={() => fileInputRef.current?.click()} className="btn btn-ghost border border-[var(--color-border-subtle)] bg-[var(--color-surface)] mb-2">Upload New Logo</button>
+                               <div className="text-xs text-muted">Recommended size: 256x256px</div>
+                            </div>
                           </div>
                        </div>
                        
-                       <div className="flex items-center justify-between p-4 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface2)]">
-                           <div>
-                              <div className="text-sm font-semibold text-[var(--color-text-main)]">Two-Factor Authentication</div>
-                              <div className="text-xs text-muted mt-1">Add an extra layer of security to your account.</div>
-                           </div>
-                           <button onClick={() => addToast('2FA enabled', 'success')} className="btn btn-ghost border border-[var(--color-border-subtle)] bg-[var(--color-surface)]">Enable</button>
+                       <div className="flex flex-col gap-[5px]">
+                          <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Primary Accent Color</label>
+                          <div className="flex items-center gap-4 mt-2">
+                            <input 
+                              type="color" 
+                              value={localWorkspace.color.primary || '#00D4FF'} 
+                              onChange={e => setLocalWorkspace({...localWorkspace, color: {...localWorkspace.color, primary: e.target.value}})}
+                              className="w-12 h-12 rounded-lg cursor-pointer bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] p-1"
+                            />
+                            <div className="text-sm text-[var(--color-text-main)] font-mono uppercase bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] px-3 py-2 rounded-lg">{localWorkspace.color.primary || '#00D4FF'}</div>
+                          </div>
+                          <p className="text-xs text-muted mt-2">This color is used for buttons, charts, and highlights throughout your workspace.</p>
+                       </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'notifications' && localWorkspace && (
+                    <div className="space-y-6 max-w-2xl">
+                       <div className="flex items-center justify-between p-4 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface2)] hover:border-[var(--color-cyan)] transition-colors">
+                          <div>
+                             <div className="text-sm font-semibold text-[var(--color-text-main)]">Weekly Summary</div>
+                             <div className="text-xs text-muted mt-1">Receive a weekly email summarizing campaign performance</div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                             <input type="checkbox" className="sr-only peer" checked={localWorkspace.notifications.weeklySummary} onChange={e => setLocalWorkspace({...localWorkspace, notifications: {...localWorkspace.notifications, weeklySummary: e.target.checked}})} />
+                             <div className="w-9 h-5 bg-[var(--color-border-strong)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-cyan)]"></div>
+                          </label>
+                       </div>
+                       
+                       <div className="flex items-center justify-between p-4 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface2)] hover:border-[var(--color-cyan)] transition-colors">
+                          <div>
+                             <div className="text-sm font-semibold text-[var(--color-text-main)]">Upload Alerts</div>
+                             <div className="text-xs text-muted mt-1">Notify me when large CSV uploads complete</div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                             <input type="checkbox" className="sr-only peer" checked={localWorkspace.notifications.uploadAlerts || false} onChange={e => setLocalWorkspace({...localWorkspace, notifications: {...localWorkspace.notifications, uploadAlerts: e.target.checked}})} />
+                             <div className="w-9 h-5 bg-[var(--color-border-strong)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-cyan)]"></div>
+                          </label>
+                       </div>
+
+                       <div className="flex items-center justify-between p-4 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface2)] hover:border-[var(--color-cyan)] transition-colors">
+                          <div>
+                             <div className="text-sm font-semibold text-[var(--color-text-main)]">Client Portal Views</div>
+                             <div className="text-xs text-muted mt-1">Email digest when clients access their portals</div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                             <input type="checkbox" className="sr-only peer" checked={localWorkspace.notifications.clientPortalViews || false} onChange={e => setLocalWorkspace({...localWorkspace, notifications: {...localWorkspace.notifications, clientPortalViews: e.target.checked}})} />
+                             <div className="w-9 h-5 bg-[var(--color-border-strong)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--color-cyan)]"></div>
+                          </label>
                        </div>
                     </div>
                   )}
@@ -135,53 +217,42 @@ export default function SettingsPage() {
                        <div className="p-6 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border-subtle)]">
                           <div className="flex items-center justify-between mb-4">
                              <div>
-                                <h4 className="text-sm font-semibold text-[var(--color-text-main)] font-display text-lg">Agency Pro</h4>
-                                <p className="text-xs text-muted">Active plan</p>
+                                <h4 className="text-sm font-semibold text-[var(--color-text-main)] font-display text-lg">{currentPlan.name} Plan</h4>
+                                <p className="text-xs text-muted">Active Subscription via Whop</p>
                              </div>
                              <div className="text-right">
-                                <div className="font-display font-extrabold text-2xl text-[var(--color-text-main)]">$299<span className="text-sm text-muted font-normal">/mo</span></div>
+                                {currentPlan.price > 0 ? (
+                                  <div className="font-display font-extrabold text-2xl text-[var(--color-text-main)]">${currentPlan.price}<span className="text-sm text-muted font-normal">/mo</span></div>
+                                ) : (
+                                  <div className="font-display font-extrabold text-2xl text-[var(--color-text-main)]">Free</div>
+                                )}
                              </div>
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => addToast('Redirecting to billing portal...', 'info')} className="btn btn-ghost border border-[var(--color-border-subtle)] bg-[var(--color-surface)] flex-1 justify-center">Change Plan</button>
-                            <button onClick={() => addToast('Opened support ticket', 'info')} className="btn btn-ghost border border-[var(--color-border-subtle)] bg-[var(--color-surface)] flex-1 justify-center">Cancel</button>
+                            <button onClick={() => window.open('https://whop.com', '_blank')} className="btn btn-ghost border border-[var(--color-border-subtle)] bg-[var(--color-surface)] flex-1 justify-center">Manage on Whop</button>
                           </div>
                        </div>
-
+                       
                        <div>
-                          <h4 className="text-xs font-bold uppercase tracking-[0.07em] text-muted mb-3">Billing History</h4>
-                          <div className="border border-[var(--color-border-subtle)] rounded-xl overflow-hidden bg-[var(--color-surface2)]">
-                             <div className="flex items-center justify-between p-3 border-b border-[var(--color-border-subtle)] text-sm">
-                                <div className="text-[var(--color-text-main)] font-medium">Dec 1, 2024</div>
-                                <div className="text-[var(--color-text-main)] font-medium">$299.00</div>
-                             </div>
-                             <div className="flex items-center justify-between p-3 border-b border-[var(--color-border-subtle)] text-sm">
-                                <div className="text-[var(--color-text-main)] font-medium">Nov 1, 2024</div>
-                                <div className="text-[var(--color-text-main)] font-medium">$299.00</div>
-                             </div>
-                             <button onClick={() => addToast('Viewing all receipts...', 'info')} className="w-full text-center p-3 text-xs text-[var(--color-cyan)] font-semibold hover:bg-[var(--color-surface-hover)] transition-colors">View All Receipts</button>
-                          </div>
-                       </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'display' && (
-                    <div className="space-y-6 max-w-2xl">
-                       <div className="flex flex-col gap-[5px]">
-                          <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Theme Preference</label>
-                          <div className="grid grid-cols-2 gap-4 mt-2">
-                            <div className="border-2 border-[var(--color-cyan)] rounded-xl p-4 bg-black cursor-pointer">
-                               <div className="w-full h-20 bg-[#111] rounded-lg border border-[#222] mb-3"></div>
-                               <div className="text-center text-sm font-semibold text-white">Dark Mode</div>
-                            </div>
-                            <div className="border border-[var(--color-border-subtle)] rounded-xl p-4 bg-gray-100 cursor-not-allowed opacity-50 relative overflow-hidden">
-                               <div className="w-full h-20 bg-white rounded-lg border border-gray-300 mb-3"></div>
-                               <div className="text-center text-sm font-semibold text-gray-900">Light Mode</div>
-                               <div className="absolute inset-0 bg-black/5 flex items-center justify-center">
-                                 <span className="bg-white/90 text-xs px-2 py-1 rounded font-bold uppercase tracking-widest">Coming Soon</span>
-                               </div>
-                            </div>
-                          </div>
+                         <h4 className="text-xs font-bold uppercase tracking-[0.07em] text-muted mb-3">Plan Limits</h4>
+                         <div className="grid grid-cols-2 gap-4">
+                           <div className="p-4 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border-subtle)]">
+                             <div className="text-xs text-muted uppercase font-bold tracking-wider mb-1">Campaigns</div>
+                             <div className="text-lg font-bold text-[var(--color-text-main)]">{currentPlan.limits.campaigns === Infinity ? 'Unlimited' : currentPlan.limits.campaigns}</div>
+                           </div>
+                           <div className="p-4 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border-subtle)]">
+                             <div className="text-xs text-muted uppercase font-bold tracking-wider mb-1">Uploads/Campaign</div>
+                             <div className="text-lg font-bold text-[var(--color-text-main)]">{currentPlan.limits.recordsPerCampaign === Infinity ? 'Unlimited' : currentPlan.limits.recordsPerCampaign}</div>
+                           </div>
+                           <div className="p-4 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border-subtle)]">
+                             <div className="text-xs text-muted uppercase font-bold tracking-wider mb-1">Data Retention</div>
+                             <div className="text-lg font-bold text-[var(--color-text-main)]">{currentPlan.limits.dataRetentionDays === Infinity ? 'Forever' : `${currentPlan.limits.dataRetentionDays} Days`}</div>
+                           </div>
+                           <div className="p-4 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border-subtle)]">
+                             <div className="text-xs text-muted uppercase font-bold tracking-wider mb-1">Client Portals</div>
+                             <div className="text-lg font-bold text-[var(--color-text-main)]">{currentPlan.features.clientProfiles ? 'Included' : 'Not Included'}</div>
+                           </div>
+                         </div>
                        </div>
                     </div>
                   )}
@@ -193,3 +264,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

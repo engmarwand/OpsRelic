@@ -55,7 +55,7 @@ interface AppContextType extends AppState {
   getCampaignName: (id: string) => string;
   showPricing: boolean;
   setShowPricing: (show: boolean) => void;
-  portalContext: { active: boolean; campaignId: string | null; ownerId: string | null; authorized: boolean; authorize: (pw: string) => Promise<boolean> };
+  portalContext: { active: boolean; campaignId: string | null; ownerId: string | null; authorized: boolean; authorize: (pw: string) => Promise<boolean>; loading: boolean };
 }
 
 const defaultWorkspace: WorkspaceSettings = {
@@ -104,36 +104,46 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [userId, setUserId] = useState<string | null>(null);
   const [campaignsList, setCampaignsList] = useState<any[]>([]);
   const [showPricing, setShowPricing] = useState(false);
-  const [portalContext, setPortalContext] = useState<{ active: boolean; campaignId: string | null; ownerId: string | null; authorized: boolean }>({
+  const [portalContext, setPortalContext] = useState<{ active: boolean; campaignId: string | null; ownerId: string | null; authorized: boolean; loading: boolean }>({
     active: false,
     campaignId: null,
     ownerId: null,
-    authorized: false
+    authorized: false,
+    loading: false
   });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const portalId = params.get('portal');
+    const portalIdParam = params.get('portal');
+    let portalId = portalIdParam;
+    
+    if (window.location.pathname.startsWith('/portal/')) {
+      portalId = window.location.pathname.split('/').pop() || null;
+    }
+
     if (portalId) {
-      setPortalContext(prev => ({ ...prev, active: true, campaignId: portalId }));
+      setPortalContext(prev => ({ ...prev, active: true, campaignId: portalId, loading: true }));
+      
+      // Auto authorize if valid
+      const q = query(collection(db, 'campaigns'), where('portalToken', '==', portalId));
+      onSnapshot(q, (snapshot) => {
+        if (!snapshot.empty) {
+          const campSnap = snapshot.docs[0];
+          const data = campSnap.data();
+          if (data.portalEnabled) {
+            setPortalContext(prev => ({ ...prev, authorized: true, ownerId: data.userId, campaignId: campSnap.id, loading: false }));
+          } else {
+            setPortalContext(prev => ({ ...prev, loading: false }));
+          }
+        } else {
+          setPortalContext(prev => ({ ...prev, loading: false }));
+        }
+      });
     }
   }, []);
 
-  const authorizePortal = async (password: string): Promise<boolean> => {
-    if (!portalContext.campaignId) return false;
-    try {
-      const campSnap = await getDocFromServer(doc(db, 'campaigns', portalContext.campaignId));
-      if (campSnap.exists()) {
-        const data = campSnap.data();
-        if (data.portalPassword === password) {
-          setPortalContext(prev => ({ ...prev, authorized: true, ownerId: data.userId }));
-          return true;
-        }
-      }
-    } catch (err) {
-      console.error("Portal auth failed", err);
-    }
-    return false;
+  const authorizePortal = async (): Promise<boolean> => {
+    return true; // no longer needed actively
   };
 
   useEffect(() => {
