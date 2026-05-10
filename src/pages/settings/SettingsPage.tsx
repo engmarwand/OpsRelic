@@ -8,7 +8,7 @@ import { PLANS } from '../../lib/plans';
 import { WorkspaceSettings } from '../../types';
 
 export default function SettingsPage() {
-  const { workspace, saveWorkspace, currentTier } = useAppContext();
+  const { workspace, saveWorkspace, currentTier, setShowPricing } = useAppContext();
   const [activeTab, setActiveTab] = useState('profile');
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -228,8 +228,16 @@ export default function SettingsPage() {
                                 )}
                              </div>
                           </div>
-                          <div className="flex gap-2">
-                            <button onClick={() => window.open('https://whop.com', '_blank')} className="btn btn-ghost border border-[var(--color-border-subtle)] bg-[var(--color-surface)] flex-1 justify-center">Manage on Whop</button>
+                          <div className="flex gap-3">
+                            <button onClick={() => setShowPricing(true)} className="btn btn-primary flex-1 justify-center py-2.5">
+                              Change Plan
+                            </button>
+                            <button 
+                              onClick={() => window.open('https://whop.com', '_blank')} 
+                              className="btn btn-ghost border border-[var(--color-border-subtle)] bg-[var(--color-surface)] flex-1 justify-center py-2.5"
+                            >
+                              Manage on Whop
+                            </button>
                           </div>
                        </div>
                        

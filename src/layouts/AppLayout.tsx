@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Users, FolderOpen, Upload, BarChart2, ExternalLink, Settings, UserPlus, Plus, Moon, Sun, Zap } from 'lucide-react';
+import { LayoutDashboard, Users, FolderOpen, Upload, BarChart2, ExternalLink, Settings, UserPlus, Plus, Moon, Sun, Zap, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import Pricing from '../components/Pricing';
 import { useAppContext } from '../lib/store';
@@ -135,7 +136,7 @@ export const AppLayout = ({
                {userRole !== 'client' && (
                  <>
                    <a href="#settings" className="px-4 py-2 text-sm text-[var(--color-text-main)] hover:bg-[var(--color-surface-hover)] transition-colors">Settings</a>
-                   <button onClick={() => window.open('https://whop.com', '_blank')} className="px-4 py-2 text-sm text-[var(--color-text-main)] hover:bg-[var(--color-surface-hover)] transition-colors text-left w-full">Plan & Billing</button>
+                   <button onClick={() => setShowPricing(true)} className="px-4 py-2 text-sm text-[var(--color-text-main)] hover:bg-[var(--color-surface-hover)] transition-colors text-left w-full">Plan & Billing</button>
                    <div className="h-px bg-[var(--color-border-subtle)] my-1"></div>
                  </>
                )}
@@ -170,7 +171,33 @@ export const AppLayout = ({
       </main>
 
       {/* Auth Modal / Pricing */}
-      {showPricing && <Pricing onClose={() => setShowPricing(false)} />}
+      <AnimatePresence>
+        {showPricing && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setShowPricing(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-7xl max-h-[90vh] overflow-y-auto bg-[#050505] rounded-[48px] border border-white/10 relative z-10 shadow-2xl custom-scrollbar"
+            >
+              <button 
+                onClick={() => setShowPricing(false)}
+                className="absolute top-8 right-8 text-[#555] hover:text-white transition-colors z-50 p-2 rounded-full hover:bg-white/5"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <Pricing onClose={() => setShowPricing(false)} />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
