@@ -37,7 +37,8 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   };
   const jsonError = JSON.stringify(errInfo);
   console.error('Firestore Error context:', jsonError);
-  throw new Error(jsonError);
+  // We don't throw here to avoid crashing the entire AppProvider/App tree
+  // Instead we log it so it can be fixed or displayed via other means.
 }
 
 interface AppContextType extends AppState {
@@ -126,7 +127,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setPortalContext(prev => ({ ...prev, active: true, campaignId: portalId, loading: true }));
       
       const q = query(collection(db, 'campaigns'), where('portalToken', '==', portalId), where('portalEnabled', '==', true));
-      onSnapshot(q, (snapshot) => {
+      const unsubscribe = onSnapshot(q, (snapshot) => {
         if (!snapshot.empty) {
           const campSnap = snapshot.docs[0];
           const data = campSnap.data();
@@ -145,7 +146,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setPortalContext(prev => ({ ...prev, loading: false }));
         }
+      }, (error) => {
+        console.error("Portal snapshot error:", error);
+        setPortalContext(prev => ({ ...prev, loading: false }));
       });
+      return () => unsubscribe();
     }
   }, []);
 
@@ -328,7 +333,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           Creator: row.creatorId ? row.creatorId.replace(/^(id_)?creator_/, '') : "",
           "Content Title": row.title || row.url || "",
           Platform: row.platform ? row.platform.charAt(0).toUpperCase() + row.platform.slice(1) : "Tiktok",
-          Campaign: row.campaignId || "",
+          Campaign: row.Campaign || row.campaignId || "",
           Status: row.status === 'paid' ? 'Paid' : row.status === 'approved' ? 'Approved' : 'Pending',
           Views: row.views || 0,
           "Amount Paid": row.payout || 0,

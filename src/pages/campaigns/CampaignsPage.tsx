@@ -22,7 +22,6 @@ export default function CampaignsPage() {
   const [clipUrl, setClipUrl] = useState('');
   const [isAddingClip, setIsAddingClip] = useState(false);
   const [clipError, setClipError] = useState('');
-  const [refreshingClipId, setRefreshingClipId] = useState<string | null>(null);
 
   const campaignClipMetrics = useMemo(() => {
     if (!selectedCampaign) return [];
@@ -31,127 +30,31 @@ export default function CampaignsPage() {
 
   const handlePasteClip = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clipUrl) return;
+    if (!clipUrl || !selectedCampaign) return;
     setIsAddingClip(true);
     setClipError('');
     try {
-      const clipLinkId = doc(collection(db, 'clipMetrics')).id;
-      const res = await fetch('/api/clip-refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clipLinkId,
-          url: clipUrl,
-          campaignId: selectedCampaign?.id,
-          userId: auth.currentUser?.uid
-        })
+      // Manual add without scraping - just create the entry
+      const clipRef = doc(collection(db, 'clipMetrics'));
+      await addDoc(collection(db, 'clipMetrics'), {
+        clipLinkId: clipRef.id,
+        url: clipUrl,
+        campaignId: selectedCampaign.id,
+        userId: auth.currentUser?.uid,
+        status: 'active',
+        views: 0,
+        likes: 0,
+        comments: 0,
+        engagementRate: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to fetch tracking data');
       setClipUrl('');
-      addToast('Clip tracked successfully!', 'success');
+      addToast('Clip added manually. Update metrics via CSV upload.', 'success');
     } catch (err: any) {
       setClipError(err.message);
     } finally {
       setIsAddingClip(false);
-    }
-  };
-
-  const refreshClip = async (clip: any) => {
-    setRefreshingClipId(clip.id);
-    try {
-      const res = await fetch('/api/clip-refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clipLinkId: clip.clipLinkId || clip.id,
-          url: clip.url,
-          campaignId: selectedCampaign?.id,
-          userId: auth.currentUser?.uid
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to sync');
-      addToast('Clip metrics refreshed', 'success');
-    } catch (err: any) {
-      addToast('Refresh failed: ' + err.message, 'error');
-    } finally {
-      setRefreshingClipId(null);
-    }
-  };
-
-  const [isRefreshingAll, setIsRefreshingAll] = useState(false);
-  const handleRefreshAll = async () => {
-    if (!selectedCampaign || isRefreshingAll) return;
-    
-    const urlSet = new Set<string>();
-    const clips: any[] = [];
-    
-    // First grab already tracked clips
-    campaignClipMetrics.forEach(c => {
-      if (c.url) {
-        urlSet.add(c.url);
-        clips.push({
-          url: c.url,
-          campaignId: selectedCampaign.id,
-          clipLinkId: c.clipLinkId || c.id
-        });
-      }
-    });
-    
-    // Then grab untracked URLs from campaignData
-    campaignData.forEach(r => {
-      let foundUrl = r["Submission URL"];
-      
-      if (!foundUrl || typeof foundUrl !== 'string' || !foundUrl.startsWith('http')) {
-        const keys = Object.keys(r);
-        const urlKey = keys.find(key => {
-          const k = key.toLowerCase();
-          return k.includes('url') || k.includes('link') || k.includes('submission') || k.includes('video');
-        });
-        if (urlKey && typeof r[urlKey] === 'string' && r[urlKey].startsWith('http')) {
-          foundUrl = r[urlKey];
-        }
-      }
-      
-      if (foundUrl && typeof foundUrl === 'string' && foundUrl.startsWith('http')) {
-        if (!urlSet.has(foundUrl)) {
-          urlSet.add(foundUrl);
-          clips.push({
-            url: foundUrl,
-            campaignId: selectedCampaign.id,
-            clipLinkId: doc(collection(db, 'clipMetrics')).id
-          });
-        }
-      }
-    });
-
-    if (clips.length === 0) {
-      if (campaignData.length > 0) {
-        console.log('Sample Row Keys:', Object.keys(campaignData[0]));
-        addToast(`Found ${campaignData.length} rows, but no columns like "Submission URL" or "Link" contain URLs.`, "info");
-      } else {
-        addToast("No data rows found for this campaign. Ensure the 'Campaign' column in your CSV matches this campaign's name exactly.", "info");
-      }
-      return;
-    }
-
-    setIsRefreshingAll(true);
-    try {
-      const res = await fetch('/api/clip-refresh-bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clips: clips.slice(0, 50), // Safety limit
-          userId: auth.currentUser?.uid
-        })
-      });
-      if (!res.ok) throw new Error('Bulk refresh failed');
-      addToast(`${clips.length} clips queued for sync`, 'success');
-    } catch (err) {
-      addToast('Bulk refresh failed', 'error');
-    } finally {
-      setIsRefreshingAll(false);
     }
   };
 
@@ -325,6 +228,47 @@ export default function CampaignsPage() {
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<any>(null);
 
+  const [isRefreshingAll, setIsRefreshingAll] = useState(false);
+  const [refreshingClipId, setRefreshingClipId] = useState<string | null>(null);
+
+  const refreshClip = async (clip: any) => {
+    setRefreshingClipId(clip.id);
+    try {
+      await updateDoc(doc(db, 'clipMetrics', clip.id), {
+        updatedAt: new Date().toISOString(),
+        status: 'pending'
+      });
+      addToast("Refresh requested", "success");
+    } catch (err) {
+      addToast("Refresh failed", "error");
+    } finally {
+      setRefreshingClipId(null);
+    }
+  };
+
+  const handleRefreshAll = async () => {
+    if (campaignClipMetrics.length === 0) {
+      addToast("No clips to refresh", "info");
+      return;
+    }
+    
+    setIsRefreshingAll(true);
+    try {
+      // Loop through all clips and mark as pending for sync
+      for (const clip of campaignClipMetrics) {
+        await updateDoc(doc(db, 'clipMetrics', clip.id), {
+          updatedAt: new Date().toISOString(),
+          status: 'pending'
+        });
+      }
+      addToast("Batch refresh requested", "success");
+    } catch (err) {
+      addToast("Batch refresh failed", "error");
+    } finally {
+      setIsRefreshingAll(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'performance' && chartRef.current) {
       if (chartInstance.current) {
@@ -336,13 +280,6 @@ export default function CampaignsPage() {
         const d = new Date(r["Submission Date"]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         viewsByDate[d] = (viewsByDate[d] || 0) + r.Views;
       });
-
-      // Add current live metrics as a "Live" point if any
-      const liveViews = campaignClipMetrics.reduce((sum, c) => sum + (c.views || 0), 0);
-      if (liveViews > 0) {
-        const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        viewsByDate[today] = (viewsByDate[today] || 0) + liveViews;
-      }
 
       const labels = Object.keys(viewsByDate);
       const dataPoints = Object.values(viewsByDate);
@@ -606,28 +543,19 @@ export default function CampaignsPage() {
             {activeTab === 'performance' && (
                <div className="space-y-6">
                  {(() => {
-                   const liveViews = campaignClipMetrics.reduce((sum, c) => sum + (c.views || 0), 0);
-                   const liveLikes = campaignClipMetrics.reduce((sum, c) => sum + (c.likes || 0), 0);
-                   const totalViews = campaignData.reduce((s, r) => s + (r.Views || r.views || 0), 0) + liveViews;
-                   const totalLikes = campaignData.reduce((s, r) => s + (r.Likes || r.likes || 0), 0) + liveLikes;
-                   
-                   const csvUrls = new Set(campaignData.map(r => r["Submission URL"]).filter(Boolean));
-                   const standaloneClips = campaignClipMetrics.filter(c => !c.url || !csvUrls.has(c.url)).length;
-                   const totalAssets = campaignData.length + standaloneClips;
+                   const totalViews = campaignClipMetrics.reduce((sum, c) => sum + (c.views || 0), 0);
+                   const totalLikes = campaignClipMetrics.reduce((sum, c) => sum + (c.likes || 0), 0);
+                   const totalAssets = campaignClipMetrics.length;
 
                    return (
                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
                         <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
                            <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Total Views</div>
                            <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(totalViews)}</div>
-                           {liveViews > 0 && <div className="text-[10px] text-[var(--color-cyan)] font-bold mt-1.5 flex items-center gap-1">
-                             <TrendingUp className="w-2.5 h-2.5" /> +{formatViews(liveViews)} Live
-                           </div>}
                         </div>
                         <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
                            <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Total Assets</div>
                            <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">{totalAssets}</div>
-                           {campaignClipMetrics.length > 0 && <div className="text-[10px] text-[var(--color-cyan)] font-bold mt-1.5">{campaignClipMetrics.length} Active Tracks</div>}
                         </div>
                         <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
                            <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Avg. per Clip</div>
@@ -638,9 +566,6 @@ export default function CampaignsPage() {
                         <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
                            <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Total Likes</div>
                            <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(totalLikes)}</div>
-                           {liveLikes > 0 && <div className="text-[10px] text-pink-500 font-bold mt-1.5 flex items-center gap-1">
-                             <TrendingUp className="w-2.5 h-2.5" /> +{formatViews(liveLikes)} Live
-                           </div>}
                         </div>
                      </div>
                    );
@@ -663,14 +588,14 @@ export default function CampaignsPage() {
 
                 <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
                    <div className="flex items-center justify-between mb-6">
-                     <div className="font-display text-md font-bold text-[var(--color-text-main)]">Live Clip Performance</div>
+                     <div className="font-display text-md font-bold text-[var(--color-text-main)]">Campaign Content Assets</div>
                      <button 
                        onClick={handleRefreshAll}
                        disabled={isRefreshingAll}
                        className="btn btn-primary btn-sm gap-2 px-4 shadow-[var(--color-primary-soft)]/20"
                      >
                        <RefreshCw className={cn("w-3.5 h-3.5", (isRefreshingAll || refreshingClipId !== null) && "animate-spin")} />
-                       {campaignClipMetrics.length > 0 ? 'Refresh All' : 'Sync CSV Clips'}
+                       {campaignClipMetrics.length > 0 ? 'Refresh Sync' : 'Sync CSV Clips'}
                      </button>
                    </div>
                    
@@ -680,7 +605,7 @@ export default function CampaignsPage() {
                        required
                        value={clipUrl}
                        onChange={e => setClipUrl(e.target.value)}
-                       placeholder="Paste TikTok, Instagram Reel, or YouTube Shorts URL..." 
+                       placeholder="Manually add TikTok, Instagram Reel, or YouTube Shorts URL..." 
                        className="flex-1 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-xl px-4 text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all placeholder:text-muted"
                      />
                      <button 
@@ -688,7 +613,7 @@ export default function CampaignsPage() {
                        disabled={isAddingClip}
                        className="btn btn-primary whitespace-nowrap"
                      >
-                       {isAddingClip ? 'Fetching...' : 'Track Clip'}
+                       {isAddingClip ? 'Adding...' : 'Add Clip Link'}
                      </button>
                    </form>
 
@@ -706,22 +631,28 @@ export default function CampaignsPage() {
                               <TrendingUp className={cn("w-4 h-4", clip.status === 'pending' ? 'text-amber-500 animate-pulse' : clip.status === 'error' ? 'text-red-500' : 'text-[var(--color-cyan)]')} />
                            </div>
                            <div className="truncate">
-                             <div className="text-sm font-bold text-[var(--color-text-main)] flex items-center gap-2">
-                               {clip.platform}
-                               <a href={clip.url} target="_blank" rel="noreferrer" className="text-[var(--color-cyan)] hover:underline truncate opacity-70 hover:opacity-100 transition-opacity">Link</a>
+                             <div className="text-sm font-bold text-[var(--color-text-main)] truncate max-w-full flex items-center gap-2">
+                               <span className={cn("capitalize", !clip.title && "opacity-60")}>
+                                 {clip.title || clip.platform || 'Draft Clip'}
+                               </span>
+                               <a href={clip.url} target="_blank" rel="noreferrer" className="text-[var(--color-cyan)] hover:opacity-70 transition-opacity shrink-0"><ExternalLink className="w-3 h-3" /></a>
                                 {clip.status === 'pending' && (
                                   <span className="flex items-center gap-1.5 text-[9px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded border border-amber-500/20 uppercase font-bold ml-1">
                                     <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Queued
                                   </span>
                                 )}
                                 {clip.status === 'error' && (
-                                  <span className="flex items-center gap-1.5 text-[9px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded border border-red-500/20 uppercase font-bold ml-1" title="Private video or unsupported format">
+                                  <span 
+                                    className="flex items-center gap-1.5 text-[9px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded border border-red-500/20 uppercase font-bold ml-1 cursor-help" 
+                                    title={clip.error || "Private video or unsupported format"}
+                                  >
                                     <AlertTriangle className="w-2.5 h-2.5" /> Failed
                                   </span>
                                 )}
                              </div>
-                             <div className="text-[10px] text-muted flex items-center gap-1.5 mt-0.5">
-                               {clip.updatedAt ? `Last Refreshed: ${new Date(clip.updatedAt.toMillis ? clip.updatedAt.toMillis() : clip.updatedAt).toLocaleString()}` : 'Just started'}
+                             <div className="text-[10px] text-muted flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                               {clip.author && <span className="font-bold text-[var(--color-cyan)]">{clip.author}</span>}
+                               <span>{clip.updatedAt ? `Last Refreshed: ${new Date(clip.updatedAt.toMillis ? clip.updatedAt.toMillis() : clip.updatedAt).toLocaleString()}` : 'Just started'}</span>
                              </div>
                            </div>
                          </div>

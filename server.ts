@@ -5,21 +5,89 @@ import { fileURLToPath } from "url";
 import Stripe from "stripe";
 
 import admin from "firebase-admin";
+import { getFirestore } from "firebase-admin/firestore";
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Initialize Firebase Admin
-if (process.env.FIREBASE_PROJECT_ID) {
-  admin.initializeApp({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-  });
+let firestoreDatabaseId: string | undefined = undefined;
+let firestoreProjectId: string | undefined = undefined;
+
+try {
+  console.log("--- Firebase Admin Initialization ---");
+  if (fs.existsSync(path.join(process.cwd(), "firebase-applet-config.json"))) {
+    const config = JSON.parse(fs.readFileSync(path.join(process.cwd(), "firebase-applet-config.json"), "utf8"));
+    firestoreDatabaseId = config.firestoreDatabaseId;
+    firestoreProjectId = config.projectId;
+  }
+  
+  if (admin.apps.length === 0) {
+    const projectToUse = process.env.FIREBASE_PROJECT_ID || firestoreProjectId;
+    if (projectToUse) {
+      console.log(`Initializing Firebase Admin with Project: ${projectToUse}`);
+      // Manually set project if provided to ensure getFirestore targets the right one
+      if (!process.env.GOOGLE_CLOUD_PROJECT) process.env.GOOGLE_CLOUD_PROJECT = projectToUse;
+      admin.initializeApp({ projectId: projectToUse });
+    } else {
+      console.log("Initializing Firebase Admin with ADC");
+      admin.initializeApp();
+    }
+  }
+} catch (e) {
+  console.error("Firebase Admin initialization error:", e);
 }
 
 async function startServer() {
-  const app = express();
-  const PORT = 3000;
-  const db = admin.apps.length ? admin.firestore() : null;
+  console.log("Starting OpsRelic server...");
+  try {
+    const app = express();
+    const PORT = 3000;
+    
+    let db: admin.firestore.Firestore | null = null;
+    if (admin.apps.length > 0) {
+      try {
+        const adminApp = admin.app();
+        console.log(`Firebase App Name: ${adminApp.name}, Project ID in app options: ${adminApp.options.projectId || 'ADC/detected'}`);
+        
+        if (firestoreDatabaseId && firestoreDatabaseId !== "(default)" && firestoreDatabaseId !== "") {
+          console.log(`Attempting to initialize Firestore with Database ID: ${firestoreDatabaseId}`);
+          db = (getFirestore as any)(firestoreDatabaseId);
+        } else {
+          db = getFirestore();
+        }
+        
+        // Test connectivity
+        await db.collection('_health').limit(1).get();
+        console.log("Firestore connection test successful.");
+      } catch (dbErr: any) {
+        console.warn(`Firestore initialization/test failed for ${firestoreDatabaseId || 'default'}:`, dbErr.message);
+        try {
+          console.log("Attempting fallback to default Firestore database...");
+          db = getFirestore();
+          await db.collection('_health').limit(1).get();
+          console.log("Fallback Firestore connection successful.");
+        } catch (fallbackErr: any) {
+          console.error("Critical: All Firestore connection attempts failed on startup:", fallbackErr.message);
+          db = null;
+        }
+      }
+    }
+
+    // Health endpoint to debug Firebase permissions
+    app.get("/api/firebase-health", (req, res) => {
+      res.json({
+        initialized: !!db,
+        projectId: admin.apps.length > 0 ? (admin.app().options.projectId || 'ADC/detected') : 'not initialized',
+        databaseId: firestoreDatabaseId || 'default',
+        apps: admin.apps.length,
+        env: {
+          FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID || 'missing',
+          GOOGLE_CLOUD_PROJECT: process.env.GOOGLE_CLOUD_PROJECT || 'missing'
+        }
+      });
+    });
 
   // Initialize Stripe (optional if sticking to Whop)
   const stripe = process.env.STRIPE_SECRET_KEY 
@@ -97,293 +165,6 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
-  // Waitlist Proxy
-  app.post("/api/waitlist", express.json(), async (req, res) => {
-    const WAITLIST_WEBHOOK_URL = 'https://hook.us2.make.com/jnip5ahp27yedlkkxp67tqye2y4imo78';
-    try {
-      const response = await fetch(WAITLIST_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(req.body)
-      });
-
-      if (!response.ok) throw new Error('Make.com returned an error');
-      
-      res.json({ success: true });
-    } catch (err: any) {
-      console.error("Waitlist proxy error:", err.message);
-      res.status(500).json({ error: "Failed to submit waitlist" });
-    }
-  });
-
-  // Clip Analytics Endpoint
-  app.post("/api/clip-refresh", express.json(), async (req, res) => {
-    try {
-      const { clipLinkId, url, campaignId, userId } = req.body;
-      if (!url || !campaignId || !userId || !clipLinkId) {
-        return res.status(400).json({ error: "Missing parameters" });
-      }
-
-      let platform = "unknown";
-      let clipId = "";
-      if (url.includes("tiktok.com")) {
-        platform = "tiktok";
-        const match = url.match(/video\/(\d+)/);
-        if (match) clipId = match[1];
-      } else if (url.includes("instagram.com")) {
-        platform = "instagram";
-        const match = url.match(/(?:reel|p)\/([a-zA-Z0-9_\-]+)/);
-        if (match) clipId = match[1];
-      } else if (url.includes("youtube.com/shorts")) {
-        platform = "youtube";
-        const match = url.match(/shorts\/([a-zA-Z0-9_\-]+)/);
-        if (match) clipId = match[1];
-      }
-
-      if (!clipId) {
-        clipId = "unknown_" + Math.random().toString(36).substring(7);
-      }
-
-      let views = 0;
-      let likes = 0;
-      let comments = 0;
-      let engagementRate = 0;
-      let isSuccess = false;
-      let errorMessage = "";
-
-      try {
-        const response = await fetch(url, {
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5"
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Blocked or unavailable: ${response.status}`);
-        }
-
-        const html = await response.text();
-
-        if (platform === "tiktok") {
-          const playCountMatch = html.match(/"playCount":(\d+)/);
-          const diggCountMatch = html.match(/"diggCount":(\d+)/);
-          const commentCountMatch = html.match(/"commentCount":(\d+)/);
-          if (playCountMatch) views = parseInt(playCountMatch[1], 10);
-          if (diggCountMatch) likes = parseInt(diggCountMatch[1], 10);
-          if (commentCountMatch) comments = parseInt(commentCountMatch[1], 10);
-        } else if (platform === "instagram") {
-          const viewCountMatch = html.match(/"video_view_count":(\d+)/);
-          const likeCountMatch = html.match(/"like_count":(\d+)/);
-          const commentCountMatch = html.match(/"comment_count":(\d+)/);
-          if (viewCountMatch) views = parseInt(viewCountMatch[1], 10);
-          if (likeCountMatch) likes = parseInt(likeCountMatch[1], 10);
-          if (commentCountMatch) comments = parseInt(commentCountMatch[1], 10);
-        } else if (platform === "youtube") {
-          const viewCountMatch = html.match(/"viewCount":"(\d+)"/);
-          const likeCountMatch = html.match(/"defaultText":{"accessibility":{"accessibilityData":{"label":"([\d,]+) likes/);
-          if (viewCountMatch) views = parseInt(viewCountMatch[1], 10);
-          if (likeCountMatch) likes = parseInt(likeCountMatch[1].replace(/,/g, ''), 10);
-        }
-
-        if (views > 0 || likes > 0) {
-           isSuccess = true;
-           engagementRate = views > 0 ? ((likes + comments) / views) : 0;
-        } else {
-           errorMessage = "Could not parse metrics (private video or blocked platform)";
-        }
-      } catch (ex: any) {
-        errorMessage = ex.message || "Failed to fetch";
-      }
-
-      if (db) {
-        // Find existing clipMetrics doc or create new
-        const metricsSnapshot = await db.collection('clipMetrics').where('clipLinkId', '==', clipLinkId).limit(1).get();
-        if (!metricsSnapshot.empty) {
-          const doc = metricsSnapshot.docs[0];
-          await doc.ref.update({
-            views,
-            likes,
-            comments,
-            engagementRate,
-            status: isSuccess ? 'active' : 'error',
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-        } else {
-          await db.collection('clipMetrics').add({
-            clipLinkId,
-            campaignId,
-            userId,
-            url,
-            platform,
-            clipId,
-            views,
-            likes,
-            comments,
-            engagementRate,
-            status: isSuccess ? 'active' : 'error',
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-        }
-      }
-
-      if (!isSuccess) {
-         return res.status(400).json({ error: errorMessage || "Unknown error parsing metrics" });
-      }
-
-      res.json({ views, likes, comments, engagementRate });
-
-    } catch (err: any) {
-      console.error("Clip extraction error:", err.message);
-      res.status(500).json({ error: err.message || "Failed to fetch metrics" });
-    }
-  });
-
-  // Bulk Clip Refresh Endpoint
-  app.post("/api/clip-refresh-bulk", express.json(), async (req, res) => {
-    try {
-      const { clips, userId } = req.body;
-      if (!clips || !Array.isArray(clips) || !userId) {
-        return res.status(400).json({ error: "Missing parameters" });
-      }
-
-      console.log(`Starting bulk refresh for ${clips.length} clips for user ${userId}`);
-      
-      const clipsToProcess = clips.slice(0, 50);
-      
-      // Return immediately so the client doesn't time out
-      res.json({ success: true, message: "Processing in background", count: clipsToProcess.length });
-
-      // We process them in sequence in the background
-      (async () => {
-        for (const clip of clipsToProcess) {
-          try {
-            const { url, campaignId, clipLinkId } = clip;
-            
-            let platform = "unknown";
-            let clipId = "";
-            
-            let finalUrl = url;
-            // Handle mobile redirects (vt.tiktok.com etc)
-            if (url.includes("vt.tiktok.com") || url.includes("vm.tiktok.com") || url.includes("t.co")) {
-              try {
-                const headRes = await fetch(url, { method: 'HEAD', redirect: 'follow' });
-                finalUrl = headRes.url;
-              } catch (e) {
-                console.warn("Redirect follow failed for", url);
-              }
-            }
-
-            if (finalUrl.includes("tiktok.com")) {
-              platform = "tiktok";
-              const match = finalUrl.match(/video\/(\d+)/);
-              if (match) clipId = match[1];
-            } else if (finalUrl.includes("instagram.com")) {
-              platform = "instagram";
-              const match = finalUrl.match(/(?:reel|p)\/([a-zA-Z0-9_\-]+)/);
-              if (match) clipId = match[1];
-            } else if (finalUrl.includes("youtube.com/shorts")) {
-              platform = "youtube";
-              const match = finalUrl.match(/shorts\/([a-zA-Z0-9_\-]+)/);
-              if (match) clipId = match[1];
-            }
-
-            if (!clipId) {
-               // Generate a fallback clip ID just so it can be tracked/displayed in UI
-               clipId = "unknown_" + Math.random().toString(36).substring(7);
-            }
-
-            let existingDocRef: any = null;
-            // Check if already tracking this clipLinkId to avoid duplicates (unless pending)
-            if (db) {
-              const existing = await db.collection('clipMetrics')
-                .where('campaignId', '==', campaignId)
-                .where('url', '==', url)
-                .limit(1)
-                .get();
-              if (!existing.empty) {
-                 const docSnap = existing.docs[0];
-                 if (docSnap.data().status === 'active') {
-                   continue; // skip if already active
-                 } else {
-                   existingDocRef = docSnap.ref;
-                 }
-              }
-            }
-
-            const response = await fetch(url, {
-              headers: {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-              }
-            });
-            
-            let views = 0, likes = 0, comments = 0;
-            let success = false;
-
-            if (response.ok) {
-              const html = await response.text();
-              if (platform === "tiktok") {
-                const playCountMatch = html.match(/"playCount":(\d+)/);
-                const diggCountMatch = html.match(/"diggCount":(\d+)/);
-                const commentCountMatch = html.match(/"commentCount":(\d+)/);
-                if (playCountMatch) views = parseInt(playCountMatch[1], 10);
-                if (diggCountMatch) likes = parseInt(diggCountMatch[1], 10);
-                if (commentCountMatch) comments = parseInt(commentCountMatch[1], 10);
-              } else if (platform === "instagram") {
-                const viewCountMatch = html.match(/"video_view_count":(\d+)/);
-                const likeCountMatch = html.match(/"like_count":(\d+)/);
-                if (viewCountMatch) views = parseInt(viewCountMatch[1], 10);
-                if (likeCountMatch) likes = parseInt(likeCountMatch[1], 10);
-              } else if (platform === "youtube") {
-                const viewCountMatch = html.match(/"viewCount":"(\d+)"/);
-                if (viewCountMatch) views = parseInt(viewCountMatch[1], 10);
-              }
-              if (views > 0 || likes > 0) success = true;
-            }
-
-            const engagementRate = views > 0 ? ((likes + comments) / views) : 0;
-            if (db) {
-              if (existingDocRef) {
-                 await existingDocRef.update({
-                   views, likes, comments, engagementRate, platform, clipId,
-                   status: success ? 'active' : 'error',
-                   updatedAt: admin.firestore.FieldValue.serverTimestamp()
-                 });
-              } else {
-                 await db.collection('clipMetrics').add({
-                   clipLinkId,
-                   campaignId,
-                   userId,
-                   url,
-                   platform,
-                   clipId,
-                   views,
-                   likes,
-                   comments,
-                   engagementRate,
-                   createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                   updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                   status: success ? 'active' : 'error'
-                 });
-              }
-            }
-          } catch (e) {
-            console.error(`Failed to process bulk clip ${clip.url}:`, e);
-          }
-          // Small delay between requests to be nice
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-        console.log(`Finished background processing of ${clipsToProcess.length} clips.`);
-      })();
-
-    } catch (err: any) {
-      console.error("Bulk refresh error:", err.message);
-      res.status(500).json({ error: "Bulk refresh failed" });
-    }
-  });
-
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -402,6 +183,26 @@ async function startServer() {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
+} catch (err) {
+  console.error("CRITICAL: Server failed to start:", err);
+}
+}
+
+/**
+ * Handle Firestore errors according to integration guidelines
+ */
+function handleFirestoreError(error: any, operationType: string, path: string | null = null) {
+  const errInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: "system",
+      isSystem: true
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error context:', JSON.stringify(errInfo));
+  return new Error(JSON.stringify(errInfo));
 }
 
 startServer();

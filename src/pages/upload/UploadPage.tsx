@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../../lib/store';
-import { UploadCloud, CheckCircle2, ChevronDown, Trash2, ArrowRight } from 'lucide-react';
+import { UploadCloud, CheckCircle2, ChevronDown, Trash2, ArrowRight, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Papa from 'papaparse';
-import { collection, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
+import { collection, serverTimestamp, writeBatch, doc, getDocs, query, where } from 'firebase/firestore';
 import { db, auth } from '../../lib/firebase';
 import { useToast } from '../../lib/toast';
 import { cn } from '../../lib/utils';
@@ -14,6 +14,8 @@ export default function UploadPage() {
   
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [totalToProcess, setTotalToProcess] = useState(0);
   const [parsedData, setParsedData] = useState<any[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState('');
@@ -25,6 +27,9 @@ export default function UploadPage() {
     'Creator': '',
     'Platform': '',
     'Views': '',
+    'Likes': '',
+    'Comments': '',
+    'Shares': '',
     'Amount Paid': '',
     'Status': '',
     'Submission URL': ''
@@ -36,22 +41,27 @@ export default function UploadPage() {
       setFile(f);
       Papa.parse(f, {
         header: true,
+        skipEmptyLines: true,
         complete: (results) => {
           setParsedData(results.data);
           if (results.data.length > 0) {
-            setHeaders(Object.keys(results.data[0]));
+            const fileHeaders = Object.keys(results.data[0]);
+            setHeaders(fileHeaders);
             const newMapping = { ...mapping };
-            Object.keys(results.data[0]).forEach(h => {
+            fileHeaders.forEach(h => {
                const normalized = h.toLowerCase().replace(/[\s_]/g, '');
-               if (normalized === 'campaignid' || normalized === 'campaign') newMapping['Campaign ID'] = h;
-               if (normalized.includes('date')) newMapping['Submission Date'] = h;
-               if (normalized.includes('title') || normalized.includes('content')) newMapping['Content Title'] = h;
-               if (normalized.includes('creator') || normalized.includes('influencer')) newMapping['Creator'] = h;
-               if (normalized.includes('platform') || normalized.includes('social')) newMapping['Platform'] = h;
-               if (normalized.includes('view')) newMapping['Views'] = h;
-               if (normalized.includes('paid') || normalized.includes('amount') || normalized.includes('cost')) newMapping['Amount Paid'] = h;
-               if (normalized.includes('status')) newMapping['Status'] = h;
-               if (normalized.includes('url') || normalized.includes('link')) newMapping['Submission URL'] = h;
+               if (normalized === 'campaignid' || normalized === 'campaign' || normalized === 'campaignname') newMapping['Campaign ID'] = h;
+               if (normalized.includes('date') || normalized.includes('submitted')) newMapping['Submission Date'] = h;
+               if (normalized.includes('title') || normalized.includes('headline') || normalized.includes('content')) newMapping['Content Title'] = h;
+               if (normalized.includes('creator') || normalized.includes('influencer') || normalized.includes('handle') || normalized.includes('author')) newMapping['Creator'] = h;
+               if (normalized.includes('platform') || normalized.includes('social') || normalized.includes('network')) newMapping['Platform'] = h;
+               if (normalized.includes('view') || normalized.includes('reach') || normalized.includes('impression')) newMapping['Views'] = h;
+               if (normalized.includes('like') || normalized.includes('heart')) newMapping['Likes'] = h;
+               if (normalized.includes('comment')) newMapping['Comments'] = h;
+               if (normalized.includes('share') || normalized.includes('repost')) newMapping['Shares'] = h;
+               if (normalized.includes('paid') || normalized.includes('amount') || normalized.includes('cost') || normalized.includes('price')) newMapping['Amount Paid'] = h;
+               if (normalized.includes('status') || normalized.includes('state')) newMapping['Status'] = h;
+               if (normalized.includes('url') || normalized.includes('link') || normalized.includes('source')) newMapping['Submission URL'] = h;
             });
             setMapping(newMapping);
           }
@@ -63,111 +73,177 @@ export default function UploadPage() {
   const handleUpload = async () => {
     const isTargetingPossible = selectedCampaignId || mapping['Campaign ID'];
     if (!isTargetingPossible || parsedData.length === 0 || !auth.currentUser) return;
+    
     setIsProcessing(true);
+    setProgress(0);
+    
+    const validRows = parsedData.filter(row => Object.values(row).some(x => x));
+    setTotalToProcess(validRows.length);
     
     try {
-      const batch = writeBatch(db);
+      // 1. Pre-fetch existing clip metrics for this user to check for duplicates
+      const existingClipsMap = new Map<string, any>(); // URL -> Data
       
-      let count = 0;
-      
-      const clipsToTrack: any[] = [];
-      const batchMax = 450; // leave room for clips
-
-      for (const row of parsedData) {
-        // Skip empty rows
-        if (!Object.values(row).some(x => x)) continue;
-        
-        let resolvedCampaignId = selectedCampaignId;
-        const rawCampVal = mapping['Campaign ID'] && row[mapping['Campaign ID']];
-        if (rawCampVal) {
-          const found = campaignsList.find(c => c.id === rawCampVal || c.name.toLowerCase() === String(rawCampVal).toLowerCase().trim());
-          resolvedCampaignId = found ? found.id : rawCampVal; 
+      const clipsQuery = query(
+        collection(db, 'clipMetrics'),
+        where('userId', '==', auth.currentUser.uid)
+      );
+      const clipsSnapshot = await getDocs(clipsQuery);
+      clipsSnapshot.forEach(doc => {
+        const d = doc.data();
+        if (d.url) {
+          existingClipsMap.set(d.url, { id: doc.id, ...d });
         }
-        
-        if (!resolvedCampaignId) continue;
+      });
 
-        const campaign = campaignsList.find(c => c.id === resolvedCampaignId);
-        
-        // submissions document
-        const submissionRef = doc(collection(db, 'submissions'));
-        
-        let url = row[mapping['Submission URL']] || '';
-        let clipLinkId = '';
-        
-        if (url && typeof url === 'string' && url.startsWith('http')) {
-           const clipRef = doc(collection(db, 'clipMetrics'));
-           clipLinkId = clipRef.id;
-           
-           clipsToTrack.push({
-             url,
-             campaignId: resolvedCampaignId,
-             clipLinkId
-           });
+      let updatedCount = 0;
+      let newCount = 0;
+      
+      const chunkSize = 50; // Smaller chunks because we do sub-queries for submissions
+      for (let i = 0; i < validRows.length; i += chunkSize) {
+        const chunk = validRows.slice(i, i + chunkSize);
+        const batch = writeBatch(db);
 
-           // pre-create the clip metric so it appears instantly
-           batch.set(clipRef, {
+        for (const row of chunk) {
+          let resolvedCampaignId = selectedCampaignId;
+          const rawCampVal = mapping['Campaign ID'] && row[mapping['Campaign ID']];
+          
+          let campaign = campaignsList.find(c => c.id === selectedCampaignId);
+
+          if (rawCampVal) {
+            const trimmedVal = String(rawCampVal).trim();
+            const found = campaignsList.find(c => c.id === trimmedVal || c.name.toLowerCase() === trimmedVal.toLowerCase());
+            if (found) {
+              resolvedCampaignId = found.id;
+              campaign = found;
+            } else {
+              resolvedCampaignId = selectedCampaignId || trimmedVal;
+              campaign = campaignsList.find(c => c.id === resolvedCampaignId);
+            }
+          }
+          
+          if (!resolvedCampaignId) continue;
+
+          const url = String(row[mapping['Submission URL']] || '').trim();
+          if (!url) continue;
+
+          const existingClip = existingClipsMap.get(url);
+          
+          // Metrics from CSV
+          const views = parseInt(String(row[mapping['Views']] || '0').replace(/,/g, '')) || 0;
+          const likes = parseInt(String(row[mapping['Likes']] || '0').replace(/,/g, '')) || 0;
+          const comments = parseInt(String(row[mapping['Comments']] || '0').replace(/,/g, '')) || 0;
+          const shares = parseInt(String(row[mapping['Shares']] || '0').replace(/,/g, '')) || 0;
+          const engagementRate = views > 0 ? (likes + comments + shares) / views : 0;
+          const title = row[mapping['Content Title']] || '';
+          const author = row[mapping['Creator']] || '';
+          const status = (row[mapping['Status']] || 'approved').toLowerCase();
+          const payout = parseFloat(String(row[mapping['Amount Paid']] || '0').replace(/[^0-9.]/g, '')) || 0;
+          const platform = (row[mapping['Platform']] || 'unknown').toLowerCase();
+
+          let clipLinkId = '';
+          
+          if (existingClip) {
+            clipLinkId = existingClip.id;
+            const clipRef = doc(db, 'clipMetrics', clipLinkId);
+            batch.set(clipRef, {
+              views,
+              likes,
+              comments,
+              shares,
+              engagementRate,
+              title: title || existingClip.title,
+              author: author || existingClip.author,
+              platform: platform !== 'unknown' ? platform : existingClip.platform,
+              updatedAt: serverTimestamp(),
+              status: 'active'
+            }, { merge: true });
+            updatedCount++;
+          } else {
+            const clipRef = doc(collection(db, 'clipMetrics'));
+            clipLinkId = clipRef.id;
+            batch.set(clipRef, {
               clipLinkId,
               campaignId: resolvedCampaignId,
-              userId: auth.currentUser.uid,
+              userId: auth.currentUser?.uid,
               url,
-              platform: 'unknown',
-              clipId: '',
-              views: 0,
-              likes: 0,
-              comments: 0,
-              engagementRate: 0,
-              status: 'pending',
+              platform,
+              title,
+              author,
+              views,
+              likes,
+              comments,
+              shares,
+              engagementRate,
+              status: 'active',
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp()
-           });
+            });
+            newCount++;
+            existingClipsMap.set(url, { id: clipLinkId, title, author, platform });
+          }
+
+          // Search for existing submission for same URL and campaign
+          const subQuery = query(
+            collection(db, 'submissions'),
+            where('campaignId', '==', resolvedCampaignId),
+            where('url', '==', url)
+          );
+          const subSnap = await getDocs(subQuery);
+          
+          if (subSnap.empty) {
+            const submissionRef = doc(collection(db, 'submissions'));
+            batch.set(submissionRef, {
+              userId: auth.currentUser.uid,
+              campaignId: resolvedCampaignId,
+              Campaign: campaign?.name || resolvedCampaignId,
+              title: title || 'Untitled Asset',
+              creatorId: author || 'Unknown',
+              platform,
+              views,
+              likes,
+              comments,
+              shares,
+              payout,
+              status,
+              url,
+              clipLinkId,
+              submissionDate: row[mapping['Submission Date']] || new Date().toISOString(),
+              createdAt: serverTimestamp()
+            });
+          } else {
+            const submissionRef = subSnap.docs[0].ref;
+            batch.update(submissionRef, {
+              views,
+              likes,
+              comments,
+              shares,
+              status,
+              updatedAt: serverTimestamp()
+            });
+          }
         }
 
-        batch.set(submissionRef, {
-          userId: auth.currentUser.uid,
-          campaignId: resolvedCampaignId,
-          Campaign: campaign?.name || 'Campaign',
-          title: row[mapping['Content Title']] || 'Untitled Asset',
-          creatorId: row[mapping['Creator']] || 'Unknown',
-          platform: (row[mapping['Platform']] || 'Unknown').toLowerCase(),
-          views: parseInt(row[mapping['Views']]) || 0,
-          payout: parseFloat(row[mapping['Amount Paid']]) || 0,
-          status: (row[mapping['Status']] || 'approved').toLowerCase(),
-          url,
-          clipLinkId, // reference back to metrics doc if exists
-          submissionDate: row[mapping['Submission Date']] || new Date().toISOString(),
-          createdAt: serverTimestamp()
-        });
-        
-        count++;
-        // Count each row as 2 operations max (submission + clip metric) to stay under 500 batch limit
-        if (count >= 200) break;
+        await batch.commit();
+        const nextProgress = Math.min(100, Math.round(((i + chunk.length) / validRows.length) * 100));
+        setProgress(nextProgress);
       }
       
-      await batch.commit();
-
-      if (clipsToTrack.length > 0) {
-        fetch('/api/clip-refresh-bulk', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clips: clipsToTrack.slice(0, 50), userId: auth.currentUser.uid })
-        }).catch(err => console.error("Bulk track trigger failed:", err));
-        addToast(`Successfully uploaded ${count} items. Tracking ${clipsToTrack.length} clips in background...`, 'success');
-      } else {
-        addToast(`Successfully uploaded ${count} items.`, 'success');
-      }
+      addToast(`Sync complete: ${updatedCount} clips updated, ${newCount} new clips added.`, 'success');
 
       setFile(null);
       setParsedData([]);
       setSelectedCampaignId('');
       setMapping({
         'Campaign ID': '', 'Submission Date': '', 'Content Title': '', 'Creator': '', 'Platform': '',
-        'Views': '', 'Amount Paid': '', 'Status': '', 'Submission URL': ''
+        'Views': '', 'Likes': '', 'Comments': '', 'Shares': '', 'Amount Paid': '', 'Status': '', 'Submission URL': ''
       });
     } catch (err) {
       console.error("Ingestion error:", err);
-      addToast('Upload failed.', 'error');
+      addToast('Upload failed. Please check your data format.', 'error');
     } finally {
       setIsProcessing(false);
+      setProgress(0);
     }
   };
 
@@ -203,6 +279,17 @@ export default function UploadPage() {
                 Upload CSV
              </div>
              
+             <div className="mb-6 p-4 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-xl">
+                <h4 className="text-sm font-bold text-[var(--color-text-main)] mb-2">How it works:</h4>
+                <ul className="text-xs text-muted space-y-2 list-disc pl-4">
+                  <li>Upload a CSV containing your campaign performance data.</li>
+                  <li>OpsRelic <b>automatically maps</b> your headers to campaign fields.</li>
+                  <li>OpsRelic checks for duplicates using the <b>Submission URL</b>.</li>
+                  <li>If a video already exists, its views, likes, and status will be <b>updated</b>.</li>
+                  <li>New videos will be added to the campaign automatically.</li>
+                </ul>
+             </div>
+
              <AnimatePresence mode="wait">
                {!file ? (
                  <label className="border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl h-[180px] flex flex-col items-center justify-center cursor-pointer hover:border-[var(--color-cyan)] hover:bg-[var(--color-surface-hover)] transition-all group">
@@ -235,47 +322,79 @@ export default function UploadPage() {
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-8 shadow-sm">
                 <div className="font-display text-md font-bold text-[var(--color-text-main)] mb-6 flex items-center gap-3">
                    <span className="w-6 h-6 rounded-full bg-[var(--color-cyan)] text-white flex items-center justify-center text-xs">2</span>
-                   Map Columns & Sync
+                   Select Campaign & Sync
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                  <div className="flex flex-col gap-[5px] col-span-full mb-2">
+                
+                <div className="space-y-6 mb-8">
+                  <div className="flex flex-col gap-[5px]">
                      <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Target Campaign</label>
                      <div className="relative">
-                       <select value={selectedCampaignId} onChange={e=>setSelectedCampaignId(e.target.value)} className="w-full bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all appearance-none cursor-pointer">
+                       <select value={selectedCampaignId} onChange={e=>setSelectedCampaignId(e.target.value)} className="w-full bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[10px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all appearance-none cursor-pointer">
                          <option value="">Select a Campaign...</option>
                          {campaignsList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                        </select>
                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-[14px] h-[14px] text-muted pointer-events-none" />
                      </div>
+                     <p className="text-[10px] text-muted mt-1 italic">* Data will be synced to this campaign unless <b>Campaign ID</b> is found in CSV</p>
                   </div>
 
-                  {Object.keys(mapping).map(key => (
-                    <div key={key} className="flex flex-col gap-[5px]">
-                       <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted">{key}</label>
-                       <div className="relative">
-                          <select 
-                            value={mapping[key]}
-                            onChange={e => setMapping({ ...mapping, [key]: e.target.value })}
-                            className="w-full bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-2 text-[13px] text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] transition-all appearance-none cursor-pointer"
-                          >
-                             <option value="">-- Ignore --</option>
-                             {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                          </select>
-                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-[12px] h-[12px] text-muted pointer-events-none" />
-                       </div>
+                  <div className="p-4 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-xl">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.07em] text-muted mb-3 flex items-center justify-between">
+                       <span>Detected Mappings</span>
+                       <span className="text-[var(--color-green)] text-[9px] bg-[var(--color-green-dim)] px-1.5 py-0.5 rounded">Auto-mapped</span>
                     </div>
-                  ))}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                       {Object.entries(mapping).map(([key, value]) => {
+                         const isRequired = ['Submission URL', 'Views', 'Submission Date'].includes(key);
+                         return (
+                           <div key={key} className="flex flex-col">
+                             <span className="text-[9px] font-bold text-faint uppercase flex items-center gap-1">
+                               {key} {isRequired && <span className="text-red-500">*</span>}
+                             </span>
+                             <span className={cn("text-[11px] font-medium truncate", value ? "text-[var(--color-text-main)]" : (isRequired ? "text-red-400 italic" : "text-amber-500/60 italic"))}>
+                               {value || 'Not found'}
+                             </span>
+                           </div>
+                         );
+                       })}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="pt-6 border-t border-[var(--color-border-subtle)] flex items-center justify-end">
-                   <button 
-                     onClick={handleUpload}
-                     disabled={(!selectedCampaignId && !mapping['Campaign ID']) || isProcessing}
-                     className={cn("btn flex items-center justify-center gap-2 px-8", ((!selectedCampaignId && !mapping['Campaign ID']) || isProcessing) ? "bg-[var(--color-surface3)] text-muted cursor-not-allowed border-transparent" : "btn-primary")}
-                   >
-                     {isProcessing ? 'Syncing...' : 'Start Import'} <ArrowRight className="w-4 h-4" />
-                   </button>
+                <div className="pt-6 border-t border-[var(--color-border-subtle)] flex flex-col gap-4">
+                   {isProcessing && (
+                     <div className="w-full">
+                       <div className="flex justify-between items-center mb-2">
+                         <div className="text-xs font-bold text-muted uppercase tracking-wider">Syncing {totalToProcess} Items</div>
+                         <div className="text-xs font-bold text-[var(--color-cyan)]">{progress}%</div>
+                       </div>
+                       <div className="h-1.5 w-full bg-[var(--color-surface2)] rounded-full overflow-hidden border border-[var(--color-border-subtle)]">
+                         <motion.div 
+                           initial={{ width: 0 }}
+                           animate={{ width: `${progress}%` }}
+                           className="h-full bg-[var(--color-cyan)] shadow-[0_0_10px_var(--color-cyan-soft)]"
+                         />
+                       </div>
+                     </div>
+                   )}
+                   <div className="flex items-center justify-end">
+                     <button 
+                       onClick={handleUpload}
+                       disabled={(!selectedCampaignId && !mapping['Campaign ID']) || isProcessing}
+                       className={cn("btn flex items-center justify-center gap-2 px-8 h-11", ((!selectedCampaignId && !mapping['Campaign ID']) || isProcessing) ? "bg-[var(--color-surface3)] text-muted cursor-not-allowed border-transparent" : "btn-primary")}
+                     >
+                       {isProcessing ? (
+                         <>
+                           <RefreshCw className="w-4 h-4 animate-spin" />
+                           Processing...
+                         </>
+                       ) : (
+                         <>
+                           Start Import <ArrowRight className="w-4 h-4" />
+                         </>
+                       )}
+                     </button>
+                   </div>
                 </div>
               </motion.div>
             )}

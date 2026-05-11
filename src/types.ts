@@ -118,6 +118,8 @@ export interface ClipMetric {
   campaignId: string;
   userId: string;
   creatorId?: string;
+  author?: string;
+  title?: string;
   clipLinkId?: string;
   views: number;
   likes: number;
@@ -125,6 +127,7 @@ export interface ClipMetric {
   shares?: number;
   engagementRate?: number;
   status: 'active' | 'pending' | 'error';
+  error?: string;
   updatedAt: any;
   createdAt: any;
 }

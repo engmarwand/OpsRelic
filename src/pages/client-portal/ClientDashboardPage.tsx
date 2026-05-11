@@ -28,21 +28,23 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
     return (data || []).filter(r => (!campaignId || r.Campaign === campaignId || r._campaignId === campaignId) && ((r.Status||'').toLowerCase() === 'approved'));
   }, [data, campaignId]);
 
-  const stats = useMemo(() => {
+   const stats = useMemo(() => {
     const platforms: Record<string, number> = {};
-    campaignData.forEach(r => {
-      const p = r.Platform || r.platform;
+    campaignClipMetrics.forEach(m => {
+      const p = m.platform;
       if (p) platforms[p] = (platforms[p] || 0) + 1;
     });
     const topPlatform = Object.entries(platforms).sort((a,b) => b[1] - a[1])[0]?.[0] || 'TikTok';
 
     return {
-      views: campaignData.reduce((sum, r) => sum + (r.Views || r.views || 0), 0) + campaignClipMetrics.reduce((sum, m) => sum + (m.views || 0), 0),
-      creators: new Set([...campaignData.map(r => r.Creator || r.creatorId), ...campaignClipMetrics.map(m => m.creatorId || 'Live Creator')]).size,
-      topPlatform,
-      liveViews: campaignClipMetrics.reduce((sum, m) => sum + (m.views || 0), 0)
+      views: campaignClipMetrics.reduce((sum, m) => sum + (m.views || 0), 0),
+      likes: campaignClipMetrics.reduce((sum, m) => sum + (m.likes || 0), 0),
+      comments: campaignClipMetrics.reduce((sum, m) => sum + (m.comments || 0), 0),
+      shares: campaignClipMetrics.reduce((sum, m) => sum + (m.shares || 0), 0),
+      creators: new Set(campaignClipMetrics.map(m => m.author || 'Creator')).size,
+      topPlatform
     };
-  }, [campaignData, campaignClipMetrics]);
+  }, [campaignClipMetrics]);
 
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<any>(null);
@@ -132,14 +134,14 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 border-b border-[var(--color-border-subtle)] pb-6 bg-[var(--color-surface)] -m-6 md:-m-8 mb-6 p-6 md:p-8 shrink-0">
          <div className="space-y-4">
             <div className="flex items-center gap-2">
-               <div className="w-2 h-2 rounded-full animate-pulse shadow-glow" style={{ backgroundColor: brandColor }} />
-               <span className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted">Live Portal Feed</span>
+               <div className="w-2 h-2 rounded-full shadow-glow" style={{ backgroundColor: brandColor }} />
+               <span className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted">Portal Feed</span>
             </div>
             <h1 className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tracking-[-0.025em]">
               {campaign?.name || 'Campaign'} Insights
             </h1>
             <p className="text-sm text-muted max-w-lg">
-               Real-time viewing metrics and asset performance for {client?.name || 'your campaign'}. Automatically updated as data rolls in.
+               Verified viewing metrics and asset performance for {client?.name || 'your campaign'}. Updated via agency reports.
             </p>
          </div>
       </div>
@@ -154,11 +156,6 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
              <div className="text-xs font-bold text-muted uppercase tracking-[0.07em]">Total Reach</div>
            </div>
            <div className="font-display text-3xl font-extrabold text-[var(--color-text-main)]">{formatViews(stats.views)}</div>
-            {stats.liveViews > 0 && (
-              <div className="text-[10px] font-bold text-[var(--color-cyan)] mt-2 flex items-center gap-1">
-                <TrendingUp className="w-2.5 h-2.5" /> {formatViews(stats.liveViews)} live traction
-              </div>
-            )}
         </div>
         <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
            <div className="flex items-center gap-3 mb-4">
@@ -218,7 +215,7 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
               <ShieldCheck className="w-4 h-4 text-[var(--color-green)]" /> Verified Content Assets
             </h3>
          </div>
-         {campaignData.length === 0 && campaignClipMetrics.length === 0 ? (
+         {campaignClipMetrics.length === 0 ? (
            <div className="py-20 text-center text-muted text-sm">No assets verified yet.</div>
          ) : (
            <div className="overflow-x-auto">
@@ -229,66 +226,46 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
                        <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.07em] text-muted">Platform</th>
                        <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.07em] text-muted">Creator</th>
                        <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.07em] text-muted text-right">Views</th>
+                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.07em] text-muted text-right">Likes</th>
+                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.07em] text-muted text-right">Shares</th>
+                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.07em] text-muted text-right">Eng. Rate</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-[var(--color-border-subtle)]">
-                    {/* Live Metrics First */}
-                    {campaignClipMetrics.map(clip => (
-                      <tr key={clip.id} className="hover:bg-[var(--color-surface-hover)] transition-colors group bg-[var(--color-cyan-dim)]/5">
+                    {campaignClipMetrics.sort((a,b) => (b.views||0) - (a.views||0)).map(clip => (
+                      <tr key={clip.id} className="hover:bg-[var(--color-surface-hover)] transition-colors group">
                          <td className="px-6 py-[14px]">
                             <div className="flex items-center gap-4">
-                               <div className="w-10 h-10 rounded-lg bg-[var(--color-cyan-dim)] text-[var(--color-cyan)] flex items-center justify-center border border-[rgba(0,212,232,0.2)]">
-                                  <TrendingUp className={cn("w-5 h-5", clip.status === 'pending' && "animate-pulse")} />
+                               <div className="w-10 h-10 rounded-lg bg-[var(--color-surface2)] text-[var(--color-text-main)] flex items-center justify-center border border-[var(--color-border-subtle)]">
+                                  <PlayCircle className="w-5 h-5 text-muted" />
                                </div>
                                <div className="flex flex-col">
                                   <div className="flex items-center gap-2">
-                                     <a href={clip.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-[var(--color-cyan)] hover:underline truncate max-w-[250px] transition-colors">Live Performance URL</a>
-                                     {clip.status === 'pending' && <span className="text-[9px] bg-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded uppercase font-bold tracking-tighter">Crawling...</span>}
+                                     <a href={clip.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-[var(--color-text-main)] hover:text-[var(--color-cyan)] truncate max-w-[180px] transition-colors">{clip.title || 'View Content Asset'}</a>
                                   </div>
                                   <span className="text-[10px] text-muted mt-[2px] uppercase font-bold tracking-[0.07em]">
-                                     {clip.updatedAt ? `Synced ${new Date(clip.updatedAt.toMillis ? clip.updatedAt.toMillis() : clip.updatedAt).toLocaleTimeString()}` : 'Tracking started'}
+                                     {clip.updatedAt ? `Synced: ${new Date(clip.updatedAt.toMillis ? clip.updatedAt.toMillis() : clip.updatedAt).toLocaleDateString()}` : 'Verified Asset'}
                                   </span>
                                </div>
                             </div>
                          </td>
                          <td className="px-6 py-[14px]">
-                            <span className="px-3 py-1 bg-[var(--color-cyan-dim)] border border-[rgba(0,212,232,0.2)] rounded-full text-xs font-bold text-[var(--color-cyan)] capitalize">
+                            <span className="px-3 py-1 bg-[var(--color-surface3)] border border-[var(--color-border-subtle)] rounded-full text-xs font-semibold text-muted capitalize">
                                {clip.platform}
                             </span>
                           </td>
-                          <td className="px-6 py-[14px] text-sm text-[var(--color-text-main)] font-medium">Verified Live</td>
+                          <td className="px-6 py-[14px] text-sm text-[var(--color-text-main)] font-medium">{clip.author || 'Verified Creator'}</td>
                           <td className="px-6 py-[14px] text-right">
                              <span className="text-sm font-bold text-[var(--color-text-main)] tabular-nums">{formatViews(clip.views || 0)}</span>
                           </td>
-                       </tr>
-                    ))}
-
-                    {/* Regular CSV Assets */}
-                    {campaignData.slice(0, 50).map((row, i) => (
-                       <tr key={i} className="hover:bg-[var(--color-surface-hover)] transition-colors group">
-                          <td className="px-6 py-[14px]">
-                             <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-lg bg-[var(--color-surface2)] flex items-center justify-center border border-[var(--color-border-subtle)] group-hover:border-[var(--color-cyan)] transition-colors">
-                                   <PlayCircle className="w-5 h-5 text-muted group-hover:text-[var(--color-cyan)]" />
-                                </div>
-                                <div className="flex flex-col">
-                                   {row["Submission URL"] || row.url ? (
-                                     <a href={row["Submission URL"] || row.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-[var(--color-text-main)] hover:text-[var(--color-cyan)] truncate max-w-[250px] transition-colors">{row["Content Title"] || row.title}</a>
-                                   ) : (
-                                     <span className="text-sm font-semibold text-[var(--color-text-main)] truncate max-w-[250px]">{row["Content Title"] || row.title}</span>
-                                   )}
-                                   <span className="text-xs text-muted mt-[2px]">{row["Submission Date"] || row.submissionDate ? new Date(row["Submission Date"] || row.submissionDate).toLocaleDateString() : ''}</span>
-                                </div>
-                             </div>
-                          </td>
-                          <td className="px-6 py-[14px]">
-                             <span className="px-3 py-1 bg-[var(--color-surface3)] border border-[var(--color-border-subtle)] rounded-full text-xs font-semibold text-muted capitalize">
-                                {row.Platform || row.platform || 'Unknown'}
-                             </span>
-                          </td>
-                          <td className="px-6 py-[14px] text-sm text-[var(--color-text-main)] font-medium">{row.Creator || row.creatorId}</td>
                           <td className="px-6 py-[14px] text-right">
-                             <span className="text-sm font-bold text-[var(--color-text-main)] tabular-nums">{formatViews(row.Views || row.views || 0)}</span>
+                             <span className="text-sm font-medium text-muted tabular-nums">{formatViews(clip.likes || 0)}</span>
+                          </td>
+                          <td className="px-6 py-[14px] text-right">
+                             <span className="text-sm font-medium text-muted tabular-nums">{formatViews(clip.shares || 0)}</span>
+                          </td>
+                          <td className="px-6 py-[14px] text-right">
+                             <span className="text-sm font-bold text-[var(--color-cyan)] tabular-nums">{clip.engagementRate ? (clip.engagementRate * 100).toFixed(1) + '%' : '0%'}</span>
                           </td>
                        </tr>
                     ))}
