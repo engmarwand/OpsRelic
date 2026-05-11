@@ -19,6 +19,7 @@ export default function UploadPage() {
   const [selectedCampaignId, setSelectedCampaignId] = useState('');
   
   const [mapping, setMapping] = useState<Record<string, string>>({
+    'Campaign ID': '',
     'Submission Date': '',
     'Content Title': '',
     'Creator': '',
@@ -42,6 +43,7 @@ export default function UploadPage() {
             const newMapping = { ...mapping };
             Object.keys(results.data[0]).forEach(h => {
                const normalized = h.toLowerCase().replace(/[\s_]/g, '');
+               if (normalized === 'campaignid' || normalized === 'campaign') newMapping['Campaign ID'] = h;
                if (normalized.includes('date')) newMapping['Submission Date'] = h;
                if (normalized.includes('title') || normalized.includes('content')) newMapping['Content Title'] = h;
                if (normalized.includes('creator') || normalized.includes('influencer')) newMapping['Creator'] = h;
@@ -59,41 +61,106 @@ export default function UploadPage() {
   };
 
   const handleUpload = async () => {
-    if (!selectedCampaignId || parsedData.length === 0 || !auth.currentUser) return;
+    const isTargetingPossible = selectedCampaignId || mapping['Campaign ID'];
+    if (!isTargetingPossible || parsedData.length === 0 || !auth.currentUser) return;
     setIsProcessing(true);
     
     try {
       const batch = writeBatch(db);
       
       let count = 0;
+      
+      const clipsToTrack: any[] = [];
+      const batchMax = 450; // leave room for clips
+
       for (const row of parsedData) {
-        if (!row[mapping['Content Title']]) continue;
+        // Skip empty rows
+        if (!Object.values(row).some(x => x)) continue;
         
-        const docRef = doc(collection(db, 'submissions'));
-        batch.set(docRef, {
+        let resolvedCampaignId = selectedCampaignId;
+        const rawCampVal = mapping['Campaign ID'] && row[mapping['Campaign ID']];
+        if (rawCampVal) {
+          const found = campaignsList.find(c => c.id === rawCampVal || c.name.toLowerCase() === String(rawCampVal).toLowerCase().trim());
+          resolvedCampaignId = found ? found.id : rawCampVal; 
+        }
+        
+        if (!resolvedCampaignId) continue;
+
+        const campaign = campaignsList.find(c => c.id === resolvedCampaignId);
+        
+        // submissions document
+        const submissionRef = doc(collection(db, 'submissions'));
+        
+        let url = row[mapping['Submission URL']] || '';
+        let clipLinkId = '';
+        
+        if (url && typeof url === 'string' && url.startsWith('http')) {
+           const clipRef = doc(collection(db, 'clipMetrics'));
+           clipLinkId = clipRef.id;
+           
+           clipsToTrack.push({
+             url,
+             campaignId: resolvedCampaignId,
+             clipLinkId
+           });
+
+           // pre-create the clip metric so it appears instantly
+           batch.set(clipRef, {
+              clipLinkId,
+              campaignId: resolvedCampaignId,
+              userId: auth.currentUser.uid,
+              url,
+              platform: 'unknown',
+              clipId: '',
+              views: 0,
+              likes: 0,
+              comments: 0,
+              engagementRate: 0,
+              status: 'pending',
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+           });
+        }
+
+        batch.set(submissionRef, {
           userId: auth.currentUser.uid,
-          campaignId: selectedCampaignId,
+          campaignId: resolvedCampaignId,
+          Campaign: campaign?.name || 'Campaign',
           title: row[mapping['Content Title']] || 'Untitled Asset',
           creatorId: row[mapping['Creator']] || 'Unknown',
           platform: (row[mapping['Platform']] || 'Unknown').toLowerCase(),
           views: parseInt(row[mapping['Views']]) || 0,
           payout: parseFloat(row[mapping['Amount Paid']]) || 0,
           status: (row[mapping['Status']] || 'approved').toLowerCase(),
-          url: row[mapping['Submission URL']] || '',
+          url,
+          clipLinkId, // reference back to metrics doc if exists
           submissionDate: row[mapping['Submission Date']] || new Date().toISOString(),
           createdAt: serverTimestamp()
         });
+        
         count++;
-        if (count >= 450) break; // Limit batch size for safety in demo
+        // Count each row as 2 operations max (submission + clip metric) to stay under 500 batch limit
+        if (count >= 200) break;
       }
       
       await batch.commit();
-      addToast(`Successfully uploaded ${count} clips.`, 'success');
+
+      if (clipsToTrack.length > 0) {
+        fetch('/api/clip-refresh-bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clips: clipsToTrack.slice(0, 50), userId: auth.currentUser.uid })
+        }).catch(err => console.error("Bulk track trigger failed:", err));
+        addToast(`Successfully uploaded ${count} items. Tracking ${clipsToTrack.length} clips in background...`, 'success');
+      } else {
+        addToast(`Successfully uploaded ${count} items.`, 'success');
+      }
+
       setFile(null);
       setParsedData([]);
       setSelectedCampaignId('');
       setMapping({
-        'Submission Date': '', 'Content Title': '', 'Creator': '', 'Platform': '',
+        'Campaign ID': '', 'Submission Date': '', 'Content Title': '', 'Creator': '', 'Platform': '',
         'Views': '', 'Amount Paid': '', 'Status': '', 'Submission URL': ''
       });
     } catch (err) {
@@ -204,8 +271,8 @@ export default function UploadPage() {
                 <div className="pt-6 border-t border-[var(--color-border-subtle)] flex items-center justify-end">
                    <button 
                      onClick={handleUpload}
-                     disabled={!selectedCampaignId || isProcessing}
-                     className={cn("btn flex items-center justify-center gap-2 px-8", (!selectedCampaignId || isProcessing) ? "bg-[var(--color-surface3)] text-muted cursor-not-allowed border-transparent" : "btn-primary")}
+                     disabled={(!selectedCampaignId && !mapping['Campaign ID']) || isProcessing}
+                     className={cn("btn flex items-center justify-center gap-2 px-8", ((!selectedCampaignId && !mapping['Campaign ID']) || isProcessing) ? "bg-[var(--color-surface3)] text-muted cursor-not-allowed border-transparent" : "btn-primary")}
                    >
                      {isProcessing ? 'Syncing...' : 'Start Import'} <ArrowRight className="w-4 h-4" />
                    </button>

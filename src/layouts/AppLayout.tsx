@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Users, FolderOpen, Upload, BarChart2, ExternalLink, Settings, UserPlus, Plus, Moon, Sun, Zap, X } from 'lucide-react';
+import { LayoutDashboard, Users, FolderOpen, Upload, BarChart2, ExternalLink, Settings, UserPlus, Plus, Moon, Sun, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import Pricing from '../components/Pricing';
@@ -36,7 +36,7 @@ export const AppLayout = ({
   onLogout: () => void,
   activeTab: string
 }) => {
-  const { workspace, data, plan, showPricing, setShowPricing, userRole, portalContext } = useAppContext();
+  const { workspace, data, plan, showPricing, setShowPricing, userRole, portalContext, clients, campaignsList } = useAppContext();
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
@@ -47,9 +47,15 @@ export const AppLayout = ({
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
+  const navItemsWithCounts = primaryNavItems.map(item => {
+    if (item.id === 'clients') return { ...item, badge: clients.length > 0 ? clients.length.toString() : undefined };
+    if (item.id === 'campaigns') return { ...item, badge: campaignsList.length > 0 ? campaignsList.length.toString() : undefined };
+    return item;
+  });
+
   const currentPrimaryNav = userRole === 'client' ? [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard, hash: '#overview' }
-  ] : primaryNavItems;
+  ] : navItemsWithCounts;
 
   const NavItem = ({ item }: { item: typeof primaryNavItems[0] }) => {
     const isActive = activeTab === item.id;
@@ -90,11 +96,11 @@ export const AppLayout = ({
         <div className="absolute top-0 left-0 right-0 h-[220px] pointer-events-none z-0" style={{ background: 'radial-gradient(ellipse at 50% 0%, var(--color-cyan-glow) 0%, transparent 70%)' }}></div>
         
         <div className="flex items-center gap-3 px-5 py-4 border-b border-[var(--color-divider)] relative z-10 flex-shrink-0">
-          <div className="w-[30px] h-[30px] rounded flex items-center justify-center bg-[var(--color-cyan-dim)] text-[var(--color-cyan)] shadow-glow relative">
+          <div className="w-[30px] h-[30px] rounded flex items-center justify-center relative">
              {workspace?.brand?.logoUrl ? (
                 <img src={workspace.brand.logoUrl} alt="Logo" className="w-[30px] h-[30px] object-contain drop-shadow-[0_0_10px_var(--color-cyan-glow)]" />
               ) : (
-                <Zap className="w-4 h-4 fill-current" />
+                <img src="/logo.png" alt="OpsRelic Logo" className="w-full h-full object-contain drop-shadow-[0_0_8px_var(--color-cyan-glow)]" />
               )}
           </div>
           <div>
@@ -136,7 +142,7 @@ export const AppLayout = ({
                {userRole !== 'client' && (
                  <>
                    <a href="#settings" className="px-4 py-2 text-sm text-[var(--color-text-main)] hover:bg-[var(--color-surface-hover)] transition-colors">Settings</a>
-                   <button onClick={() => setShowPricing(true)} className="px-4 py-2 text-sm text-[var(--color-text-main)] hover:bg-[var(--color-surface-hover)] transition-colors text-left w-full">Plan & Billing</button>
+                   <a href="#settings?tab=billing" className="px-4 py-2 text-sm text-[var(--color-text-main)] hover:bg-[var(--color-surface-hover)] transition-colors text-left w-full block">Plan & Billing</a>
                    <div className="h-px bg-[var(--color-border-subtle)] my-1"></div>
                  </>
                )}

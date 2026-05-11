@@ -86,6 +86,7 @@ const defaultState: AppState = {
     }
   ],
   workspace: defaultWorkspace,
+  clipMetrics: [],
   currentTier: undefined, 
   reportsGeneratedMonth: 0,
   userRole: 'agency'
@@ -124,14 +125,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (portalId) {
       setPortalContext(prev => ({ ...prev, active: true, campaignId: portalId, loading: true }));
       
-      // Auto authorize if valid
-      const q = query(collection(db, 'campaigns'), where('portalToken', '==', portalId));
+      const q = query(collection(db, 'campaigns'), where('portalToken', '==', portalId), where('portalEnabled', '==', true));
       onSnapshot(q, (snapshot) => {
         if (!snapshot.empty) {
           const campSnap = snapshot.docs[0];
           const data = campSnap.data();
           if (data.portalEnabled) {
-            setPortalContext(prev => ({ ...prev, authorized: true, ownerId: data.userId, campaignId: campSnap.id, loading: false }));
+            setPortalContext(prev => ({ 
+              ...prev, 
+              authorized: !data.portalPassword, 
+              ownerId: data.userId, 
+              campaignId: campSnap.id, 
+              loading: false,
+              _expectedPassword: data.portalPassword
+            } as any));
           } else {
             setPortalContext(prev => ({ ...prev, loading: false }));
           }
@@ -142,8 +149,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const authorizePortal = async (): Promise<boolean> => {
-    return true; // no longer needed actively
+  const authorizePortal = async (pw: string): Promise<boolean> => {
+    // We already stored _expectedPassword in the state via onSnapshot 
+    const expectedPw = (portalContext as any)._expectedPassword;
+    if (pw === expectedPw) {
+      setPortalContext(prev => ({ ...prev, authorized: true }));
+      return true;
+    }
+    return false;
   };
 
   useEffect(() => {
@@ -209,7 +222,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
               ...prev, 
               currentTier: userData.plan, 
               reportsGeneratedMonth: userData.reportsGeneratedMonth || 0,
-              userRole: portalContext.active ? 'client' : (userData.role || 'agency') 
+              userRole: portalContext.active ? 'client' : (userData.role || 'agency'),
+              userDoc: userData 
             }));
         } else {
             // No plan set for user
@@ -270,8 +284,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       });
       setState(prev => ({ ...prev, briefs: list }));
     }, (error) => {
-      // Small graceful fail for legacy environments
-      console.warn("Briefs fetch fail", error);
+      handleFirestoreError(error, OperationType.LIST, 'campaign_briefs');
     });
 
     const qSubmissions = portalContext.active && portalContext.campaignId
@@ -331,10 +344,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       handleFirestoreError(error, OperationType.LIST, 'submissions');
     });
 
+    const qMetrics = portalContext.active && portalContext.campaignId
+      ? query(collection(db, 'clipMetrics'), where('campaignId', '==', portalContext.campaignId))
+      : query(collection(db, 'clipMetrics'), where('userId', '==', effectiveUserId));
+
+    const unsubscribeMetrics = onSnapshot(qMetrics, (snapshot) => {
+      const metrics: any[] = [];
+      snapshot.forEach(doc => {
+        metrics.push({ id: doc.id, ...doc.data() });
+      });
+      // Sort by updatedAt descending
+      metrics.sort((a,b) => (b.updatedAt?.toMillis?.() || 0) - (a.updatedAt?.toMillis?.() || 0));
+      setState(prev => ({ ...prev, clipMetrics: metrics }));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'clipMetrics');
+    });
+
     return () => {
        unsubscribeUpdates();
        unsubscribeBriefs();
        unsubscribeSubmissions();
+       unsubscribeMetrics();
        unsubscribeCampaigns();
        unsubscribeClients();
        unsubscribeUser();

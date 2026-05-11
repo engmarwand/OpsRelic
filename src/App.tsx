@@ -22,11 +22,33 @@ import { Lock } from 'lucide-react';
 
 function PortalAuth() {
   const { portalContext } = useAppContext();
+  const [pw, setPw] = useState('');
 
   if (portalContext.loading) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[var(--color-brand-primary)]/20 border-t-[var(--color-brand-primary)] rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // If there's an expected password, it means the portal exists and expects auth
+  if ((portalContext as any)._expectedPassword) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10">
+          <Lock className="w-8 h-8 text-[var(--color-cyan)] opacity-80" />
+        </div>
+        <h1 className="text-2xl font-black text-white tracking-tight uppercase mb-2">Password Required</h1>
+        <p className="text-[#888] font-medium max-w-sm mb-6">This client portal is protected.</p>
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          const success = await portalContext.authorize(pw);
+          if (!success) alert("Incorrect password");
+        }} className="w-full max-w-xs flex flex-col gap-3">
+          <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Enter password" autoFocus className="w-full bg-[#111] border border-white/10 rounded-lg px-4 py-3 text-white text-center focus:border-[var(--color-cyan)] outline-none" />
+          <button type="submit" className="w-full bg-[var(--color-cyan)] text-black font-bold rounded-lg px-4 py-3 hover:opacity-90 transition-opacity">Access Portal</button>
+        </form>
       </div>
     );
   }

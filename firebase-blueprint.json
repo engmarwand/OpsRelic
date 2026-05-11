@@ -113,6 +113,36 @@
         "guidelines": { "type": "array" },
         "templates": { "type": "array" }
       }
+    },
+    "ClipMetric": {
+      "title": "Clip Metric",
+      "description": "Live tracked views and engagement for a clip link",
+      "type": "object",
+      "properties": {
+        "clipLinkId": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "userId": { "type": "string" },
+        "url": { "type": "string" },
+        "platform": { "type": "string" },
+        "views": { "type": "number" },
+        "likes": { "type": "number" },
+        "comments": { "type": "number" },
+        "engagementRate": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clipLinkId", "campaignId", "userId", "url"]
+    },
+    "CampaignUpdate": {
+      "title": "Campaign Update",
+      "description": "Log entries and updates for campaign progress",
+      "type": "object",
+      "properties": {
+        "campaignId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "clientVisible": { "type": "boolean" }
+      }
     }
   },
   "firestore": {
@@ -135,6 +165,18 @@
     "/submissions/{submissionId}": {
       "schema": "Submission",
       "description": "Content submission documents"
+    },
+    "/campaign_briefs/{briefId}": {
+      "schema": "Campaign",
+      "description": "Detailed brief content for campaigns"
+    },
+    "/campaign_updates/{updateId}": {
+      "schema": "CampaignUpdate",
+      "description": "Activity logs for campaigns"
+    },
+    "/clipMetrics/{metricId}": {
+      "schema": "ClipMetric",
+      "description": "Performance metrics for tracked clips"
     },
     "/user_config/{userId}": {
       "schema": "UserConfig",

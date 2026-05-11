@@ -6,7 +6,6 @@ import {
   Users, 
   TrendingUp, 
   CheckCircle2, 
-  Activity, 
   Globe, 
   RefreshCw,
   Mail,
@@ -22,7 +21,6 @@ import {
   Layers,
   ArrowUpRight,
   Shield,
-  Zap,
   Moon,
   Sun,
   Play,
@@ -139,8 +137,8 @@ export default function Landing() {
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-[var(--color-bg)]/80 border-b border-black/5 dark:border-white/5">
         <div className="max-w-[1180px] mx-auto px-6 h-20 flex items-center justify-between">
           <a href="#" className="flex items-center gap-3 group">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] shadow-[0_8px_20px_-4px_var(--color-primary-soft-2)] flex items-center justify-center transition-all group-hover:scale-110 group-hover:rotate-6">
-              <Activity className="w-7 h-7 text-white" />
+            <div className="w-12 h-12 flex items-center justify-center transition-all group-hover:scale-110">
+              <img src="/logo.png" alt="OpsRelic Logo" className="w-full h-full object-contain drop-shadow-[0_4px_12px_var(--color-primary-soft-2)]" />
             </div>
             <div className="flex flex-col">
               <span className="font-black text-2xl tracking-tighter text-[var(--color-text)] leading-none">OpsRelic</span>
@@ -692,8 +690,8 @@ export default function Landing() {
       <footer className="py-20 px-6 border-t border-[var(--color-divider)]">
         <div className="max-w-[1180px] mx-auto flex flex-col md:flex-row justify-between items-center gap-10">
           <div className="flex items-center gap-4 group">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-offset)] border border-[var(--color-border)] flex items-center justify-center transition-all group-hover:bg-[var(--color-primary-soft)]">
-              <Activity className="w-6 h-6 text-[var(--color-primary)] opacity-80" />
+            <div className="w-10 h-10 flex items-center justify-center transition-all group-hover:scale-110">
+              <img src="/logo.png" alt="OpsRelic Logo" className="w-full h-full object-contain grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
             </div>
             <div className="flex flex-col">
               <span className="font-black text-lg tracking-tighter text-[var(--color-text)]">OpsRelic</span>

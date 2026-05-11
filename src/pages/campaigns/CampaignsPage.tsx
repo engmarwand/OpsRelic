@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useAppContext } from '../../lib/store';
 import { 
   FolderOpen, Plus, Search, ChevronRight, BarChart2, Bell, ExternalLink, Settings, 
-  TrendingUp, Users, Target, Key, Lock, ArrowLeft, Copy, RefreshCw
+  TrendingUp, Users, Target, Key, Lock, ArrowLeft, Copy, RefreshCw, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Campaign, CampaignStatus } from '../../types';
@@ -13,7 +13,7 @@ import { useToast } from '../../lib/toast';
 import { collection, addDoc, updateDoc, doc, deleteDoc, query, where, onSnapshot } from 'firebase/firestore';
 
 export default function CampaignsPage() {
-  const { data, campaignsList, clients, updates, briefs, workspace } = useAppContext();
+  const { data, campaignsList, clients, updates, briefs, workspace, clipMetrics: globalClipMetrics } = useAppContext();
   const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
@@ -22,21 +22,12 @@ export default function CampaignsPage() {
   const [clipUrl, setClipUrl] = useState('');
   const [isAddingClip, setIsAddingClip] = useState(false);
   const [clipError, setClipError] = useState('');
-  const [clipMetrics, setClipMetrics] = useState<any[]>([]);
   const [refreshingClipId, setRefreshingClipId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!selectedCampaign) {
-      setClipMetrics([]);
-      return;
-    }
-    const q = query(collection(db, 'clipMetrics'), where('campaignId', '==', selectedCampaign.id));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const metrics = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setClipMetrics(metrics.sort((a: any, b: any) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)));
-    });
-    return () => unsub();
-  }, [selectedCampaign]);
+  const campaignClipMetrics = useMemo(() => {
+    if (!selectedCampaign) return [];
+    return globalClipMetrics.filter(m => m.campaignId === selectedCampaign.id);
+  }, [globalClipMetrics, selectedCampaign]);
 
   const handlePasteClip = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +77,81 @@ export default function CampaignsPage() {
       addToast('Refresh failed: ' + err.message, 'error');
     } finally {
       setRefreshingClipId(null);
+    }
+  };
+
+  const [isRefreshingAll, setIsRefreshingAll] = useState(false);
+  const handleRefreshAll = async () => {
+    if (!selectedCampaign || isRefreshingAll) return;
+    
+    const urlSet = new Set<string>();
+    const clips: any[] = [];
+    
+    // First grab already tracked clips
+    campaignClipMetrics.forEach(c => {
+      if (c.url) {
+        urlSet.add(c.url);
+        clips.push({
+          url: c.url,
+          campaignId: selectedCampaign.id,
+          clipLinkId: c.clipLinkId || c.id
+        });
+      }
+    });
+    
+    // Then grab untracked URLs from campaignData
+    campaignData.forEach(r => {
+      let foundUrl = r["Submission URL"];
+      
+      if (!foundUrl || typeof foundUrl !== 'string' || !foundUrl.startsWith('http')) {
+        const keys = Object.keys(r);
+        const urlKey = keys.find(key => {
+          const k = key.toLowerCase();
+          return k.includes('url') || k.includes('link') || k.includes('submission') || k.includes('video');
+        });
+        if (urlKey && typeof r[urlKey] === 'string' && r[urlKey].startsWith('http')) {
+          foundUrl = r[urlKey];
+        }
+      }
+      
+      if (foundUrl && typeof foundUrl === 'string' && foundUrl.startsWith('http')) {
+        if (!urlSet.has(foundUrl)) {
+          urlSet.add(foundUrl);
+          clips.push({
+            url: foundUrl,
+            campaignId: selectedCampaign.id,
+            clipLinkId: doc(collection(db, 'clipMetrics')).id
+          });
+        }
+      }
+    });
+
+    if (clips.length === 0) {
+      if (campaignData.length > 0) {
+        console.log('Sample Row Keys:', Object.keys(campaignData[0]));
+        addToast(`Found ${campaignData.length} rows, but no columns like "Submission URL" or "Link" contain URLs.`, "info");
+      } else {
+        addToast("No data rows found for this campaign. Ensure the 'Campaign' column in your CSV matches this campaign's name exactly.", "info");
+      }
+      return;
+    }
+
+    setIsRefreshingAll(true);
+    try {
+      const res = await fetch('/api/clip-refresh-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clips: clips.slice(0, 50), // Safety limit
+          userId: auth.currentUser?.uid
+        })
+      });
+      if (!res.ok) throw new Error('Bulk refresh failed');
+      addToast(`${clips.length} clips queued for sync`, 'success');
+    } catch (err) {
+      addToast('Bulk refresh failed', 'error');
+    } finally {
+      setIsRefreshingAll(false);
     }
   };
 
@@ -165,7 +231,19 @@ export default function CampaignsPage() {
 
   const campaignData = useMemo(() => {
     if (!selectedCampaign) return [];
-    return data.filter(r => r.Campaign === selectedCampaign.name || r._campaignId === selectedCampaign.id);
+    const campaignId = selectedCampaign.id;
+    const campaignName = selectedCampaign.name.toLowerCase();
+    
+    return data.filter(r => {
+      // Check for direct ID match (Campaign column or _campaignId in the mapped store object)
+      if (r.Campaign === campaignId || r._campaignId === campaignId) return true;
+      
+      // Check for name match (case-insensitive)
+      const rowCampaign = String(r.Campaign || '').toLowerCase();
+      if (rowCampaign === campaignName) return true;
+      
+      return false;
+    });
   }, [selectedCampaign, data]);
 
   const formatViews = (val: number) => {
@@ -258,6 +336,13 @@ export default function CampaignsPage() {
         const d = new Date(r["Submission Date"]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         viewsByDate[d] = (viewsByDate[d] || 0) + r.Views;
       });
+
+      // Add current live metrics as a "Live" point if any
+      const liveViews = campaignClipMetrics.reduce((sum, c) => sum + (c.views || 0), 0);
+      if (liveViews > 0) {
+        const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        viewsByDate[today] = (viewsByDate[today] || 0) + liveViews;
+      }
 
       const labels = Object.keys(viewsByDate);
       const dataPoints = Object.values(viewsByDate);
@@ -480,11 +565,15 @@ export default function CampaignsPage() {
                           </div>
                           <div className="bg-[var(--color-surface2)] rounded-xl p-4 border border-[var(--color-border-subtle)]">
                              <div className="text-xs font-bold text-muted uppercase tracking-[0.07em] mb-1">Total Views</div>
-                             <div className="font-display text-xl font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(campaignData.reduce((s, r) => s + r.Views, 0) + clipMetrics.reduce((s, c) => s + (c.views || 0), 0))}</div>
+                             <div className="font-display text-xl font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(campaignData.reduce((s, r) => s + r.Views, 0) + campaignClipMetrics.reduce((s, c) => s + (c.views || 0), 0))}</div>
                           </div>
                           <div className="bg-[var(--color-surface2)] rounded-xl p-4 border border-[var(--color-border-subtle)] col-span-2">
                              <div className="text-xs font-bold text-muted uppercase tracking-[0.07em] mb-1">Assets & Links</div>
-                             <div className="font-display text-xl font-extrabold text-[var(--color-text-main)] tabular-nums">{campaignData.length + clipMetrics.length}</div>
+                             <div className="font-display text-xl font-extrabold text-[var(--color-text-main)] tabular-nums">{(() => {
+                               const csvUrls = new Set(campaignData.map(r => r["Submission URL"]).filter(Boolean));
+                               const standaloneClips = campaignClipMetrics.filter(c => !c.url || !csvUrls.has(c.url)).length;
+                               return campaignData.length + standaloneClips;
+                             })()}</div>
                           </div>
                        </div>
                      </>
@@ -515,8 +604,49 @@ export default function CampaignsPage() {
             )}
 
             {activeTab === 'performance' && (
-              <div className="space-y-6">
-                <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
+               <div className="space-y-6">
+                 {(() => {
+                   const liveViews = campaignClipMetrics.reduce((sum, c) => sum + (c.views || 0), 0);
+                   const liveLikes = campaignClipMetrics.reduce((sum, c) => sum + (c.likes || 0), 0);
+                   const totalViews = campaignData.reduce((s, r) => s + (r.Views || r.views || 0), 0) + liveViews;
+                   const totalLikes = campaignData.reduce((s, r) => s + (r.Likes || r.likes || 0), 0) + liveLikes;
+                   
+                   const csvUrls = new Set(campaignData.map(r => r["Submission URL"]).filter(Boolean));
+                   const standaloneClips = campaignClipMetrics.filter(c => !c.url || !csvUrls.has(c.url)).length;
+                   const totalAssets = campaignData.length + standaloneClips;
+
+                   return (
+                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
+                        <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
+                           <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Total Views</div>
+                           <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(totalViews)}</div>
+                           {liveViews > 0 && <div className="text-[10px] text-[var(--color-cyan)] font-bold mt-1.5 flex items-center gap-1">
+                             <TrendingUp className="w-2.5 h-2.5" /> +{formatViews(liveViews)} Live
+                           </div>}
+                        </div>
+                        <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
+                           <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Total Assets</div>
+                           <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">{totalAssets}</div>
+                           {campaignClipMetrics.length > 0 && <div className="text-[10px] text-[var(--color-cyan)] font-bold mt-1.5">{campaignClipMetrics.length} Active Tracks</div>}
+                        </div>
+                        <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
+                           <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Avg. per Clip</div>
+                           <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">
+                             {totalAssets > 0 ? formatViews(Math.round(totalViews / totalAssets)) : '0'}
+                           </div>
+                        </div>
+                        <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
+                           <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Total Likes</div>
+                           <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(totalLikes)}</div>
+                           {liveLikes > 0 && <div className="text-[10px] text-pink-500 font-bold mt-1.5 flex items-center gap-1">
+                             <TrendingUp className="w-2.5 h-2.5" /> +{formatViews(liveLikes)} Live
+                           </div>}
+                        </div>
+                     </div>
+                   );
+                 })()}
+
+                 <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
                    <div className="font-display text-md font-bold text-[var(--color-text-main)] mb-6">Views Over Time</div>
                    {campaignData.length === 0 ? (
                       <div className="flex flex-col items-center justify-center p-8 text-center bg-[var(--color-surface2)] rounded-xl border border-[var(--color-border-subtle)]">
@@ -534,6 +664,14 @@ export default function CampaignsPage() {
                 <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
                    <div className="flex items-center justify-between mb-6">
                      <div className="font-display text-md font-bold text-[var(--color-text-main)]">Live Clip Performance</div>
+                     <button 
+                       onClick={handleRefreshAll}
+                       disabled={isRefreshingAll}
+                       className="btn btn-primary btn-sm gap-2 px-4 shadow-[var(--color-primary-soft)]/20"
+                     >
+                       <RefreshCw className={cn("w-3.5 h-3.5", (isRefreshingAll || refreshingClipId !== null) && "animate-spin")} />
+                       {campaignClipMetrics.length > 0 ? 'Refresh All' : 'Sync CSV Clips'}
+                     </button>
                    </div>
                    
                    <form onSubmit={handlePasteClip} className="flex gap-2 mb-6">
@@ -559,20 +697,32 @@ export default function CampaignsPage() {
                    )}
 
                    <div className="flex flex-col gap-3">
-                     {clipMetrics.length === 0 ? (
-                       <div className="text-sm text-faint py-4 text-center border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl bg-[var(--color-surface2)]">No clip links added yet. Paste a link above to start tracking.</div>
-                     ) : clipMetrics.map(clip => (
+                     {campaignClipMetrics.length === 0 ? (
+                       <div className="text-sm text-faint py-4 text-center border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl bg-[var(--color-surface2)]">No tracking active. Click Sync CSV Clips above or paste a link to start tracking.</div>
+                     ) : campaignClipMetrics.map(clip => (
                        <div key={clip.id} className="flex items-center justify-between p-4 bg-[var(--color-surface2)] rounded-xl border border-[var(--color-border-subtle)]">
                          <div className="flex items-center gap-4 truncate max-w-[50%]">
                            <div className="w-10 h-10 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border-subtle)] flex items-center justify-center shrink-0">
-                              <ExternalLink className="w-4 h-4 text-muted" />
+                              <TrendingUp className={cn("w-4 h-4", clip.status === 'pending' ? 'text-amber-500 animate-pulse' : clip.status === 'error' ? 'text-red-500' : 'text-[var(--color-cyan)]')} />
                            </div>
                            <div className="truncate">
                              <div className="text-sm font-bold text-[var(--color-text-main)] flex items-center gap-2">
                                {clip.platform}
-                               <a href={clip.url} target="_blank" rel="noreferrer" className="text-[var(--color-cyan)] hover:underline truncate">Link</a>
+                               <a href={clip.url} target="_blank" rel="noreferrer" className="text-[var(--color-cyan)] hover:underline truncate opacity-70 hover:opacity-100 transition-opacity">Link</a>
+                                {clip.status === 'pending' && (
+                                  <span className="flex items-center gap-1.5 text-[9px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded border border-amber-500/20 uppercase font-bold ml-1">
+                                    <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Queued
+                                  </span>
+                                )}
+                                {clip.status === 'error' && (
+                                  <span className="flex items-center gap-1.5 text-[9px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded border border-red-500/20 uppercase font-bold ml-1" title="Private video or unsupported format">
+                                    <AlertTriangle className="w-2.5 h-2.5" /> Failed
+                                  </span>
+                                )}
                              </div>
-                             <div className="text-xs text-muted">Updated: {clip.updatedAt ? new Date(clip.updatedAt).toLocaleString() : 'Just now'}</div>
+                             <div className="text-[10px] text-muted flex items-center gap-1.5 mt-0.5">
+                               {clip.updatedAt ? `Last Refreshed: ${new Date(clip.updatedAt.toMillis ? clip.updatedAt.toMillis() : clip.updatedAt).toLocaleString()}` : 'Just started'}
+                             </div>
                            </div>
                          </div>
                          
@@ -671,14 +821,30 @@ export default function CampaignsPage() {
                    </div>
 
                    {selectedCampaign.portalEnabled && selectedCampaign.portalToken && (
-                     <div className="flex flex-col gap-1 mt-2">
-                        <span className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Portal Link</span>
-                        <div className="flex items-center gap-2 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg p-2 px-3">
-                           <div className="text-xs font-mono text-[var(--color-text-main)] truncate flex-1">https://opsrelic.com/portal/{selectedCampaign.portalToken}</div>
-                           <button onClick={() => {
-                              navigator.clipboard.writeText(`https://opsrelic.com/portal/${selectedCampaign.portalToken}`);
-                              addToast("Portal link copied to clipboard", "success");
-                           }} className="p-1 hover:bg-[var(--color-surface-hover)] rounded text-muted hover:text-[var(--color-text-main)]"><Copy className="w-[14px] h-[14px]" /></button>
+                     <div className="flex flex-col gap-3 mt-2">
+                        <div className="flex flex-col gap-1">
+                           <span className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Portal Link</span>
+                           <div className="flex items-center gap-2 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg p-2 px-3">
+                              <div className="text-xs font-mono text-[var(--color-text-main)] truncate flex-1">https://opsrelic.com/portal/{selectedCampaign.portalToken}</div>
+                              <button onClick={() => {
+                                 navigator.clipboard.writeText(`https://opsrelic.com/portal/${selectedCampaign.portalToken}`);
+                                 addToast("Portal link copied to clipboard", "success");
+                              }} className="p-1 hover:bg-[var(--color-surface-hover)] rounded text-muted hover:text-[var(--color-text-main)]"><Copy className="w-[14px] h-[14px]" /></button>
+                           </div>
+                        </div>
+                        <div className="flex flex-col gap-1 mt-2">
+                           <span className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Portal Password (Optional)</span>
+                           <div className="flex items-center gap-2">
+                             <input type="text" placeholder="Leave blank for no password" value={selectedCampaign.portalPassword || ''} onChange={e => setSelectedCampaign(prev => prev ? { ...prev, portalPassword: e.target.value } as Campaign : null)} className="input-field flex-1" />
+                             <button onClick={async () => {
+                                 await updateDoc(doc(db, 'campaigns', selectedCampaign.id), {
+                                    portalPassword: selectedCampaign.portalPassword || '',
+                                    updatedAt: new Date().toISOString()
+                                 });
+                                 addToast("Portal password updated", "success");
+                             }} className="btn btn-secondary whitespace-nowrap">Save</button>
+                           </div>
+                           <div className="text-[10px] text-muted mt-1">If set, clients will need to enter this password to view the portal.</div>
                         </div>
                      </div>
                    )}

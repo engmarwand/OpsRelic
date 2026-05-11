@@ -111,6 +111,24 @@ export interface CampaignUpdate {
   clientVisible: boolean;
 }
 
+export interface ClipMetric {
+  id: string;
+  url: string;
+  platform: string;
+  campaignId: string;
+  userId: string;
+  creatorId?: string;
+  clipLinkId?: string;
+  views: number;
+  likes: number;
+  comments: number;
+  shares?: number;
+  engagementRate?: number;
+  status: 'active' | 'pending' | 'error';
+  updatedAt: any;
+  createdAt: any;
+}
+
 export interface WorkspaceSettings {
   brand: { name: string; tagline: string; logo: string | null; logoUrl: string | null; email?: string; timezone?: string; };
   color: { primary: string; preset: string };
@@ -129,8 +147,10 @@ export interface AppState {
   updates: CampaignUpdate[];
   onboarding: InvitedClipper[];
   workspace?: WorkspaceSettings;
+  clipMetrics: ClipMetric[];
   currentTier?: import('./lib/plans').Tier;
   reportsGeneratedMonth?: number;
   userRole?: 'agency' | 'client'; // Added
   campaignsList?: Campaign[]; // Updated to use Campaign type
+  userDoc?: any;
 }

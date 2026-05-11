@@ -8,7 +8,7 @@ import { PLANS } from '../../lib/plans';
 import { WorkspaceSettings } from '../../types';
 
 export default function SettingsPage() {
-  const { workspace, saveWorkspace, currentTier, setShowPricing } = useAppContext();
+  const { workspace, saveWorkspace, currentTier, setShowPricing, userDoc } = useAppContext();
   const [activeTab, setActiveTab] = useState('profile');
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -18,6 +18,18 @@ export default function SettingsPage() {
   useEffect(() => {
     setLocalWorkspace(workspace);
   }, [workspace]);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const match = window.location.hash.match(/\?tab=([^&]*)/);
+      if (match && match[1]) {
+        setActiveTab(match[1]);
+      }
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const tabs = [
     { id: 'profile', icon: User, label: 'Profile Settings' },
@@ -217,26 +229,20 @@ export default function SettingsPage() {
                        <div className="p-6 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border-subtle)]">
                           <div className="flex items-center justify-between mb-4">
                              <div>
-                                <h4 className="text-sm font-semibold text-[var(--color-text-main)] font-display text-lg">{currentPlan.name} Plan</h4>
-                                <p className="text-xs text-muted">Active Subscription via Whop</p>
-                             </div>
-                             <div className="text-right">
-                                {currentPlan.price > 0 ? (
-                                  <div className="font-display font-extrabold text-2xl text-[var(--color-text-main)]">${currentPlan.price}<span className="text-sm text-muted font-normal">/mo</span></div>
-                                ) : (
-                                  <div className="font-display font-extrabold text-2xl text-[var(--color-text-main)]">Free</div>
-                                )}
+                                <h4 className="text-sm font-semibold text-[var(--color-text-main)] font-display text-lg">
+                                  Current Plan: {currentTier ? currentPlan.name : 'Free / Not set'}
+                                </h4>
+                                <p className="text-xs text-muted mt-1">
+                                  {userDoc?.renewalDate ? `Renews on: ${new Date(userDoc.renewalDate.toMillis ? userDoc.renewalDate.toMillis() : userDoc.renewalDate).toLocaleDateString()}` : 'No renewal date set'}
+                                </p>
                              </div>
                           </div>
-                          <div className="flex gap-3">
-                            <button onClick={() => setShowPricing(true)} className="btn btn-primary flex-1 justify-center py-2.5">
-                              Change Plan
-                            </button>
+                          <div className="flex gap-3 mt-6">
                             <button 
                               onClick={() => window.open('https://whop.com', '_blank')} 
-                              className="btn btn-ghost border border-[var(--color-border-subtle)] bg-[var(--color-surface)] flex-1 justify-center py-2.5"
+                              className="btn btn-primary flex-1 justify-center py-2.5"
                             >
-                              Manage on Whop
+                              Manage Plan on Whop
                             </button>
                           </div>
                        </div>
@@ -251,14 +257,6 @@ export default function SettingsPage() {
                            <div className="p-4 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border-subtle)]">
                              <div className="text-xs text-muted uppercase font-bold tracking-wider mb-1">Uploads/Campaign</div>
                              <div className="text-lg font-bold text-[var(--color-text-main)]">{currentPlan.limits.recordsPerCampaign === Infinity ? 'Unlimited' : currentPlan.limits.recordsPerCampaign}</div>
-                           </div>
-                           <div className="p-4 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border-subtle)]">
-                             <div className="text-xs text-muted uppercase font-bold tracking-wider mb-1">Data Retention</div>
-                             <div className="text-lg font-bold text-[var(--color-text-main)]">{currentPlan.limits.dataRetentionDays === Infinity ? 'Forever' : `${currentPlan.limits.dataRetentionDays} Days`}</div>
-                           </div>
-                           <div className="p-4 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border-subtle)]">
-                             <div className="text-xs text-muted uppercase font-bold tracking-wider mb-1">Client Portals</div>
-                             <div className="text-lg font-bold text-[var(--color-text-main)]">{currentPlan.features.clientProfiles ? 'Included' : 'Not Included'}</div>
                            </div>
                          </div>
                        </div>

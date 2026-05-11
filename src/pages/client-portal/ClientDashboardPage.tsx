@@ -10,11 +10,15 @@ import { cn } from '../../lib/utils';
 import Chart from 'chart.js/auto';
 
 export default function ClientDashboardPage({ campaignId }: { campaignId?: string }) {
-  const { data, workspace, updates, campaignsList, clients } = useAppContext();
+  const { data, workspace, updates, campaignsList, clients, clipMetrics } = useAppContext();
   
   const campaign = useMemo(() => {
     return campaignsList.find(c => c.id === campaignId);
   }, [campaignsList, campaignId]);
+
+  const campaignClipMetrics = useMemo(() => {
+    return clipMetrics.filter(m => m.campaignId === campaignId);
+  }, [clipMetrics, campaignId]);
 
   const client = useMemo(() => {
     return clients.find(c => c.id === campaign?.clientId);
@@ -33,11 +37,12 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
     const topPlatform = Object.entries(platforms).sort((a,b) => b[1] - a[1])[0]?.[0] || 'TikTok';
 
     return {
-      views: campaignData.reduce((sum, r) => sum + (r.Views || r.views || 0), 0),
-      creators: new Set(campaignData.map(r => r.Creator || r.creatorId)).size,
-      topPlatform
+      views: campaignData.reduce((sum, r) => sum + (r.Views || r.views || 0), 0) + campaignClipMetrics.reduce((sum, m) => sum + (m.views || 0), 0),
+      creators: new Set([...campaignData.map(r => r.Creator || r.creatorId), ...campaignClipMetrics.map(m => m.creatorId || 'Live Creator')]).size,
+      topPlatform,
+      liveViews: campaignClipMetrics.reduce((sum, m) => sum + (m.views || 0), 0)
     };
-  }, [campaignData]);
+  }, [campaignData, campaignClipMetrics]);
 
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<any>(null);
@@ -149,6 +154,11 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
              <div className="text-xs font-bold text-muted uppercase tracking-[0.07em]">Total Reach</div>
            </div>
            <div className="font-display text-3xl font-extrabold text-[var(--color-text-main)]">{formatViews(stats.views)}</div>
+            {stats.liveViews > 0 && (
+              <div className="text-[10px] font-bold text-[var(--color-cyan)] mt-2 flex items-center gap-1">
+                <TrendingUp className="w-2.5 h-2.5" /> {formatViews(stats.liveViews)} live traction
+              </div>
+            )}
         </div>
         <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
            <div className="flex items-center gap-3 mb-4">
@@ -208,7 +218,7 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
               <ShieldCheck className="w-4 h-4 text-[var(--color-green)]" /> Verified Content Assets
             </h3>
          </div>
-         {campaignData.length === 0 ? (
+         {campaignData.length === 0 && campaignClipMetrics.length === 0 ? (
            <div className="py-20 text-center text-muted text-sm">No assets verified yet.</div>
          ) : (
            <div className="overflow-x-auto">
@@ -222,6 +232,38 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-[var(--color-border-subtle)]">
+                    {/* Live Metrics First */}
+                    {campaignClipMetrics.map(clip => (
+                      <tr key={clip.id} className="hover:bg-[var(--color-surface-hover)] transition-colors group bg-[var(--color-cyan-dim)]/5">
+                         <td className="px-6 py-[14px]">
+                            <div className="flex items-center gap-4">
+                               <div className="w-10 h-10 rounded-lg bg-[var(--color-cyan-dim)] text-[var(--color-cyan)] flex items-center justify-center border border-[rgba(0,212,232,0.2)]">
+                                  <TrendingUp className={cn("w-5 h-5", clip.status === 'pending' && "animate-pulse")} />
+                               </div>
+                               <div className="flex flex-col">
+                                  <div className="flex items-center gap-2">
+                                     <a href={clip.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-[var(--color-cyan)] hover:underline truncate max-w-[250px] transition-colors">Live Performance URL</a>
+                                     {clip.status === 'pending' && <span className="text-[9px] bg-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded uppercase font-bold tracking-tighter">Crawling...</span>}
+                                  </div>
+                                  <span className="text-[10px] text-muted mt-[2px] uppercase font-bold tracking-[0.07em]">
+                                     {clip.updatedAt ? `Synced ${new Date(clip.updatedAt.toMillis ? clip.updatedAt.toMillis() : clip.updatedAt).toLocaleTimeString()}` : 'Tracking started'}
+                                  </span>
+                               </div>
+                            </div>
+                         </td>
+                         <td className="px-6 py-[14px]">
+                            <span className="px-3 py-1 bg-[var(--color-cyan-dim)] border border-[rgba(0,212,232,0.2)] rounded-full text-xs font-bold text-[var(--color-cyan)] capitalize">
+                               {clip.platform}
+                            </span>
+                          </td>
+                          <td className="px-6 py-[14px] text-sm text-[var(--color-text-main)] font-medium">Verified Live</td>
+                          <td className="px-6 py-[14px] text-right">
+                             <span className="text-sm font-bold text-[var(--color-text-main)] tabular-nums">{formatViews(clip.views || 0)}</span>
+                          </td>
+                       </tr>
+                    ))}
+
+                    {/* Regular CSV Assets */}
                     {campaignData.slice(0, 50).map((row, i) => (
                        <tr key={i} className="hover:bg-[var(--color-surface-hover)] transition-colors group">
                           <td className="px-6 py-[14px]">

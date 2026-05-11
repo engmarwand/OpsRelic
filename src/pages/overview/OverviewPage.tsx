@@ -7,14 +7,19 @@ import { addDoc, collection } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 
+import { formatDistanceToNow } from 'date-fns';
+
 export default function OverviewPage() {
-  const { data, campaignsList, clients } = useAppContext();
+  const { data, campaignsList, clients, clipMetrics } = useAppContext();
 
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<any>(null);
 
   const stats = useMemo(() => {
-    const totalViews = data.reduce((sum, item) => sum + (item.Views || 0), 0);
+    const csvViews = data.reduce((sum, item) => sum + (item.Views || 0), 0);
+    const liveViews = clipMetrics.reduce((sum, item) => sum + (item.views || 0), 0);
+    const totalViews = csvViews + liveViews;
+
     const formatViews = (val: number) => {
       if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M';
       if (val >= 1000) return (val / 1000).toFixed(1) + 'K';
@@ -25,9 +30,62 @@ export default function OverviewPage() {
       activeCampaigns: campaignsList.filter(c => c.status === 'Active').length, 
       totalClients: clients.length,
       totalViews30d: formatViews(totalViews),
-      clipsDelivered30d: data.length
+      clipsDelivered30d: data.length + clipMetrics.length,
+      liveViews
     };
-  }, [data, campaignsList, clients]);
+  }, [data, campaignsList, clients, clipMetrics]);
+
+  const needsAttentionItems = useMemo(() => {
+    const items = [];
+    for (const camp of campaignsList) {
+      if (camp.status !== 'Active') continue;
+      
+      if (!camp.portalEnabled) {
+        items.push({ id: `portal-${camp.id}`, title: camp.name, reason: "Portal not enabled", color: "var(--color-yellow)", campId: camp.id });
+      }
+
+      const hasData = data.some(d => d._campaignId === camp.id) || clipMetrics.some(m => m.campaignId === camp.id);
+      if (!hasData) {
+        items.push({ id: `empty-${camp.id}`, title: camp.name, reason: "No assets uploaded yet", color: "var(--color-red)", campId: camp.id });
+      }
+
+      if (items.length >= 3) break;
+    }
+    return items.slice(0, 3);
+  }, [campaignsList, data, clipMetrics]);
+
+  const recentActivity = useMemo(() => {
+    const activity = [];
+    
+    // Uploads
+    for (const u of data) {
+      const ts = u.createdAt ? new Date((u.createdAt.toMillis ? u.createdAt.toMillis() : u.createdAt)) : (u["Submission Date"] ? new Date(u["Submission Date"]) : new Date());
+      activity.push({
+        type: 'upload',
+        title: 'CSV uploaded',
+        detail: u["Content Title"] || 'Performance Data',
+        timestamp: ts.getTime(),
+        dateStr: formatDistanceToNow(ts, { addSuffix: true }),
+        rawDate: ts
+      });
+    }
+
+    // New Campaigns
+    for (const c of campaignsList) {
+      const ts = c.createdAt ? new Date((c.createdAt.toMillis ? c.createdAt.toMillis() : c.createdAt)) : new Date();
+      activity.push({
+        type: 'campaign',
+        title: 'Campaign created',
+        detail: c.name,
+        timestamp: ts.getTime(),
+        dateStr: formatDistanceToNow(ts, { addSuffix: true }),
+        rawDate: ts
+      });
+    }
+
+    activity.sort((a,b) => b.timestamp - a.timestamp);
+    return activity.slice(0, 4);
+  }, [data, campaignsList]);
 
   useEffect(() => {
     if (chartRef.current) {
@@ -106,7 +164,13 @@ export default function OverviewPage() {
           </div>
           <div className="text-xs text-muted uppercase tracking-[0.07em] font-bold relative z-10">Total Views</div>
           <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] my-1 leading-none tabular-nums relative z-10">{stats.totalViews30d}</div>
-          <span className="inline-block text-xs font-semibold px-2 py-[2px] rounded-full relative z-10 bg-[var(--color-surface3)] text-muted">All time</span>
+          {stats.liveViews > 0 ? (
+            <span className="inline-block text-[10px] font-bold px-2 py-[2px] rounded-full relative z-10 bg-[var(--color-cyan-dim)] text-[var(--color-cyan)] border border-[rgba(0,212,232,0.2)] animate-pulse">
+              +{stats.liveViews.toLocaleString()} Live
+            </span>
+          ) : (
+            <span className="inline-block text-xs font-semibold px-2 py-[2px] rounded-full relative z-10 bg-[var(--color-surface3)] text-muted">All time</span>
+          )}
         </div>
 
         <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 relative overflow-hidden transition-all duration-200 hover:-translate-y-[2px] hover:shadow-md hover:border-strong cursor-default">
@@ -144,21 +208,21 @@ export default function OverviewPage() {
             </span>
           </div>
           
-          {campaignsList.length === 0 ? (
-            <div className="text-sm text-faint py-4 text-center">No active campaigns.</div>
+          {needsAttentionItems.length === 0 ? (
+            <div className="text-sm text-faint py-4 text-center">All clear. No issues found.</div>
           ) : (
-            <>
-              {campaignsList.slice(0, 3).map((camp, i) => (
-                <div key={camp.id} onClick={() => window.location.hash = '#campaigns'} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border border-transparent hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-subtle)] mb-2">
-                  <div className={cn("w-[9px] h-[9px] rounded-full shrink-0 shadow-[0_0_8px_currentColor]", i === 0 ? "text-[var(--color-yellow)]" : i === 1 ? "text-[var(--color-red)]" : "text-[var(--color-cyan)]")} />
+            <div className="flex flex-col gap-2">
+              {needsAttentionItems.map((item) => (
+                <div key={item.id} onClick={() => window.location.hash = '#campaigns'} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border border-transparent hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-subtle)] mb-2">
+                  <div className={cn("w-[9px] h-[9px] rounded-full shrink-0 shadow-[0_0_8px_currentColor]")} style={{ color: item.color }} />
                   <div className="flex-1">
-                    <div className="text-sm font-semibold text-[var(--color-text-main)]">{camp.name}</div>
-                    <div className="text-xs text-muted mt-[1px]">Check campaign activity</div>
+                    <div className="text-sm font-semibold text-[var(--color-text-main)]">{item.title}</div>
+                    <div className="text-xs text-muted mt-[1px]">{item.reason}</div>
                   </div>
                   <ChevronRight className="w-[13px] h-[13px] text-faint" />
                 </div>
               ))}
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -173,7 +237,11 @@ export default function OverviewPage() {
             {campaignsList.length === 0 ? <div className="text-sm text-faint py-4 text-center">No active campaigns.</div> : campaignsList.slice(0,4).map((camp, idx) => {
               const clientObj = clients.find(c => c.id === camp.clientId);
               const campColor = idx % 3 === 0 ? 'var(--color-green)' : idx % 3 === 1 ? 'var(--color-yellow)' : 'var(--color-blue)';
-              const campViews = data.filter(d => d._campaignId === camp.id).reduce((s, r) => s + (r.Views || 0), 0);
+              
+              const csvViews = data.filter(d => d._campaignId === camp.id).reduce((s, r) => s + (r.Views || 0), 0);
+              const liveViews = clipMetrics.filter(m => m.campaignId === camp.id).reduce((s, m) => s + (m.views || 0), 0);
+              const campViews = csvViews + liveViews;
+
               const formatViews = (val: number) => val >= 1000 ? (val / 1000).toFixed(0) + 'K' : val.toString();
               
               return (
@@ -197,31 +265,20 @@ export default function OverviewPage() {
           <div className="flex items-start justify-between gap-3 mb-4">
             <div className="font-display text-md font-bold text-[var(--color-text-main)]">Recent Activity</div>
           </div>
-          {data.length === 0 && campaignsList.length === 0 ? <div className="text-sm text-faint py-4 text-center">No recent activity.</div> : (
-            <>
-              {data.slice(0,2).map((upload, idx) => (
-                <div key={`data-${idx}`} className="flex items-start gap-3 py-2 border-b border-[var(--color-divider)] last:border-0">
-                  <div className="w-[28px] h-[28px] rounded-md flex items-center justify-center shrink-0 mt-[1px] bg-[var(--color-cyan-dim)] text-[var(--color-cyan)]">
-                    <Upload className="w-3 h-3" />
+          {recentActivity.length === 0 ? <div className="text-sm text-faint py-4 text-center">No recent activity.</div> : (
+            <div className="flex flex-col">
+              {recentActivity.map((activity, idx) => (
+                <div key={`act-${idx}`} className="flex items-start gap-3 py-2 border-b border-[var(--color-divider)] last:border-0 hover:bg-[var(--color-surface-hover)] p-2 -mx-2 rounded-lg transition-colors">
+                  <div className={cn("w-[28px] h-[28px] rounded-md flex items-center justify-center shrink-0 mt-[1px]", activity.type === 'upload' ? "bg-[var(--color-cyan-dim)] text-[var(--color-cyan)]" : "bg-[var(--color-green-dim)] text-[var(--color-green)]")}>
+                    {activity.type === 'upload' ? <Upload className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
                   </div>
                   <div>
-                    <div className="text-sm text-[var(--color-text-main)] leading-relaxed"><strong>CSV uploaded</strong> — {upload["Content Title"] || 'Performance Data'}</div>
-                    <div className="text-xs text-faint mt-[1px]">{new Date(upload.createdAt || upload["Submission Date"] || new Date()).toLocaleDateString()}</div>
+                    <div className="text-sm text-[var(--color-text-main)] leading-relaxed"><strong>{activity.title}</strong> — {activity.detail}</div>
+                    <div className="text-xs text-faint mt-[1px]" title={activity.rawDate.toLocaleString()}>{activity.dateStr}</div>
                   </div>
                 </div>
               ))}
-              {campaignsList.slice(0,2).map((camp, idx) => (
-                <div key={`camp-${camp.id}`} className="flex items-start gap-3 py-2 border-b border-[var(--color-divider)] last:border-0">
-                  <div className="w-[28px] h-[28px] rounded-md flex items-center justify-center shrink-0 mt-[1px] bg-[var(--color-green-dim)] text-[var(--color-green)]">
-                    <Plus className="w-3 h-3" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-[var(--color-text-main)] leading-relaxed"><strong>Campaign created</strong> — {camp.name}</div>
-                    <div className="text-xs text-faint mt-[1px]">{new Date(camp.createdAt).toLocaleDateString()}</div>
-                  </div>
-                </div>
-              ))}
-            </>
+            </div>
           )}
         </div>
       </div>

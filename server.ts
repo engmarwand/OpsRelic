@@ -130,67 +130,72 @@ async function startServer() {
         platform = "tiktok";
         const match = url.match(/video\/(\d+)/);
         if (match) clipId = match[1];
-      } else if (url.includes("instagram.com/reel")) {
+      } else if (url.includes("instagram.com")) {
         platform = "instagram";
-        const match = url.match(/reel\/([a-zA-Z0-9_\-]+)/);
+        const match = url.match(/(?:reel|p)\/([a-zA-Z0-9_\-]+)/);
         if (match) clipId = match[1];
       } else if (url.includes("youtube.com/shorts")) {
         platform = "youtube";
         const match = url.match(/shorts\/([a-zA-Z0-9_\-]+)/);
         if (match) clipId = match[1];
-      } else {
-        return res.status(400).json({ error: "Unsupported URL" });
       }
 
       if (!clipId) {
-        return res.status(400).json({ error: "Could not identify clip ID from URL" });
+        clipId = "unknown_" + Math.random().toString(36).substring(7);
       }
 
-      // Fetch from platform
-      const response = await fetch(url, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-          "Accept-Language": "en-US,en;q=0.5"
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Blocked or unavailable: ${response.status}`);
-      }
-
-      const html = await response.text();
-      
       let views = 0;
       let likes = 0;
       let comments = 0;
+      let engagementRate = 0;
+      let isSuccess = false;
+      let errorMessage = "";
 
-      if (platform === "tiktok") {
-        const playCountMatch = html.match(/"playCount":(\d+)/);
-        const diggCountMatch = html.match(/"diggCount":(\d+)/);
-        const commentCountMatch = html.match(/"commentCount":(\d+)/);
-        if (playCountMatch) views = parseInt(playCountMatch[1], 10);
-        if (diggCountMatch) likes = parseInt(diggCountMatch[1], 10);
-        if (commentCountMatch) comments = parseInt(commentCountMatch[1], 10);
-      } else if (platform === "instagram") {
-        const viewCountMatch = html.match(/"video_view_count":(\d+)/);
-        const likeCountMatch = html.match(/"like_count":(\d+)/);
-        const commentCountMatch = html.match(/"comment_count":(\d+)/);
-        if (viewCountMatch) views = parseInt(viewCountMatch[1], 10);
-        if (likeCountMatch) likes = parseInt(likeCountMatch[1], 10);
-        if (commentCountMatch) comments = parseInt(commentCountMatch[1], 10);
-      } else if (platform === "youtube") {
-        const viewCountMatch = html.match(/"viewCount":"(\d+)"/);
-        const likeCountMatch = html.match(/"defaultText":{"accessibility":{"accessibilityData":{"label":"([\d,]+) likes/);
-        if (viewCountMatch) views = parseInt(viewCountMatch[1], 10);
-        if (likeCountMatch) likes = parseInt(likeCountMatch[1].replace(/,/g, ''), 10);
+      try {
+        const response = await fetch(url, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5"
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Blocked or unavailable: ${response.status}`);
+        }
+
+        const html = await response.text();
+
+        if (platform === "tiktok") {
+          const playCountMatch = html.match(/"playCount":(\d+)/);
+          const diggCountMatch = html.match(/"diggCount":(\d+)/);
+          const commentCountMatch = html.match(/"commentCount":(\d+)/);
+          if (playCountMatch) views = parseInt(playCountMatch[1], 10);
+          if (diggCountMatch) likes = parseInt(diggCountMatch[1], 10);
+          if (commentCountMatch) comments = parseInt(commentCountMatch[1], 10);
+        } else if (platform === "instagram") {
+          const viewCountMatch = html.match(/"video_view_count":(\d+)/);
+          const likeCountMatch = html.match(/"like_count":(\d+)/);
+          const commentCountMatch = html.match(/"comment_count":(\d+)/);
+          if (viewCountMatch) views = parseInt(viewCountMatch[1], 10);
+          if (likeCountMatch) likes = parseInt(likeCountMatch[1], 10);
+          if (commentCountMatch) comments = parseInt(commentCountMatch[1], 10);
+        } else if (platform === "youtube") {
+          const viewCountMatch = html.match(/"viewCount":"(\d+)"/);
+          const likeCountMatch = html.match(/"defaultText":{"accessibility":{"accessibilityData":{"label":"([\d,]+) likes/);
+          if (viewCountMatch) views = parseInt(viewCountMatch[1], 10);
+          if (likeCountMatch) likes = parseInt(likeCountMatch[1].replace(/,/g, ''), 10);
+        }
+
+        if (views > 0 || likes > 0) {
+           isSuccess = true;
+           engagementRate = views > 0 ? ((likes + comments) / views) : 0;
+        } else {
+           errorMessage = "Could not parse metrics (private video or blocked platform)";
+        }
+      } catch (ex: any) {
+        errorMessage = ex.message || "Failed to fetch";
       }
-
-      if (views === 0 && likes === 0) {
-         throw new Error("Could not parse metrics (private video or blocked platform)");
-      }
-
-      const engagementRate = views > 0 ? ((likes + comments) / views) : 0;
 
       if (db) {
         // Find existing clipMetrics doc or create new
@@ -202,13 +207,14 @@ async function startServer() {
             likes,
             comments,
             engagementRate,
+            status: isSuccess ? 'active' : 'error',
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
           });
         } else {
           await db.collection('clipMetrics').add({
             clipLinkId,
             campaignId,
-            userId, // Workspace/User ID
+            userId,
             url,
             platform,
             clipId,
@@ -216,10 +222,15 @@ async function startServer() {
             likes,
             comments,
             engagementRate,
+            status: isSuccess ? 'active' : 'error',
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           });
         }
+      }
+
+      if (!isSuccess) {
+         return res.status(400).json({ error: errorMessage || "Unknown error parsing metrics" });
       }
 
       res.json({ views, likes, comments, engagementRate });
@@ -227,6 +238,149 @@ async function startServer() {
     } catch (err: any) {
       console.error("Clip extraction error:", err.message);
       res.status(500).json({ error: err.message || "Failed to fetch metrics" });
+    }
+  });
+
+  // Bulk Clip Refresh Endpoint
+  app.post("/api/clip-refresh-bulk", express.json(), async (req, res) => {
+    try {
+      const { clips, userId } = req.body;
+      if (!clips || !Array.isArray(clips) || !userId) {
+        return res.status(400).json({ error: "Missing parameters" });
+      }
+
+      console.log(`Starting bulk refresh for ${clips.length} clips for user ${userId}`);
+      
+      const clipsToProcess = clips.slice(0, 50);
+      
+      // Return immediately so the client doesn't time out
+      res.json({ success: true, message: "Processing in background", count: clipsToProcess.length });
+
+      // We process them in sequence in the background
+      (async () => {
+        for (const clip of clipsToProcess) {
+          try {
+            const { url, campaignId, clipLinkId } = clip;
+            
+            let platform = "unknown";
+            let clipId = "";
+            
+            let finalUrl = url;
+            // Handle mobile redirects (vt.tiktok.com etc)
+            if (url.includes("vt.tiktok.com") || url.includes("vm.tiktok.com") || url.includes("t.co")) {
+              try {
+                const headRes = await fetch(url, { method: 'HEAD', redirect: 'follow' });
+                finalUrl = headRes.url;
+              } catch (e) {
+                console.warn("Redirect follow failed for", url);
+              }
+            }
+
+            if (finalUrl.includes("tiktok.com")) {
+              platform = "tiktok";
+              const match = finalUrl.match(/video\/(\d+)/);
+              if (match) clipId = match[1];
+            } else if (finalUrl.includes("instagram.com")) {
+              platform = "instagram";
+              const match = finalUrl.match(/(?:reel|p)\/([a-zA-Z0-9_\-]+)/);
+              if (match) clipId = match[1];
+            } else if (finalUrl.includes("youtube.com/shorts")) {
+              platform = "youtube";
+              const match = finalUrl.match(/shorts\/([a-zA-Z0-9_\-]+)/);
+              if (match) clipId = match[1];
+            }
+
+            if (!clipId) {
+               // Generate a fallback clip ID just so it can be tracked/displayed in UI
+               clipId = "unknown_" + Math.random().toString(36).substring(7);
+            }
+
+            let existingDocRef: any = null;
+            // Check if already tracking this clipLinkId to avoid duplicates (unless pending)
+            if (db) {
+              const existing = await db.collection('clipMetrics')
+                .where('campaignId', '==', campaignId)
+                .where('url', '==', url)
+                .limit(1)
+                .get();
+              if (!existing.empty) {
+                 const docSnap = existing.docs[0];
+                 if (docSnap.data().status === 'active') {
+                   continue; // skip if already active
+                 } else {
+                   existingDocRef = docSnap.ref;
+                 }
+              }
+            }
+
+            const response = await fetch(url, {
+              headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+              }
+            });
+            
+            let views = 0, likes = 0, comments = 0;
+            let success = false;
+
+            if (response.ok) {
+              const html = await response.text();
+              if (platform === "tiktok") {
+                const playCountMatch = html.match(/"playCount":(\d+)/);
+                const diggCountMatch = html.match(/"diggCount":(\d+)/);
+                const commentCountMatch = html.match(/"commentCount":(\d+)/);
+                if (playCountMatch) views = parseInt(playCountMatch[1], 10);
+                if (diggCountMatch) likes = parseInt(diggCountMatch[1], 10);
+                if (commentCountMatch) comments = parseInt(commentCountMatch[1], 10);
+              } else if (platform === "instagram") {
+                const viewCountMatch = html.match(/"video_view_count":(\d+)/);
+                const likeCountMatch = html.match(/"like_count":(\d+)/);
+                if (viewCountMatch) views = parseInt(viewCountMatch[1], 10);
+                if (likeCountMatch) likes = parseInt(likeCountMatch[1], 10);
+              } else if (platform === "youtube") {
+                const viewCountMatch = html.match(/"viewCount":"(\d+)"/);
+                if (viewCountMatch) views = parseInt(viewCountMatch[1], 10);
+              }
+              if (views > 0 || likes > 0) success = true;
+            }
+
+            const engagementRate = views > 0 ? ((likes + comments) / views) : 0;
+            if (db) {
+              if (existingDocRef) {
+                 await existingDocRef.update({
+                   views, likes, comments, engagementRate, platform, clipId,
+                   status: success ? 'active' : 'error',
+                   updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                 });
+              } else {
+                 await db.collection('clipMetrics').add({
+                   clipLinkId,
+                   campaignId,
+                   userId,
+                   url,
+                   platform,
+                   clipId,
+                   views,
+                   likes,
+                   comments,
+                   engagementRate,
+                   createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                   updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                   status: success ? 'active' : 'error'
+                 });
+              }
+            }
+          } catch (e) {
+            console.error(`Failed to process bulk clip ${clip.url}:`, e);
+          }
+          // Small delay between requests to be nice
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        console.log(`Finished background processing of ${clipsToProcess.length} clips.`);
+      })();
+
+    } catch (err: any) {
+      console.error("Bulk refresh error:", err.message);
+      res.status(500).json({ error: "Bulk refresh failed" });
     }
   });
 
