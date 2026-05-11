@@ -142,7 +142,7 @@ export default function Landing() {
             </div>
             <div className="flex flex-col">
               <span className="font-black text-2xl tracking-tighter text-[var(--color-text)] leading-none">OpsRelic</span>
-              <span className="text-[10px] font-black text-[var(--color-primary)] tracking-[0.3em] uppercase mt-1 opacity-80">Agency OS</span>
+              <span className="text-[10px] font-black text-[var(--color-primary)] tracking-[0.3em] uppercase mt-1 opacity-80">Clipping & UGC Agency OS</span>
             </div>
           </a>
 
@@ -193,11 +193,11 @@ export default function Landing() {
               </div>
               
               <h1 className="text-5xl sm:text-6xl lg:text-[84px] font-black tracking-[-0.07em] lg:tracking-[-0.08em] leading-[0.88] mb-8 text-[var(--color-text)]">
-                The core OS <br className="hidden lg:block" /> for clipping <br className="hidden lg:block" /> agencies.
+                The core OS <br className="hidden lg:block" /> for Clipping & <br className="hidden lg:block" /> UGC Agencies.
               </h1>
               
               <p className="text-lg lg:text-xl text-[var(--color-text-muted)] leading-relaxed mb-12 max-w-lg font-medium opacity-85">
-                Stop managing $100k campaigns in $0 spreadsheets. OpsRelic provides the operational layer for high-density reporting, client portals, and workspace management.
+                Stop managing $100k campaigns in $0 spreadsheets. OpsRelic provides the professional operational layer for high-density reporting, branded client portals, and multi-workspace management.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-5 mb-16 lg:mb-20">
@@ -409,7 +409,7 @@ export default function Landing() {
             <div className="text-[var(--color-text-muted)] space-y-6 leading-relaxed">
               <p>Most clipping and creator-campaign agencies are excellent at the work and exhausted by the ops.</p>
               <p>The campaign happens fine — clippers post, views land, payouts go out. The problem is what comes after: pulling the numbers from five places, stitching them into a deck, screen-recording a dashboard, sending a screenshot, and waiting for the next "any update?" Slack ping.</p>
-              <p className="font-bold text-[var(--color-text)]">OpsRelic exists to give that whole layer back to you. One workspace. One report. One portal. Built by someone who lived the chaos at a clipping agency and finally decided to fix it instead of working around it.</p>
+              <p className="font-bold text-[var(--color-text)]">OpsRelic exists to give that whole layer back to you. One workspace. One report. One portal. Built by someone who lived the chaos at clipping and UGC agencies and finally decided to fix it instead of working around it.</p>
             </div>
           </div>
         </div>
