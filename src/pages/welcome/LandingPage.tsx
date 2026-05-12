@@ -186,27 +186,28 @@ export default function Landing() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
             >
-              <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-[var(--color-primary)] text-[10px] font-black uppercase tracking-[0.3em] mb-8 shadow-sm">
-                <div className="w-2 h-2 rounded-full bg-[var(--color-primary)] animate-pulse shadow-[0_0_8px_var(--color-primary)]" /> 
-                OpsRelic v1: Clipping & UGC Agency OS
-              </div>
-              
-              <h1 className="text-5xl sm:text-6xl lg:text-[76px] font-black tracking-[-0.07em] lg:tracking-[-0.08em] leading-[0.9] mb-8 text-[var(--color-text)]">
-                The Operating System <br className="hidden lg:block" /> for Clipping Agency <br className="hidden lg:block" /> & UGC Teams.
-              </h1>
-              
-              <p className="text-lg lg:text-xl text-[var(--color-text-muted)] leading-relaxed mb-12 max-w-lg font-medium opacity-85">
-                Centralize your agency operations. From raw performance metrics to branded client portals, OpsRelic v1 provides the infrastructure for professional clipping and UGC teams to report fast, stay organized, and scale efficiently.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-5 mb-16 lg:mb-20">
-                <a href="#waitlist" className="h-[64px] px-10 rounded-2xl bg-[var(--color-primary)] text-[var(--color-text-inverse)] font-black flex items-center justify-center shadow-[0_16px_32px_-8px_var(--color-primary-soft-2)] hover:scale-[1.02] hover:brightness-110 active:scale-95 transition-all text-xl group relative overflow-hidden">
-                  <span className="relative z-10 flex items-center gap-2">
-                    Request Access <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
-                  </span>
-                  <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </a>
-              </div>
+                <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-[var(--color-primary)] text-[10px] font-black uppercase tracking-[0.3em] mb-8 shadow-sm">
+                  <div className="w-2 h-2 rounded-full bg-[var(--color-primary)] animate-pulse shadow-[0_0_8px_var(--color-primary)]" /> 
+                  OpsRelic v1: Clipping & UGC Agency OS
+                </div>
+                
+                <h1 className="text-5xl sm:text-6xl lg:text-[76px] font-black tracking-[-0.07em] lg:tracking-[-0.08em] leading-[0.9] mb-8 text-[var(--color-text)]">
+                  The Operating System for <br className="hidden lg:block" /> 
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)]">Clipping Agency & UGC Teams.</span>
+                </h1>
+                
+                <p className="text-lg lg:text-xl text-[var(--color-text-muted)] leading-relaxed mb-12 max-w-lg font-medium opacity-85">
+                  Centralize your agency operations. From raw performance metrics to branded client portals, OpsRelic v1 provides the infrastructure for professional clipping and UGC teams to report fast, stay organized, and scale efficiently.
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-5 mb-16 lg:mb-20">
+                  <a href="#waitlist" className="h-[64px] px-10 rounded-2xl bg-[var(--color-primary)] text-[var(--color-text-inverse)] font-black flex items-center justify-center shadow-[0_16px_32px_-8px_var(--color-primary-soft-2)] hover:scale-[1.02] hover:brightness-110 active:scale-95 transition-all text-xl group relative overflow-hidden">
+                    <span className="relative z-10 flex items-center gap-2">
+                      Request Access <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
+                    </span>
+                    <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </a>
+                </div>
             </motion.div>
           </div>
 
@@ -228,7 +229,7 @@ export default function Landing() {
             <p className="text-lg text-[var(--color-text-muted)]">From intake to final portal delivery, manage every aspect of your agency inside OpsRelic.</p>
           </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               { icon: Building, title: 'Agency Home & Operations', desc: 'A command center for your entire agency. Get real-time alerts, monitor team activity, and manage workspace settings all in one view.' },
               { icon: Users, title: 'Client & Campaign Management', desc: 'Store campaign briefs, asset libraries, targets, and deliverable status. Keep everything related to a client organized.' },
@@ -237,11 +238,15 @@ export default function Landing() {
               { icon: Layers, title: 'Centralized Brand Assets', desc: 'A unified library for agency-wide brand assets, logos, and campaign templates for quick access.' },
               { icon: MessageSquare, title: 'Streamlined Intake & Workflow', desc: 'Stop managing campaign updates via email. Use standardized intake and automated status updates to align the team.' }
             ].map((cap, i) => (
-              <div key={i} className="p-8 rounded-[32px] border border-[var(--color-border)] bg-[var(--color-bg)] hover:shadow-lg transition-all">
-                <cap.icon className="w-10 h-10 text-[var(--color-primary)] mb-6" />
-                <h3 className="text-xl font-bold mb-3 tracking-tight">{cap.title}</h3>
+              <motion.div 
+                key={i} 
+                whileHover={{ y: -10 }}
+                className="p-8 rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface-2)] hover:border-[var(--color-primary)] hover:shadow-lg transition-all cursor-pointer group"
+              >
+                <cap.icon className="w-10 h-10 text-[var(--color-primary)] mb-6 group-hover:scale-110 transition-transform" />
+                <h3 className="text-xl font-bold mb-3 tracking-tight group-hover:text-[var(--color-primary)] transition-colors">{cap.title}</h3>
                 <p className="text-[var(--color-text-muted)] text-sm leading-relaxed">{cap.desc}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
