@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AppState, CsvRow, WorkspaceSettings } from '../types';
 import { auth, db } from './firebase';
-import { collection, query, where, onSnapshot, doc, setDoc, getDocFromServer } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, setDoc, getDocFromServer, or } from 'firebase/firestore';
 import { PLANS, Tier, Plan, PlanFeatures, PlanLimits } from './plans';
 
 enum OperationType {
@@ -56,6 +56,7 @@ interface AppContextType extends AppState {
   getCampaignName: (id: string) => string;
   showPricing: boolean;
   setShowPricing: (show: boolean) => void;
+  activeWorkspaceId: string | null;
   portalContext: { active: boolean; campaignId: string | null; ownerId: string | null; authorized: boolean; authorize: (pw: string) => Promise<boolean>; loading: boolean };
 }
 
@@ -87,6 +88,9 @@ const defaultState: AppState = {
     }
   ],
   workspace: defaultWorkspace,
+  activeWorkspace: null,
+  workspaceMembers: [],
+  workspaceFiles: [],
   clipMetrics: [],
   currentTier: undefined, 
   reportsGeneratedMonth: 0,
@@ -106,6 +110,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [userId, setUserId] = useState<string | null>(null);
   const [campaignsList, setCampaignsList] = useState<any[]>([]);
   const [showPricing, setShowPricing] = useState(false);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
   const [portalContext, setPortalContext] = useState<{ active: boolean; campaignId: string | null; ownerId: string | null; authorized: boolean; loading: boolean }>({
     active: false,
     campaignId: null,
@@ -201,6 +206,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // Connection Test
+    if (!activeWorkspaceId && effectiveUserId) {
+        setActiveWorkspaceId(effectiveUserId);
+    }
+
     const testConnection = async () => {
       try {
         // Small delay to ensure auth is settled
@@ -223,6 +232,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             setState(prev => ({ ...prev, currentTier: 'agency', userRole: 'agency', reportsGeneratedMonth: 0 }));
         } else if (docSnap.exists()) {
             const userData = docSnap.data();
+            
+            const wId = userData.workspaceId || effectiveUserId;
+            if (activeWorkspaceId !== wId) {
+                setActiveWorkspaceId(wId);
+            }
+            
             setState(prev => ({ 
               ...prev, 
               currentTier: userData.plan, 
@@ -232,6 +247,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             }));
         } else {
             // No plan set for user
+            if (activeWorkspaceId !== effectiveUserId) {
+                setActiveWorkspaceId(effectiveUserId);
+            }
             setState(prev => ({ ...prev, currentTier: undefined, userRole: portalContext.active ? 'client' : 'agency', reportsGeneratedMonth: 0 }));
         }
     }, (error) => {
@@ -239,7 +257,40 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
 
     // Fetch workspace settings
-    const workspaceDocRef = doc(db, 'workspaces', effectiveUserId);
+    const wId = activeWorkspaceId || effectiveUserId;
+    
+    // Also fetch Workspace metadata, WorkspaceMembers, and WorkspaceFiles
+    const unsubscribeWorkspaceFiles = onSnapshot(
+      query(collection(db, 'workspaceFiles'), where('workspaceId', '==', wId)),
+      (snapshot) => {
+        const files: any[] = [];
+        snapshot.forEach(doc => files.push({ id: doc.id, ...doc.data() }));
+        setState(prev => ({ ...prev, workspaceFiles: files }));
+      },
+      (error) => handleFirestoreError(error, OperationType.LIST, 'workspaceFiles')
+    );
+
+    const unsubscribeWorkspaceMembers = onSnapshot(
+      query(collection(db, 'workspaceMembers'), where('workspaceId', '==', wId)),
+      (snapshot) => {
+        const members: any[] = [];
+        snapshot.forEach(doc => members.push({ id: doc.id, ...doc.data() }));
+        setState(prev => ({ ...prev, workspaceMembers: members }));
+      },
+      (error) => handleFirestoreError(error, OperationType.LIST, 'workspaceMembers')
+    );
+
+    const unsubscribeActiveWorkspace = onSnapshot(
+      doc(db, 'workspaces_metadata', wId),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setState(prev => ({ ...prev, activeWorkspace: { id: docSnap.id, ...docSnap.data() } as any }));
+        }
+      },
+      (error) => handleFirestoreError(error, OperationType.GET, `workspaces_metadata/${wId}`)
+    );
+
+    const workspaceDocRef = doc(db, 'workspaces', wId);
     const unsubscribeWorkspace = onSnapshot(workspaceDocRef, (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data() as WorkspaceSettings;
@@ -251,7 +302,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
 
     const qCampaigns = !portalContext.active && userId
-      ? query(collection(db, 'campaigns'), where('userId', '==', userId))
+      ? query(collection(db, 'campaigns'), or(where('workspaceId', '==', wId), where('userId', '==', wId)))
       : null;
 
     const unsubscribeCampaigns = qCampaigns ? onSnapshot(qCampaigns, (snapshot) => {
@@ -265,7 +316,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }) : () => {};
 
     const qClients = !portalContext.active && userId
-      ? query(collection(db, 'clients'), where('userId', '==', userId))
+      ? query(collection(db, 'clients'), or(where('workspaceId', '==', wId), where('userId', '==', wId)))
       : null;
 
     const unsubscribeClients = qClients ? onSnapshot(qClients, (snapshot) => {
@@ -280,7 +331,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const qBriefs = portalContext.active && portalContext.campaignId
       ? query(collection(db, 'campaign_briefs'), where('campaignId', '==', portalContext.campaignId))
-      : query(collection(db, 'campaign_briefs'), where('userId', '==', effectiveUserId));
+      : query(collection(db, 'campaign_briefs'), or(where('workspaceId', '==', wId), where('userId', '==', wId)));
 
     const unsubscribeBriefs = onSnapshot(qBriefs, (snapshot) => {
       const list: any[] = [];
@@ -294,11 +345,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const qSubmissions = portalContext.active && portalContext.campaignId
       ? query(collection(db, 'submissions'), where('userId', '==', effectiveUserId), where('campaignId', '==', portalContext.campaignId))
-      : query(collection(db, 'submissions'), where('userId', '==', effectiveUserId));
+      : query(collection(db, 'submissions'), or(where('workspaceId', '==', wId), where('userId', '==', wId)));
 
     const qUpdates = portalContext.active && portalContext.campaignId
       ? query(collection(db, 'campaign_updates'), where('campaignId', 'in', ['All', portalContext.campaignId]), where('clientVisible', '==', true))
-      : query(collection(db, 'campaign_updates'), where('authorId', '==', effectiveUserId));
+      : query(collection(db, 'campaign_updates'), or(where('workspaceId', '==', wId), where('authorId', '==', wId)));
 
     const unsubscribeUpdates = onSnapshot(qUpdates, (snapshot) => {
       const list: any[] = [];
@@ -314,6 +365,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const unsubscribeSubmissions = onSnapshot(qSubmissions, (snapshot) => {
       const data: CsvRow[] = [];
+      console.log(`[AppProvider] Snapshot: submissions, size: ${snapshot.size}`); 
       snapshot.forEach(doc => {
         const row = doc.data() as any;
         
@@ -351,10 +403,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const qMetrics = portalContext.active && portalContext.campaignId
       ? query(collection(db, 'clipMetrics'), where('campaignId', '==', portalContext.campaignId))
-      : query(collection(db, 'clipMetrics'), where('userId', '==', effectiveUserId));
+      : query(collection(db, 'clipMetrics'), or(where('workspaceId', '==', wId), where('userId', '==', wId)));
 
     const unsubscribeMetrics = onSnapshot(qMetrics, (snapshot) => {
       const metrics: any[] = [];
+      console.log(`[AppProvider] Snapshot: clipMetrics, size: ${snapshot.size}`);
       snapshot.forEach(doc => {
         metrics.push({ id: doc.id, ...doc.data() });
       });
@@ -374,8 +427,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
        unsubscribeClients();
        unsubscribeUser();
        unsubscribeWorkspace();
+       unsubscribeWorkspaceFiles();
+       unsubscribeWorkspaceMembers();
+       unsubscribeActiveWorkspace();
     };
-  }, [userId, portalContext.active, portalContext.ownerId, portalContext.authorized, portalContext.campaignId]);
+  }, [userId, portalContext.active, portalContext.ownerId, portalContext.authorized, portalContext.campaignId, activeWorkspaceId]);
 
   const setData = async (newData: CsvRow[]) => {
     setState(prev => ({ ...prev, data: newData }));
@@ -475,12 +531,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     getCampaignName,
     showPricing,
     setShowPricing,
+    activeWorkspaceId,
     portalContext: { ...portalContext, authorize: authorizePortal }
   }), [
     state,
     campaignsList,
     currentPlan,
     showPricing,
+    activeWorkspaceId,
     portalContext
   ]);
 

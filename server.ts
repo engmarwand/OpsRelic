@@ -8,6 +8,40 @@ import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 import fs from "fs";
 
+/**
+ * ==========================================
+ * NEW WORKSPACE SYSTEM DOCUMENTATION
+ * ==========================================
+ * 
+ * We added a workspace system to group Teams and Assets, preserving legacy data access.
+ * 
+ * ## Core Invariants & Logic
+ * 1. A `Workspace` represents an agency account.
+ * 2. Every user `userDoc` references a `workspaceId` (or implicitly uses their `uid` as the `workspaceId` for owners).
+ * 3. All UI queries use an `or()` structure to safely fetch legacy OR workspace documents:
+ *    `or(where('workspaceId', '==', wId), where('userId', '==', wId))`
+ *    This ensures that when a user creates entities, they attach a `workspaceId`, but they still see older files that only have a `userId`.
+ * 
+ * ## Entities Added:
+ * - `Workspace` (Collection `workspaces_metadata`):
+ *   { id, name, createdAt, updatedAt }
+ * 
+ * - `WorkspaceMember` (Collection `workspaceMembers`):
+ *   { workspaceId, userId, email, role: 'OWNER'|'MANAGER'|'MEMBER'|'VIEWER', status: 'pending'|'active'}
+ * 
+ * - `WorkspaceFile` (Collection `workspaceFiles`):
+ *   { workspaceId, campaignId, name, url, type: 'link'|'file', uploadedBy: uid }
+ * 
+ * ## Security Rules Expectations (for future reference)
+ * - `workspaces_metadata`: Read requires user to be in `workspaceMembers` for that `workspaceId`.
+ * - `workspaceMembers`: Read requires user to be the invited email or a member of the workspace. Only `MANAGER`/`OWNER` can create/delete.
+ * - `workspaceFiles`: Read/Write requires user to be a member of the workspace with matching `workspaceId`.
+ * - For existing entities (`campaigns`, `clients`): Expand rules to check: 
+ *   `resource.data.workspaceId == userWorkspaceId` OR `resource.data.userId == user.uid`.
+ * 
+ * ==========================================
+ */
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

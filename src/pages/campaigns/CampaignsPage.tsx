@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useAppContext } from '../../lib/store';
 import { 
   FolderOpen, Plus, Search, ChevronRight, BarChart2, Bell, ExternalLink, Settings, 
-  TrendingUp, Users, Target, Key, Lock, ArrowLeft, Copy, RefreshCw, AlertTriangle
+  TrendingUp, Users, Target, Key, Lock, ArrowLeft, Copy, RefreshCw, AlertTriangle, Link2, FileText, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Campaign, CampaignStatus } from '../../types';
@@ -10,10 +10,10 @@ import { cn } from '../../lib/utils';
 import Chart from 'chart.js/auto';
 import { db, auth } from '../../lib/firebase';
 import { useToast } from '../../lib/toast';
-import { collection, addDoc, updateDoc, doc, deleteDoc, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, deleteDoc, query, where, onSnapshot, getDocs, writeBatch } from 'firebase/firestore';
 
 export default function CampaignsPage() {
-  const { data, campaignsList, clients, updates, briefs, workspace, clipMetrics: globalClipMetrics } = useAppContext();
+  const { data, campaignsList, clients, updates, briefs, workspaceFiles, workspace, clipMetrics: globalClipMetrics, activeWorkspaceId } = useAppContext();
   const { addToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
@@ -41,6 +41,7 @@ export default function CampaignsPage() {
         url: clipUrl,
         campaignId: selectedCampaign.id,
         userId: auth.currentUser?.uid,
+        workspaceId: activeWorkspaceId || auth.currentUser?.uid,
         status: 'active',
         views: 0,
         likes: 0,
@@ -58,45 +59,14 @@ export default function CampaignsPage() {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'performance' | 'updates' | 'portal' | 'settings'>('overview');
-  const [isEditingOverview, setIsEditingOverview] = useState(false);
-  const [overviewForm, setOverviewForm] = useState<Partial<Campaign>>({});
-
-  useEffect(() => {
-    if (selectedCampaign) {
-      setOverviewForm({
-        name: selectedCampaign.name,
-        status: selectedCampaign.status,
-        startDate: selectedCampaign.startDate || '',
-        endDate: selectedCampaign.endDate || ''
-      });
-    }
-  }, [selectedCampaign]);
-
-  const handleSaveOverview = async () => {
-    if (!selectedCampaign || !overviewForm.name) return;
-    try {
-      await updateDoc(doc(db, 'campaigns', selectedCampaign.id), {
-        ...overviewForm,
-        updatedAt: new Date().toISOString()
-      });
-      addToast("Campaign updated", "success");
-      setSelectedCampaign(prev => prev ? { ...prev, ...overviewForm } as Campaign : null);
-      setIsEditingOverview(false);
-    } catch (err) {
-      addToast("Update failed", "error");
-    }
-  };
-
-
   const [isCreating, setIsCreating] = useState(false);
-  const [newCampaign, setNewCampaign] = useState({ name: '', clientId: '', status: 'Active' as CampaignStatus });
+  const [newCampaign, setNewCampaign] = useState<Partial<Campaign>>({ name: '', clientId: '', status: 'Active' as CampaignStatus, budget: undefined, cpm: undefined });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.split('?')[1]);
     const forClient = params.get('new_for_client');
     if (forClient) {
-      setNewCampaign(prev => ({ ...prev, clientId: forClient }));
+      setNewCampaign({ name: '', clientId: forClient, status: 'Active', budget: undefined, cpm: undefined });
       setIsCreating(true);
       window.history.replaceState(null, '', window.location.pathname + '#campaigns');
     } else if (params.get('new') === 'true') {
@@ -112,11 +82,12 @@ export default function CampaignsPage() {
       await addDoc(collection(db, 'campaigns'), {
         ...newCampaign,
         userId: auth.currentUser?.uid,
+        workspaceId: activeWorkspaceId || auth.currentUser?.uid,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
       setIsCreating(false);
-      setNewCampaign({ name: '', clientId: '', status: 'Active' });
+      setNewCampaign({ name: '', clientId: '', status: 'Active' as CampaignStatus, budget: undefined, cpm: undefined });
       addToast("Campaign created successfully", "success");
     } catch (err) {
       console.error("Failed to create campaign", err);
@@ -138,16 +109,35 @@ export default function CampaignsPage() {
     const campaignName = selectedCampaign.name.toLowerCase();
     
     return data.filter(r => {
-      // Check for direct ID match (Campaign column or _campaignId in the mapped store object)
-      if (r.Campaign === campaignId || r._campaignId === campaignId) return true;
+      // Check for direct ID match
+      if (r._campaignId === campaignId || r.Campaign === campaignId) return true;
       
-      // Check for name match (case-insensitive)
+      // Check for name match (case-insensitive) if Campaign is a string name
       const rowCampaign = String(r.Campaign || '').toLowerCase();
       if (rowCampaign === campaignName) return true;
       
       return false;
     });
   }, [selectedCampaign, data]);
+
+  const campaignStats = useMemo(() => {
+    if (!selectedCampaign) return { views: 0, likes: 0, assets: 0, csvUrls: new Set<string>() };
+    
+    const csvUrls = new Set(campaignData.map(r => r["Submission URL"]).filter(Boolean));
+    
+    // Sum views from CSV data
+    let totalViews = campaignData.reduce((s, r) => s + (r.Views || 0), 0);
+    let totalLikes = campaignData.reduce((s, r) => s + (r.Likes || 0), 0);
+    
+    // Sum unique assets from both sources
+    const standaloneClips = campaignClipMetrics.filter(c => !c.url || !csvUrls.has(c.url));
+    totalViews += standaloneClips.reduce((s, c) => s + (c.views || 0), 0);
+    totalLikes += standaloneClips.reduce((s, c) => s + (c.likes || 0), 0);
+    
+    const totalAssets = campaignData.length + standaloneClips.length;
+    
+    return { views: totalViews, likes: totalLikes, assets: totalAssets, csvUrls };
+  }, [campaignData, campaignClipMetrics, selectedCampaign]);
 
   const formatViews = (val: number) => {
     if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M';
@@ -167,6 +157,7 @@ export default function CampaignsPage() {
       await addDoc(collection(db, 'campaign_updates'), {
         campaignId: selectedCampaign.id,
         authorId: auth.currentUser?.uid,
+        workspaceId: activeWorkspaceId || auth.currentUser?.uid,
         authorName: auth.currentUser?.displayName || 'Agency Agent',
         content: updateContent,
         timestamp: new Date().toISOString(),
@@ -215,6 +206,62 @@ export default function CampaignsPage() {
     }
   };
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const handleDeleteCampaign = async (id: string) => {
+    // We already confirmed if this is called and confirmDeleteId is null
+    setConfirmDeleteId(null);
+    setDeletingId(id);
+    console.log("Starting deletion for campaign:", id);
+    addToast("Deleting campaign and related data...", "info");
+    try {
+      // 1. Cleanup related data
+      const relatedCollections = [
+        'campaign_updates',
+        'clipMetrics',
+        'campaign_briefs',
+        'workspaceFiles',
+        'submissions'
+      ];
+
+      const cleanupPromises = relatedCollections.map(async (colName) => {
+        try {
+          const q = query(collection(db, colName), where('campaignId', '==', id));
+          const snap = await getDocs(q);
+          console.log(`[Cleanup] Found ${snap.size} documents in ${colName} for campaignId: ${id}`);
+          if (!snap.empty) {
+            const batch = writeBatch(db);
+            snap.docs.forEach(d => {
+              console.log(`[Cleanup] Deleting doc: ${d.id} from ${colName}`);
+              batch.delete(d.ref);
+            });
+            await batch.commit();
+            console.log(`[Cleanup] Deleted ${snap.size} documents from ${colName}`);
+          }
+        } catch (e) {
+          console.warn(`Cleanup partially failed for ${colName}`, e);
+        }
+      });
+
+      await Promise.all(cleanupPromises);
+      
+      // 2. Delete campaign document itself
+      await deleteDoc(doc(db, 'campaigns', id));
+      console.log("Main campaign document deleted");
+      
+      addToast("Campaign deleted permanently", "success");
+      if (selectedCampaign?.id === id) {
+        setSelectedCampaign(null);
+      }
+    } catch (err: any) {
+      console.error("Delete campaign failed:", err);
+      addToast(`Failed to delete campaign: ${err.message || 'Unknown error'}`, "error");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const getCampaignColor = (idx: number) => {
     const list = [
       { gradient: 'linear-gradient(135deg, #00d4e8, #007b8a)' },
@@ -254,7 +301,6 @@ export default function CampaignsPage() {
     
     setIsRefreshingAll(true);
     try {
-      // Loop through all clips and mark as pending for sync
       for (const clip of campaignClipMetrics) {
         await updateDoc(doc(db, 'clipMetrics', clip.id), {
           updatedAt: new Date().toISOString(),
@@ -270,15 +316,26 @@ export default function CampaignsPage() {
   };
 
   useEffect(() => {
-    if (activeTab === 'performance' && chartRef.current) {
+    if (selectedCampaign && chartRef.current) {
       if (chartInstance.current) {
         chartInstance.current.destroy();
       }
       
       const viewsByDate: Record<string, number> = {};
-      [...campaignData].sort((a,b) => new Date(a["Submission Date"]).getTime() - new Date(b["Submission Date"]).getTime()).forEach(r => {
-        const d = new Date(r["Submission Date"]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        viewsByDate[d] = (viewsByDate[d] || 0) + r.Views;
+      
+      const allActivity = [
+        ...campaignData.map(r => ({ date: r["Submission Date"], views: r.Views || 0 })),
+        ...campaignClipMetrics
+          .filter(c => !c.url || !campaignStats.csvUrls.has(c.url))
+          .map(c => ({ 
+            date: c.createdAt?.toDate ? c.createdAt.toDate().toISOString().split('T')[0] : (c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]), 
+            views: c.views || 0 
+          }))
+      ];
+
+      allActivity.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).forEach(item => {
+        const d = new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        viewsByDate[d] = (viewsByDate[d] || 0) + item.views;
       });
 
       const labels = Object.keys(viewsByDate);
@@ -317,7 +374,7 @@ export default function CampaignsPage() {
         });
       }
     }
-  }, [activeTab, campaignData]);
+  }, [selectedCampaign, campaignData, campaignClipMetrics, campaignStats.csvUrls]);
 
 
   return (
@@ -399,8 +456,52 @@ export default function CampaignsPage() {
                           </span>
                         </td>
                         <td className="px-5 py-[18px] text-right">
-                          <div className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-[var(--color-surface2)] text-muted hover:bg-[var(--color-cyan-dim)] hover:text-[var(--color-cyan)] transition-colors">
-                            <ChevronRight className="w-4 h-4" />
+                          <div className="flex items-center justify-end gap-2">
+                            {confirmDeleteId === camp.id ? (
+                              <div className="flex items-center gap-1 bg-[var(--color-red-dim)] rounded-md p-1 border border-[rgba(255,0,0,0.2)]">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteCampaign(camp.id);
+                                  }}
+                                  className="px-2 py-1 text-[10px] font-bold text-[var(--color-red)] hover:bg-red-500/20 rounded transition-colors"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setConfirmDeleteId(null);
+                                  }}
+                                  className="px-2 py-1 text-[10px] font-bold text-muted hover:text-[var(--color-text-main)] transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  console.log("[Campaigns] Confirming delete for ID:", camp.id);
+                                  setConfirmDeleteId(camp.id);
+                                }}
+                                disabled={deletingId === camp.id}
+                                className={cn(
+                                  "w-8 h-8 rounded-md flex items-center justify-center transition-all active:scale-95",
+                                  deletingId === camp.id ? "text-faint bg-[var(--color-surface3)]" : "text-muted hover:bg-red-500/10 hover:text-red-500"
+                                )}
+                                title="Delete Campaign"
+                              >
+                                {deletingId === camp.id ? (
+                                  <RefreshCw className="w-3.5 h-3.5 animate-spin pointer-events-none" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4 pointer-events-none" />
+                                )}
+                              </button>
+                            )}
+                            <div className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-[var(--color-surface2)] text-muted hover:bg-[var(--color-cyan-dim)] hover:text-[var(--color-cyan)] transition-colors">
+                              <ChevronRight className="w-4 h-4" />
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -423,420 +524,326 @@ export default function CampaignsPage() {
                    </div>
                    <div>
                      <h1 className="font-display text-xl font-extrabold text-[var(--color-text-main)] mb-[2px]">{selectedCampaign.name}</h1>
-                     <div className="text-xs text-muted">{clients.find(c => c.id === selectedCampaign.clientId)?.name || 'Legacy Client'}</div>
+                     <div className="text-xs text-muted font-medium">{clients.find(c => c.id === selectedCampaign.clientId)?.name || 'Legacy Client'} • {selectedCampaign.status}</div>
                    </div>
                  </div>
               </div>
 
-              <div className="flex bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-lg p-1 overflow-x-auto no-scrollbar">
-                 {[
-                    { id: 'overview', label: 'Overview', icon: Target },
-                    { id: 'performance', label: 'Performance', icon: BarChart2 },
-                    { id: 'updates', label: 'Updates', icon: Bell },
-                    { id: 'portal', label: 'Portal', icon: ExternalLink },
-                    { id: 'settings', label: 'Settings', icon: Settings }
-                 ].map(tab => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id as any)}
-                      className={cn("px-3 py-[6px] text-xs font-semibold rounded-md transition-colors flex items-center gap-[6px]", activeTab === tab.id ? "bg-[var(--color-surface2)] text-[var(--color-text-main)] shadow-sm" : "text-muted hover:text-[var(--color-text-main)]")}
-                    >
-                      <tab.icon className={cn("w-[14px] h-[14px]", activeTab === tab.id ? "text-[var(--color-cyan)]" : "")} />
-                      {tab.label}
-                    </button>
-                 ))}
+              <div className="flex items-center gap-2">
+                <button 
+                   onClick={handleRefreshAll}
+                   disabled={isRefreshingAll}
+                   className="btn btn-primary btn-sm"
+                >
+                  <RefreshCw className={cn("w-3.5 h-3.5", isRefreshingAll && "animate-spin")} /> Update All Metrics
+                </button>
               </div>
             </div>
 
-            {activeTab === 'overview' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                 <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
-                   <div className="flex justify-between items-center mb-[14px]">
-                     <div className="font-display text-md font-bold text-[var(--color-text-main)]">Campaign Details</div>
-                     {!isEditingOverview ? (
-                       <button onClick={() => setIsEditingOverview(true)} className="btn btn-ghost btn-sm">Edit</button>
-                     ) : (
-                       <div className="flex gap-2">
-                         <button onClick={() => setIsEditingOverview(false)} className="btn btn-ghost btn-sm">Cancel</button>
-                         <button onClick={handleSaveOverview} className="btn btn-primary btn-sm">Save</button>
+            <div className="space-y-6">
+              {/* Stats Row */}
+              {(() => {
+                const totalViews = campaignStats.views;
+                const totalLikes = campaignStats.likes;
+                const totalAssets = campaignStats.assets;
+                const payout = selectedCampaign.cpm ? (totalViews / 1000) * selectedCampaign.cpm : 0;
+                const budget = selectedCampaign.budget || 0;
+                const budgetPercent = budget > 0 ? (payout / budget) * 100 : 0;
+
+                return (
+                  <div className="flex flex-col gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                       <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
+                          <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Total Views</div>
+                          <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(totalViews)}</div>
                        </div>
-                     )}
-                   </div>
-                   
-                   {isEditingOverview ? (
-                     <div className="space-y-4">
-                       <div className="flex flex-col gap-[5px]">
-                         <label className="text-xs font-bold text-muted uppercase">Campaign Name</label>
-                         <input value={overviewForm.name||''} onChange={e=>setOverviewForm({...overviewForm, name: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-2 text-sm text-[var(--color-text-main)] focus:border-[var(--color-cyan)] outline-none" />
+                       <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
+                          <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Total Assets</div>
+                          <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">{totalAssets}</div>
                        </div>
-                       <div className="flex flex-col gap-[5px]">
-                         <label className="text-xs font-bold text-muted uppercase">Status</label>
-                         <select value={overviewForm.status||'Active'} onChange={e=>setOverviewForm({...overviewForm, status: e.target.value as CampaignStatus})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-2 text-sm text-[var(--color-text-main)] focus:border-[var(--color-cyan)] outline-none cursor-pointer">
-                           <option value="Draft">Draft</option>
-                           <option value="Active">Active</option>
-                           <option value="Complete">Complete</option>
-                         </select>
+                       <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
+                          <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Total Likes</div>
+                          <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(totalLikes)}</div>
                        </div>
-                       <div className="grid grid-cols-2 gap-4">
-                         <div className="flex flex-col gap-[5px]">
-                           <label className="text-xs font-bold text-muted uppercase">Start Date</label>
-                           <input type="date" value={overviewForm.startDate||''} onChange={e=>setOverviewForm({...overviewForm, startDate: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-2 text-sm text-[var(--color-text-main)] focus:border-[var(--color-cyan)] outline-none" />
-                         </div>
-                         <div className="flex flex-col gap-[5px]">
-                           <label className="text-xs font-bold text-muted uppercase">End Date</label>
-                           <input type="date" value={overviewForm.endDate||''} onChange={e=>setOverviewForm({...overviewForm, endDate: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-2 text-sm text-[var(--color-text-main)] focus:border-[var(--color-cyan)] outline-none" />
-                         </div>
-                       </div>
-                     </div>
-                   ) : (
-                     <>
-                       <div className="text-sm text-muted mb-4 leading-relaxed">
-                         This campaign drives distribution for {clients.find(c=>c.id===selectedCampaign.clientId)?.name||'client'}. Track high-level metrics and delivery targets here.
-                       </div>
-                       <div className="grid grid-cols-2 gap-3 mt-4">
-                          <div className="bg-[var(--color-surface2)] rounded-xl p-4 border border-[var(--color-border-subtle)] flex flex-col justify-between">
-                             <div className="text-xs font-bold text-muted uppercase tracking-[0.07em] mb-1">Status & Dates</div>
-                             <div className="text-sm font-semibold text-[var(--color-text-main)] mb-1">{selectedCampaign.status}</div>
-                             {selectedCampaign.startDate && <div className="text-xs text-muted">From: {selectedCampaign.startDate}</div>}
-                             {selectedCampaign.endDate && <div className="text-xs text-muted">To: {selectedCampaign.endDate}</div>}
-                          </div>
-                          <div className="bg-[var(--color-surface2)] rounded-xl p-4 border border-[var(--color-border-subtle)]">
-                             <div className="text-xs font-bold text-muted uppercase tracking-[0.07em] mb-1">Total Views</div>
-                             <div className="font-display text-xl font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(campaignData.reduce((s, r) => s + r.Views, 0) + campaignClipMetrics.reduce((s, c) => s + (c.views || 0), 0))}</div>
-                          </div>
-                          <div className="bg-[var(--color-surface2)] rounded-xl p-4 border border-[var(--color-border-subtle)] col-span-2">
-                             <div className="text-xs font-bold text-muted uppercase tracking-[0.07em] mb-1">Assets & Links</div>
-                             <div className="font-display text-xl font-extrabold text-[var(--color-text-main)] tabular-nums">{(() => {
-                               const csvUrls = new Set(campaignData.map(r => r["Submission URL"]).filter(Boolean));
-                               const standaloneClips = campaignClipMetrics.filter(c => !c.url || !csvUrls.has(c.url)).length;
-                               return campaignData.length + standaloneClips;
-                             })()}</div>
+                       <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
+                          <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Avg. per Clip</div>
+                          <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">
+                            {totalAssets > 0 ? formatViews(Math.round(totalViews / totalAssets)) : '0'}
                           </div>
                        </div>
-                     </>
-                   )}
-                 </div>
-
-                 <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
-                   <div className="font-display text-md font-bold text-[var(--color-text-main)] mb-[14px]">Latest Activity</div>
-                   <div className="flex flex-col gap-3">
-                     {campaignData.length === 0 ? <div className="text-sm text-faint">No clip data uploaded yet.</div> : campaignData.slice(0,3).map((r, i) => (
-                       <div key={i} className="flex items-center gap-3 p-3 bg-[var(--color-surface2)] rounded-xl border border-[var(--color-border-subtle)]">
-                          <div className="w-[30px] h-[30px] rounded-lg bg-[var(--color-cyan-dim)] text-[var(--color-cyan)] flex items-center justify-center shrink-0">
-                            <TrendingUp className="w-[14px] h-[14px]" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="text-sm font-semibold">{r["Content Title"] || 'New Upload'}</div>
-                            <div className="text-xs text-muted">{new Date(r["Submission Date"] || r.createdAt || new Date()).toLocaleDateString()}</div>
-                          </div>
-                          <div className="text-right">
-                             <div className="text-sm font-bold tabular-nums">{formatViews(r.Views)}</div>
-                             <div className="text-[10px] text-muted uppercase tracking-[0.07em] font-bold">Views</div>
-                          </div>
-                       </div>
-                     ))}
-                   </div>
-                 </div>
-              </div>
-            )}
-
-            {activeTab === 'performance' && (
-               <div className="space-y-6">
-                 {(() => {
-                   const totalViews = campaignClipMetrics.reduce((sum, c) => sum + (c.views || 0), 0);
-                   const totalLikes = campaignClipMetrics.reduce((sum, c) => sum + (c.likes || 0), 0);
-                   const totalAssets = campaignClipMetrics.length;
-
-                   return (
-                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
-                        <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
-                           <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Total Views</div>
-                           <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(totalViews)}</div>
-                        </div>
-                        <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
-                           <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Total Assets</div>
-                           <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">{totalAssets}</div>
-                        </div>
-                        <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
-                           <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Avg. per Clip</div>
-                           <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">
-                             {totalAssets > 0 ? formatViews(Math.round(totalViews / totalAssets)) : '0'}
-                           </div>
-                        </div>
-                        <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
-                           <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Total Likes</div>
-                           <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(totalLikes)}</div>
-                        </div>
-                     </div>
-                   );
-                 })()}
-
-                 <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
-                   <div className="font-display text-md font-bold text-[var(--color-text-main)] mb-6">Views Over Time</div>
-                   {campaignData.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center p-8 text-center bg-[var(--color-surface2)] rounded-xl border border-[var(--color-border-subtle)]">
-                        <BarChart2 className="w-8 h-8 text-faint mb-3" />
-                        <div className="text-sm font-semibold text-[var(--color-text-main)]">No Performance Data</div>
-                        <div className="text-xs text-muted max-w-xs mx-auto mt-1">Upload a CSV down below or add clip links to start tracking views and engagement here.</div>
-                      </div>
-                   ) : (
-                     <div className="relative h-[300px]">
-                       <canvas ref={chartRef}></canvas>
-                     </div>
-                   )}
-                </div>
-
-                <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
-                   <div className="flex items-center justify-between mb-6">
-                     <div className="font-display text-md font-bold text-[var(--color-text-main)]">Campaign Content Assets</div>
-                     <button 
-                       onClick={handleRefreshAll}
-                       disabled={isRefreshingAll}
-                       className="btn btn-primary btn-sm gap-2 px-4 shadow-[var(--color-primary-soft)]/20"
-                     >
-                       <RefreshCw className={cn("w-3.5 h-3.5", (isRefreshingAll || refreshingClipId !== null) && "animate-spin")} />
-                       {campaignClipMetrics.length > 0 ? 'Refresh Sync' : 'Sync CSV Clips'}
-                     </button>
-                   </div>
-                   
-                   <form onSubmit={handlePasteClip} className="flex gap-2 mb-6">
-                     <input 
-                       type="url" 
-                       required
-                       value={clipUrl}
-                       onChange={e => setClipUrl(e.target.value)}
-                       placeholder="Manually add TikTok, Instagram Reel, or YouTube Shorts URL..." 
-                       className="flex-1 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-xl px-4 text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all placeholder:text-muted"
-                     />
-                     <button 
-                       type="submit" 
-                       disabled={isAddingClip}
-                       className="btn btn-primary whitespace-nowrap"
-                     >
-                       {isAddingClip ? 'Adding...' : 'Add Clip Link'}
-                     </button>
-                   </form>
-
-                   {clipError && (
-                     <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-semibold">{clipError}</div>
-                   )}
-
-                   <div className="flex flex-col gap-3">
-                     {campaignClipMetrics.length === 0 ? (
-                       <div className="text-sm text-faint py-4 text-center border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl bg-[var(--color-surface2)]">No tracking active. Click Sync CSV Clips above or paste a link to start tracking.</div>
-                     ) : campaignClipMetrics.map(clip => (
-                       <div key={clip.id} className="flex items-center justify-between p-4 bg-[var(--color-surface2)] rounded-xl border border-[var(--color-border-subtle)]">
-                         <div className="flex items-center gap-4 truncate max-w-[50%]">
-                           <div className="w-10 h-10 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border-subtle)] flex items-center justify-center shrink-0">
-                              <TrendingUp className={cn("w-4 h-4", clip.status === 'pending' ? 'text-amber-500 animate-pulse' : clip.status === 'error' ? 'text-red-500' : 'text-[var(--color-cyan)]')} />
-                           </div>
-                           <div className="truncate">
-                             <div className="text-sm font-bold text-[var(--color-text-main)] truncate max-w-full flex items-center gap-2">
-                               <span className={cn("capitalize", !clip.title && "opacity-60")}>
-                                 {clip.title || clip.platform || 'Draft Clip'}
-                               </span>
-                               <a href={clip.url} target="_blank" rel="noreferrer" className="text-[var(--color-cyan)] hover:opacity-70 transition-opacity shrink-0"><ExternalLink className="w-3 h-3" /></a>
-                                {clip.status === 'pending' && (
-                                  <span className="flex items-center gap-1.5 text-[9px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded border border-amber-500/20 uppercase font-bold ml-1">
-                                    <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Queued
-                                  </span>
-                                )}
-                                {clip.status === 'error' && (
-                                  <span 
-                                    className="flex items-center gap-1.5 text-[9px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded border border-red-500/20 uppercase font-bold ml-1 cursor-help" 
-                                    title={clip.error || "Private video or unsupported format"}
-                                  >
-                                    <AlertTriangle className="w-2.5 h-2.5" /> Failed
-                                  </span>
-                                )}
-                             </div>
-                             <div className="text-[10px] text-muted flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
-                               {clip.author && <span className="font-bold text-[var(--color-cyan)]">{clip.author}</span>}
-                               <span>{clip.updatedAt ? `Last Refreshed: ${new Date(clip.updatedAt.toMillis ? clip.updatedAt.toMillis() : clip.updatedAt).toLocaleString()}` : 'Just started'}</span>
-                             </div>
-                           </div>
-                         </div>
-                         
-                         <div className="flex items-center gap-6">
-                           <div className="text-right">
-                             <div className="font-display font-bold text-lg tabular-nums text-[var(--color-text-main)]">{formatViews(clip.views)}</div>
-                             <div className="text-[10px] text-muted font-bold uppercase tracking-widest">Views</div>
-                           </div>
-                           <div className="text-right hidden sm:block">
-                             <div className="font-display font-bold text-lg tabular-nums text-[var(--color-text-main)]">{formatViews(clip.likes)}</div>
-                             <div className="text-[10px] text-muted font-bold uppercase tracking-widest">Likes</div>
-                           </div>
-                           <div className="text-right hidden md:block">
-                             <div className="font-display font-bold text-lg tabular-nums text-[var(--color-text-main)]">{clip.engagementRate ? (clip.engagementRate * 100).toFixed(1) + '%' : '0%'}</div>
-                             <div className="text-[10px] text-muted font-bold uppercase tracking-widest">Eng. Rate</div>
-                           </div>
-                           <button 
-                             onClick={() => refreshClip(clip)}
-                             disabled={refreshingClipId === clip.id}
-                             className="w-10 h-10 rounded-lg hover:bg-[var(--color-surface-hover)] flex items-center justify-center transition-colors text-muted hover:text-[var(--color-text-main)] ml-2 disabled:opacity-50"
-                           >
-                             <RefreshCw className={cn("w-[18px] h-[18px]", refreshingClipId === clip.id && "animate-spin")} />
-                           </button>
-                         </div>
-                       </div>
-                     ))}
-                   </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'updates' && (
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
-                 <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
-                   <div className="font-display text-md font-bold text-[var(--color-text-main)] mb-6">Campaign Log</div>
-                   <div className="flex flex-col gap-4">
-                     {campaignUpdates.length === 0 ? <div className="text-sm text-faint py-4">No updates added yet.</div> : campaignUpdates.map(u => (
-                       <div key={u.id} className="flex gap-4 p-4 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-xl">
-                          <div className="w-8 h-8 rounded-full bg-[var(--color-cyan-dim)] text-[var(--color-cyan)] flex items-center justify-center shrink-0 mt-[2px]">
-                            <Bell className="w-[14px] h-[14px]" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm font-bold">{u.authorName || 'Agent'}</span>
-                              <span className="text-xs text-muted">{new Date(u.timestamp).toLocaleString()}</span>
-                              {u.clientVisible && <span className="text-[10px] bg-[var(--color-green-dim)] text-[var(--color-green)] px-2 py-[2px] rounded-full font-bold">Public</span>}
-                            </div>
-                            <div className="text-sm text-[var(--color-text-main)] leading-relaxed">{u.content}</div>
-                          </div>
-                       </div>
-                     ))}
-                   </div>
-                 </div>
-
-                 <form onSubmit={handleAddUpdate} className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm h-fit">
-                   <div className="font-display text-md font-bold text-[var(--color-text-main)] mb-4">Post Update</div>
-                   <textarea required value={updateContent} onChange={e => setUpdateContent(e.target.value)} className="w-full bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg p-3 text-sm focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] outline-none min-h-[100px] mb-3 transition-all" placeholder="Write a note or update..."></textarea>
-                   <label className="flex items-center gap-2 mb-4 cursor-pointer text-sm select-none hover:text-[var(--color-text-main)] text-muted transition-colors">
-                     <input type="checkbox" checked={isPublicUpdate} onChange={e => setIsPublicUpdate(e.target.checked)} className="accent-[var(--color-cyan)]" />
-                     Show in client portal
-                   </label>
-                   <button type="submit" disabled={!updateContent || isSavingUpdate} className="btn btn-primary w-full justify-center">Post to Log</button>
-                 </form>
-              </div>
-            )}
-
-            {activeTab === 'portal' && (
-              <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-8 shadow-sm max-w-2xl mx-auto text-center">
-                 <div className="w-16 h-16 rounded-2xl bg-[var(--color-cyan-dim)] text-[var(--color-cyan)] flex items-center justify-center mx-auto mb-4 border border-[rgba(0,212,232,0.2)] shadow-md">
-                   <ExternalLink className="w-7 h-7" />
-                 </div>
-                 <h2 className="font-display text-xl font-extrabold text-[var(--color-text-main)] mb-2">Client Portal</h2>
-                 <p className="text-sm text-muted mb-6 max-w-md mx-auto">Share a clean, read-only view of campaign performance and updates with your client. No login required.</p>
-                 
-                 <div className="flex flex-col gap-3 max-w-md mx-auto mb-6 text-left">
-                   <div className="flex items-center justify-between p-4 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-xl">
-                     <div>
-                       <div className="text-sm font-bold text-[var(--color-text-main)]">Enable Portal</div>
-                       <div className="text-xs text-muted mt-1">Make the portal access link public</div>
-                     </div>
-                     <button
-                       onClick={async () => {
-                         const isEnabling = !selectedCampaign.portalEnabled;
-                         const token = selectedCampaign.portalToken || Math.random().toString(36).substring(2, 16) + Date.now().toString(36);
-                         await updateDoc(doc(db, 'campaigns', selectedCampaign.id), {
-                           portalEnabled: isEnabling,
-                           portalToken: token,
-                           updatedAt: new Date().toISOString()
-                         });
-                         setSelectedCampaign(prev => prev ? { ...prev, portalEnabled: isEnabling, portalToken: token } as Campaign : null);
-                       }}
-                       className={cn("relative inline-flex h-6 w-11 items-center rounded-full transition-colors", selectedCampaign.portalEnabled ? "bg-[var(--color-cyan)]" : "bg-[var(--color-surface3)]")}
-                     >
-                       <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white transition-transform", selectedCampaign.portalEnabled ? "translate-x-6" : "translate-x-1")} />
-                     </button>
-                   </div>
-
-                   {selectedCampaign.portalEnabled && selectedCampaign.portalToken && (
-                     <div className="flex flex-col gap-3 mt-2">
-                        <div className="flex flex-col gap-1">
-                           <span className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Portal Link</span>
-                           <div className="flex items-center gap-2 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg p-2 px-3">
-                              <div className="text-xs font-mono text-[var(--color-text-main)] truncate flex-1">https://opsrelic.com/portal/{selectedCampaign.portalToken}</div>
-                              <button onClick={() => {
-                                 navigator.clipboard.writeText(`https://opsrelic.com/portal/${selectedCampaign.portalToken}`);
-                                 addToast("Portal link copied to clipboard", "success");
-                              }} className="p-1 hover:bg-[var(--color-surface-hover)] rounded text-muted hover:text-[var(--color-text-main)]"><Copy className="w-[14px] h-[14px]" /></button>
-                           </div>
-                        </div>
-                        <div className="flex flex-col gap-1 mt-2">
-                           <span className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Portal Password (Optional)</span>
-                           <div className="flex items-center gap-2">
-                             <input type="text" placeholder="Leave blank for no password" value={selectedCampaign.portalPassword || ''} onChange={e => setSelectedCampaign(prev => prev ? { ...prev, portalPassword: e.target.value } as Campaign : null)} className="input-field flex-1" />
-                             <button onClick={async () => {
-                                 await updateDoc(doc(db, 'campaigns', selectedCampaign.id), {
-                                    portalPassword: selectedCampaign.portalPassword || '',
-                                    updatedAt: new Date().toISOString()
-                                 });
-                                 addToast("Portal password updated", "success");
-                             }} className="btn btn-secondary whitespace-nowrap">Save</button>
-                           </div>
-                           <div className="text-[10px] text-muted mt-1">If set, clients will need to enter this password to view the portal.</div>
-                        </div>
-                     </div>
-                   )}
-                 </div>
-
-                 {selectedCampaign.portalEnabled && selectedCampaign.portalToken && (
-                   <button onClick={() => window.open(`https://opsrelic.com/portal/${selectedCampaign.portalToken}`, '_blank')} className="btn btn-primary">Open Preview</button>
-                 )}
-              </div>
-            )}
-
-            {activeTab === 'settings' && (
-              <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm max-w-2xl">
-                 <div className="font-display text-md font-bold text-[var(--color-text-main)] mb-6">Campaign Settings</div>
-                 <form onSubmit={handleUpdateRegistry} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex flex-col gap-[5px]">
-                         <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Campaign Name</label>
-                         <input value={localCampaign.name||''} onChange={e=>setLocalCampaign({...localCampaign, name: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" />
-                      </div>
-                      <div className="flex flex-col gap-[5px]">
-                         <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Client</label>
-                         <select value={localCampaign.clientId||''} onChange={e=>setLocalCampaign({...localCampaign, clientId: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all cursor-pointer">
-                           <option value="">Select a Client...</option>
-                           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                         </select>
-                      </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex flex-col gap-[5px]">
-                         <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Start Date</label>
-                         <input type="date" value={localCampaign.startDate||''} onChange={e=>setLocalCampaign({...localCampaign, startDate: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" />
+                    {(budget > 0 || selectedCampaign.cpm) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         {selectedCampaign.cpm && (
+                            <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                               <div>
+                                 <div className="text-[10px] font-bold text-[var(--color-green)] uppercase tracking-widest mb-1">Total Payout Calculated</div>
+                                 <div className="font-display text-2xl font-extrabold text-[var(--color-green)] tabular-nums">${payout.toFixed(2)}</div>
+                               </div>
+                               <div className="text-right">
+                                 <div className="text-sm font-semibold text-[var(--color-text-main)]">${selectedCampaign.cpm.toFixed(2)} CPM</div>
+                                 <div className="text-[10px] text-muted">Cost per thousand views</div>
+                               </div>
+                            </div>
+                         )}
+                         {budget > 0 && (
+                            <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
+                              <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Campaign Budget Tracking</div>
+                              <div className="flex items-end justify-between mb-2">
+                                <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tabular-nums">${payout.toFixed(2)} <span className="text-sm text-muted font-medium ml-1">/ ${budget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></div>
+                              </div>
+                              <div className="h-2 w-full bg-[var(--color-surface2)] rounded-full overflow-hidden">
+                                <div className={cn("h-full rounded-full transition-all duration-500", budgetPercent > 100 ? "bg-red-500" : budgetPercent > 80 ? "bg-amber-500" : "bg-[var(--color-green)]")} style={{width: `${Math.min(budgetPercent, 100)}%`}}></div>
+                              </div>
+                            </div>
+                         )}
                       </div>
-                      <div className="flex flex-col gap-[5px]">
-                         <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">End Date</label>
-                         <input type="date" value={localCampaign.endDate||''} onChange={e=>setLocalCampaign({...localCampaign, endDate: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" />
-                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Left Column: Analytics & Assets */}
+                <div className="lg:col-span-8 space-y-6">
+                  {/* Chart */}
+                  <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
+                    <div className="font-display text-md font-bold text-[var(--color-text-main)] mb-6">Views Over Time</div>
+                    {campaignData.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center p-8 text-center bg-[var(--color-surface2)] rounded-xl border border-[var(--color-border-subtle)]">
+                          <BarChart2 className="w-8 h-8 text-faint mb-3" />
+                          <div className="text-sm font-semibold text-[var(--color-text-main)]">No Performance Data</div>
+                          <div className="text-xs text-muted max-w-xs mx-auto mt-1">Upload a CSV down below or add clip links to start tracking views and engagement here.</div>
+                        </div>
+                    ) : (
+                        <div className="relative h-[240px]">
+                          <canvas ref={chartRef}></canvas>
+                        </div>
+                    )}
+                  </div>
+
+                  {/* Assets List */}
+                  <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="font-display text-md font-bold text-[var(--color-text-main)]">Campaign Content Assets</div>
+                      <div className="text-xs text-muted font-medium">{campaignStats.assets} items</div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex flex-col gap-[5px]">
-                         <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Status</label>
-                         <select value={localCampaign.status||'Active'} onChange={e=>setLocalCampaign({...localCampaign, status: e.target.value as CampaignStatus})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all cursor-pointer">
-                           <option value="Active">Active</option>
-                           <option value="Draft">Draft</option>
-                           <option value="Complete">Complete</option>
-                         </select>
+                    <div className="flex flex-col gap-3">
+                      {campaignStats.assets === 0 ? (
+                        <div className="text-sm text-faint py-8 text-center border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl bg-[var(--color-surface2)]">No content assets tracked yet. Upload a CSV to get started.</div>
+                      ) : (
+                        <div className="space-y-3">
+                          {(() => {
+                            const displayList = [...campaignClipMetrics];
+                            const clipUrls = new Set(campaignClipMetrics.map(c => c.url).filter(Boolean));
+                            campaignData.forEach(r => {
+                              if (r["Submission URL"] && !clipUrls.has(r["Submission URL"])) {
+                                displayList.push({
+                                  id: `csv-${Math.random()}`,
+                                  url: r["Submission URL"],
+                                  title: r["Content Title"],
+                                  author: r.Creator,
+                                  platform: r.Platform,
+                                  views: r.Views,
+                                  likes: r.Likes,
+                                  isCSV: true
+                                } as any);
+                              }
+                            });
+
+                            return displayList.sort((a,b) => (b.views || 0) - (a.views || 0)).map(clip => (
+                              <div key={clip.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-[var(--color-surface2)] rounded-xl border border-[var(--color-border-subtle)] gap-4 hover:border-[var(--color-cyan-dim)] transition-colors">
+                                <div className="flex items-center gap-4 min-w-0">
+                                  <div className="w-10 h-10 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border-subtle)] flex items-center justify-center shrink-0 text-muted">
+                                     {clip.url ? (
+                                       <a href={clip.url} target="_blank" rel="noreferrer" className="hover:text-[var(--color-cyan)] transition-colors"><ExternalLink className="w-4 h-4" /></a>
+                                     ) : (
+                                       <TrendingUp className="w-4 h-4" />
+                                     )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="text-sm font-bold text-[var(--color-text-main)] truncate max-w-full flex items-center gap-2">
+                                      <span className={cn("capitalize truncate", !clip.title && "opacity-60")}>
+                                        {clip.title || 'Untitled Asset'}
+                                      </span>
+                                      {(clip as any).isCSV && <span className="text-[8px] bg-amber-500/10 text-amber-500 px-1 rounded">CSV</span>}
+                                    </div>
+                                    <div className="text-[11px] text-muted flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                                      {clip.author && <span className="font-bold text-[var(--color-cyan)] truncate">@{clip.author}</span>}
+                                      {clip.platform && <span className="uppercase tracking-wider font-semibold truncate text-[10px] opacity-70">{clip.platform}</span>}
+                                      <span className="text-[10px] opacity-70">{new Date(clip.createdAt || clip.updatedAt || Date.now()).toLocaleDateString()}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 shrink-0 pl-14 md:pl-0">
+                                  <div className="text-left md:text-right">
+                                    <div className="font-display font-bold text-base tabular-nums text-[var(--color-text-main)]">{formatViews(clip.views)}</div>
+                                    <div className="text-[9px] text-muted font-bold uppercase tracking-widest">Views</div>
+                                  </div>
+                                  <div className="text-left md:text-right hidden sm:block">
+                                    <div className="font-display font-bold text-base tabular-nums text-[var(--color-text-main)]">{formatViews(clip.likes)}</div>
+                                    <div className="text-[9px] text-muted font-bold uppercase tracking-widest">Likes</div>
+                                  </div>
+                                  {selectedCampaign.cpm !== undefined && (
+                                    <div className="text-left md:text-right col-span-1">
+                                      <div className="font-display font-bold text-base tabular-nums text-[var(--color-green)]">${((clip.views || 0) / 1000 * selectedCampaign.cpm).toFixed(2)}</div>
+                                      <div className="text-[9px] text-[var(--color-green)] opacity-80 font-bold uppercase tracking-widest">Payout</div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Workspace Files */}
+                  <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="font-display text-md font-bold text-[var(--color-text-main)]">Workspace Files</div>
+                      <a href={`#workspace-files`} className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-cyan)] hover:opacity-80 transition-opacity flex items-center gap-1">
+                        View all <ChevronRight className="w-3 h-3" />
+                      </a>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {!workspaceFiles || workspaceFiles.filter(f => f.campaignId === selectedCampaign.id).length === 0 ? (
+                        <div className="text-sm text-faint py-4 text-center border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl bg-[var(--color-surface2)] col-span-2">No files attached to this campaign.</div>
+                      ) : workspaceFiles.filter(f => f.campaignId === selectedCampaign.id).map(file => (
+                        <div key={file.id} className="flex items-center justify-between p-3 bg-[var(--color-surface2)] rounded-xl border border-[var(--color-border-subtle)]">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border-subtle)] flex items-center justify-center shrink-0">
+                              {file.type === 'link' ? <Link2 className="w-4 h-4 text-blue-400" /> : <FileText className="w-4 h-4 text-purple-400" />}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-white truncate">{file.name}</div>
+                              <div className="text-[10px] text-[#888] capitalize">{file.type}</div>
+                            </div>
+                          </div>
+                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-white/10 rounded-lg text-muted hover:text-white transition-colors shrink-0">
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Sidebar (Info, Log, Portal, Settings) */}
+                <div className="lg:col-span-4 space-y-6">
+                  {/* Campaign Log */}
+                  <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="font-display text-md font-bold text-[var(--color-text-main)]">Campaign Log</div>
+                      <Bell className="w-4 h-4 text-muted" />
+                    </div>
+
+                    <form onSubmit={handleAddUpdate} className="mb-6">
+                      <textarea 
+                        required 
+                        value={updateContent} 
+                        onChange={e => setUpdateContent(e.target.value)} 
+                        className="w-full bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg p-3 text-sm focus:border-[var(--color-cyan)] outline-none min-h-[80px] mb-2 transition-all resize-none" 
+                        placeholder="Post a new update..."
+                      ></textarea>
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-medium text-muted hover:text-[var(--color-text-main)]">
+                          <input type="checkbox" checked={isPublicUpdate} onChange={e => setIsPublicUpdate(e.target.checked)} className="accent-[var(--color-cyan)] w-3 h-3" />
+                          Public
+                        </label>
+                        <button type="submit" disabled={!updateContent || isSavingUpdate} className="btn btn-primary btn-sm px-3 text-[11px]">Post</button>
                       </div>
+                    </form>
+
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar pr-1">
+                      {campaignUpdates.length === 0 ? (
+                        <div className="text-sm text-faint py-4 text-center">No updates found.</div>
+                      ) : campaignUpdates.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map(u => (
+                        <div key={u.id} className="relative pl-4 border-l-2 border-[var(--color-border-subtle)] py-1">
+                          <div className={cn("absolute -left-[5px] top-2 w-2 h-2 rounded-full", u.clientVisible ? "bg-[var(--color-green)]" : "bg-muted")}></div>
+                          <div className="text-[10px] text-muted font-bold flex items-center justify-between gap-2 mb-1 uppercase tracking-tight">
+                            <span>{u.authorName}</span>
+                            <span>{new Date(u.timestamp).toLocaleDateString()}</span>
+                          </div>
+                          <div className="text-xs text-[var(--color-text-main)] leading-relaxed">{u.content}</div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="pt-2 border-t border-[var(--color-border-subtle)]">
-                       <button type="submit" disabled={!localCampaign.name} className="btn btn-primary">Save Settings</button>
-                    </div>
-                 </form>
+                  </div>
+
+                  {/* Settings / Registry */}
+                  <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
+                    <div className="font-display text-md font-bold text-[var(--color-text-main)] mb-4">Edit Campaign</div>
+                    <form onSubmit={handleUpdateRegistry} className="space-y-4">
+                      <div className="space-y-3">
+                        <div className="flex flex-col gap-1.5">
+                           <label className="text-[10px] font-bold uppercase tracking-widest text-muted">Name</label>
+                           <input value={localCampaign.name||''} onChange={e=>setLocalCampaign({...localCampaign, name: e.target.value})} className="input-field py-2 text-xs" />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                           <label className="text-[10px] font-bold uppercase tracking-widest text-muted">Budget ($)</label>
+                           <input type="number" step="0.01" value={localCampaign.budget || ''} onChange={e=>setLocalCampaign({...localCampaign, budget: parseFloat(e.target.value) || 0})} className="input-field py-2 text-xs" />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                           <label className="text-[10px] font-bold uppercase tracking-widest text-muted">CPM ($)</label>
+                           <input type="number" step="0.01" value={localCampaign.cpm || ''} onChange={e=>setLocalCampaign({...localCampaign, cpm: parseFloat(e.target.value) || 0})} className="input-field py-2 text-xs" />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                           <label className="text-[10px] font-bold uppercase tracking-widest text-muted">Status</label>
+                           <select value={localCampaign.status||'Active'} onChange={e=>setLocalCampaign({...localCampaign, status: e.target.value as CampaignStatus})} className="input-field py-2 text-xs cursor-pointer">
+                             <option value="Active">Active</option>
+                             <option value="Draft">Draft</option>
+                             <option value="Complete">Complete</option>
+                           </select>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="submit" className="btn btn-primary flex-1 btn-sm">Update Settings</button>
+                        {confirmDeleteId === selectedCampaign.id ? (
+                          <div className="flex items-center gap-1 bg-[var(--color-red-dim)] rounded-md p-1 border border-[rgba(255,0,0,0.2)]">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCampaign(selectedCampaign.id)}
+                              className="px-2 py-1 text-xs font-bold text-[var(--color-red)] hover:bg-red-500/20 rounded transition-colors"
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="px-2 py-1 text-xs font-bold text-muted hover:text-[var(--color-text-main)] transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button 
+                            type="button" 
+                            onClick={() => setConfirmDeleteId(selectedCampaign.id)}
+                            disabled={deletingId === selectedCampaign.id}
+                            className={cn(
+                              "btn btn-ghost px-3 transition-colors",
+                              deletingId === selectedCampaign.id ? "text-faint bg-[var(--color-surface3)]" : "text-red-500 hover:bg-red-500/10"
+                            )}
+                            title="Delete Campaign"
+                          >
+                            {deletingId === selectedCampaign.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                          </button>
+                        )}
+                      </div>
+                    </form>
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* New Campaign Modal */}
       <AnimatePresence>
         {isCreating && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/65 backdrop-blur-[8px]">
@@ -857,6 +864,16 @@ export default function CampaignsPage() {
                         <option value="">Select a Client...</option>
                         {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
+                   </div>
+                   <div className="grid grid-cols-2 gap-4">
+                     <div className="flex flex-col gap-[5px]">
+                        <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Budget ($)</label>
+                        <input type="number" step="0.01" min="0" value={newCampaign.budget || ''} onChange={e=>setNewCampaign({...newCampaign, budget: parseFloat(e.target.value) || undefined})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" placeholder="e.g. 5000" />
+                     </div>
+                     <div className="flex flex-col gap-[5px]">
+                        <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Cost per 1k Views (CPM) ($)</label>
+                        <input type="number" step="0.01" min="0" value={newCampaign.cpm || ''} onChange={e=>setNewCampaign({...newCampaign, cpm: parseFloat(e.target.value) || undefined})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" placeholder="e.g. 2.50" />
+                     </div>
                    </div>
                  </div>
                  <div className="flex justify-end gap-2 p-4 px-6 border-t border-[var(--color-border-subtle)]">

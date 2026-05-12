@@ -11,9 +11,12 @@ import SettingsPage from './pages/settings/SettingsPage';
 import LandingPage from './pages/welcome/LandingPage';
 import Pricing from './components/Pricing';
 import ClientDashboardPage from './pages/client-portal/ClientDashboardPage';
+import PortalPage from './pages/portal/PortalPage';
 import ReportsPage from './pages/reports/ReportsPage';
 import PipelinePage from './pages/pipeline/PipelinePage';
-import { AppLayout, primaryNavItems, secondaryNavItems, sharingNavItems, systemNavItems } from './layouts/AppLayout';
+import WorkspaceHomePage from './pages/workspace/WorkspaceHomePage';
+import WorkspaceFilesPage from './pages/workspace/WorkspaceFilesPage';
+import { AppLayout, managementNavItems, workflowNavItems, assetsNavItems, systemNavItems } from './layouts/AppLayout';
 import { auth, logout, ALLOWED_EMAILS } from './lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 
@@ -84,15 +87,13 @@ function AppContent({ user, onLogout }: { user: FirebaseUser | null, onLogout: (
 
   const flaggedCount = data?.filter(r => r.Status === 'Flagged').length || 0;
 
-  const currentNavItems = userRole === 'client' ? [
-    { id: 'overview', label: 'Overview', icon: Home, hash: '#overview' }
-  ] : primaryNavItems;
+  const allNavItems = [...managementNavItems, ...workflowNavItems, ...assetsNavItems, ...systemNavItems];
 
   useEffect(() => {
     const handleHashChange = () => {
       const fullHash = window.location.hash.substring(1) || 'overview';
       const hashPart = fullHash.split('?')[0];
-      if ([...primaryNavItems, ...secondaryNavItems, ...sharingNavItems, ...systemNavItems].some(i => i.id === hashPart)) {
+      if (allNavItems.some(i => i.id === hashPart)) {
         setActiveTab(hashPart);
       }
     };
@@ -108,7 +109,7 @@ function AppContent({ user, onLogout }: { user: FirebaseUser | null, onLogout: (
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [userRole]);
 
-  const activeItem = [...primaryNavItems, ...secondaryNavItems, ...sharingNavItems, ...systemNavItems].find(item => item.id === activeTab);
+  const activeItem = allNavItems.find(item => item.id === activeTab);
 
   return (
     <AppLayout user={user} onLogout={onLogout} activeTab={activeTab}>
@@ -122,8 +123,10 @@ function AppContent({ user, onLogout }: { user: FirebaseUser | null, onLogout: (
           {activeTab === 'clients' && <PipelinePage />}
           {activeTab === 'reports' && <ReportsPage />}
           {activeTab === 'settings' && <SettingsPage />}
-          {activeTab === 'portal' && <ClientDashboardPage />}
-          {![ 'overview', 'uploads', 'campaigns', 'clients', 'reports', 'settings', 'portal' ].includes(activeTab) && (
+          {activeTab === 'portal' && <PortalPage />}
+          {activeTab === 'workspace' && <WorkspaceHomePage />}
+          {activeTab === 'workspace-files' && <WorkspaceFilesPage />}
+          {![ 'overview', 'uploads', 'campaigns', 'clients', 'reports', 'settings', 'portal', 'workspace', 'workspace-files' ].includes(activeTab) && (
             <div className="flex flex-col items-center justify-center py-32 text-center">
               <div className="w-20 h-20 rounded-[32px] bg-white/5 border border-white/10 flex items-center justify-center mb-8">
               </div>

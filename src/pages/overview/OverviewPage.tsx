@@ -1,16 +1,36 @@
 import { useAppContext } from '../../lib/store';
-import { Upload, Plus, FolderOpen, Users, Eye, Scissors, ChevronRight } from 'lucide-react';
-import React, { useMemo, useEffect, useRef } from 'react';
+import { Upload, Plus, FolderOpen, Users, Eye, Scissors, ChevronRight, Activity, Zap, Sparkles, CheckCircle2 } from 'lucide-react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import Chart from 'chart.js/auto';
 import { db, auth } from '../../lib/firebase';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 
 import { formatDistanceToNow } from 'date-fns';
 
 export default function OverviewPage() {
-  const { data, campaignsList, clients, clipMetrics } = useAppContext();
+  const { data, campaignsList, clients, clipMetrics, activeWorkspaceId } = useAppContext();
+  const [tasks, setTasks] = useState<any[]>([]);
+  const workspaceId = activeWorkspaceId || auth.currentUser?.uid;
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    const q = query(
+      collection(db, 'workspaces', workspaceId, 'tasks'),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const tsks: any[] = [];
+      snapshot.forEach(doc => tsks.push({ id: doc.id, ...doc.data() }));
+      setTasks(tsks);
+    }, (err) => {
+      console.error("Overview tasks listener error:", err);
+    });
+
+    return () => unsubscribe();
+  }, [workspaceId]);
 
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<any>(null);
@@ -33,27 +53,52 @@ export default function OverviewPage() {
   }, [campaignsList, clients, clipMetrics]);
 
   const needsAttentionItems = useMemo(() => {
-    const items = [];
-    for (const camp of campaignsList) {
-      if (camp.status !== 'Active') continue;
-      
-      if (!camp.portalEnabled) {
-        items.push({ id: `portal-${camp.id}`, title: camp.name, reason: "Portal not enabled", color: "var(--color-yellow)", campId: camp.id });
-      }
+    const today = new Date().toISOString().split('T')[0];
+    const items: any[] = [];
 
-      const hasData = data.some(d => d._campaignId === camp.id) || clipMetrics.some(m => m.campaignId === camp.id);
-      if (!hasData) {
-        items.push({ id: `empty-${camp.id}`, title: camp.name, reason: "No assets uploaded yet", color: "var(--color-red)", campId: camp.id });
-      }
+    // Prioritize Tasks first
+    const overdueTasks = tasks.filter(t => t.status !== 'done' && t.dueDate && t.dueDate < today);
+    const priorityTasks = tasks.filter(t => t.status !== 'done' && t.priority === 'high');
+    const dueSoonTasks = tasks.filter(t => t.status !== 'done' && t.dueDate === today);
 
-      if (items.length >= 3) break;
+    overdueTasks.forEach(t => items.push({ id: t.id, title: t.title, reason: 'Overdue Task', color: 'var(--color-red)', type: 'task' }));
+    dueSoonTasks.forEach(t => items.push({ id: t.id, title: t.title, reason: 'Due Today', color: 'var(--color-yellow)', type: 'task' }));
+    priorityTasks.forEach(t => items.push({ id: t.id, title: t.title, reason: 'High Priority', color: 'var(--color-purple)', type: 'task' }));
+
+    // Fallback to campaign issues if not enough task alerts
+    if (items.length < 4) {
+      for (const camp of campaignsList) {
+        if (camp.status !== 'Active') continue;
+        if (!camp.portalEnabled) {
+          items.push({ id: `portal-${camp.id}`, title: camp.name, reason: "Portal not enabled", color: "var(--color-yellow)", campId: camp.id });
+        }
+        const hasData = data.some(d => d._campaignId === camp.id) || clipMetrics.some(m => m.campaignId === camp.id);
+        if (!hasData) {
+          items.push({ id: `empty-${camp.id}`, title: camp.name, reason: "No assets uploaded yet", color: "var(--color-red)", campId: camp.id });
+        }
+      }
     }
-    return items.slice(0, 3);
-  }, [campaignsList, data, clipMetrics]);
+    
+    return items.slice(0, 4);
+  }, [campaignsList, data, clipMetrics, tasks]);
 
   const recentActivity = useMemo(() => {
-    const activity = [];
+    const activity: any[] = [];
     
+    // Tasks
+    for (const t of tasks.slice(0, 5)) {
+      const ts = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt);
+      activity.push({
+        type: 'task',
+        title: 'Task added',
+        detail: t.title,
+        timestamp: ts.getTime(),
+        dateStr: formatDistanceToNow(ts, { addSuffix: true }),
+        rawDate: ts,
+        author: t.creatorName || 'Team'
+      });
+    }
+
     // Uploads
     for (const u of data) {
       const ts = u.createdAt ? new Date((u.createdAt.toMillis ? u.createdAt.toMillis() : u.createdAt)) : (u["Submission Date"] ? new Date(u["Submission Date"]) : new Date());
@@ -81,8 +126,43 @@ export default function OverviewPage() {
     }
 
     activity.sort((a,b) => b.timestamp - a.timestamp);
-    return activity.slice(0, 4);
-  }, [data, campaignsList]);
+    return activity.slice(0, 5);
+  }, [data, campaignsList, tasks]);
+
+  const chartData = useMemo(() => {
+    // Generate labels for the last 6 months
+    const labels: string[] = [];
+    const counts: number[] = [];
+    const now = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      labels.push(d.toLocaleDateString('en-US', { month: 'short' }));
+      
+      // Calculate views for this month
+      let monthViews = 0;
+      
+      // From CSV data
+      data.forEach(r => {
+        const rowDate = r["Submission Date"] ? new Date(r["Submission Date"]) : null;
+        if (rowDate && rowDate.getMonth() === d.getMonth() && rowDate.getFullYear() === d.getFullYear()) {
+          monthViews += (r.Views || 0);
+        }
+      });
+      
+      // From Clip Metrics
+      clipMetrics.forEach(m => {
+        const mDate = m.createdAt ? new Date(m.createdAt) : null;
+        if (mDate && mDate.getMonth() === d.getMonth() && mDate.getFullYear() === d.getFullYear()) {
+          monthViews += (m.views || 0);
+        }
+      });
+      
+      counts.push(monthViews);
+    }
+    
+    return { labels, counts };
+  }, [data, clipMetrics]);
 
   useEffect(() => {
     if (chartRef.current) {
@@ -95,17 +175,19 @@ export default function OverviewPage() {
         g.addColorStop(0, 'rgba(0,212,232,0.3)');
         g.addColorStop(1, 'rgba(0,212,232,0)');
         
+        const hasData = chartData.counts.some(v => v > 0);
+
         chartInstance.current = new Chart(ctx, {
           type: 'line',
           data: {
-            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+            labels: chartData.labels,
             datasets: [{
               label: 'Views',
-              data: [120, 200, 150, 300, 250, stats.activeCampaigns ? 400 : 0], // Example data
+              data: chartData.counts,
               borderColor: '#00d4e8',
               backgroundColor: g,
               borderWidth: 2.5,
-              pointRadius: 3,
+              pointRadius: hasData ? 3 : 0,
               tension: 0.4,
               fill: true
             }]
@@ -113,22 +195,44 @@ export default function OverviewPage() {
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: { 
+              legend: { display: false },
+              tooltip: {
+                enabled: hasData,
+                mode: 'index',
+                intersect: false,
+              }
+            },
             scales: {
-              x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7a8fa6', font: { family: 'Inter', size: 11 } } },
-              y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7a8fa6', font: { family: 'Inter', size: 11 } } }
+              x: { 
+                grid: { color: 'rgba(255,255,255,0.04)' }, 
+                ticks: { color: '#7a8fa6', font: { family: 'Inter', size: 11 } } 
+              },
+              y: { 
+                grid: { color: 'rgba(255,255,255,0.04)' }, 
+                ticks: { 
+                  color: '#7a8fa6', 
+                  font: { family: 'Inter', size: 11 },
+                  callback: (value) => {
+                    if (Number(value) >= 1000000) return (Number(value) / 1000000).toFixed(1) + 'M';
+                    if (Number(value) >= 1000) return (Number(value) / 1000).toFixed(0) + 'K';
+                    return value;
+                  }
+                },
+                beginAtZero: true
+              }
             }
           }
         });
       }
     }
-  }, [stats]);
+  }, [chartData]);
 
   return (
     <div className="page active p-6 md:p-8 min-h-[calc(100vh-var(--topbar-h))]">
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="font-display text-xl font-extrabold text-[var(--color-text-main)] tracking-[-0.025em]">Good morning, {auth.currentUser?.displayName?.split(' ')[0] || 'Marwan'} 👋</h1>
+          <h1 className="font-display text-xl font-extrabold text-[var(--color-text-main)] tracking-[-0.025em]">Good morning{auth.currentUser?.displayName ? `, ${auth.currentUser.displayName.split(' ')[0]}` : ''} 👋</h1>
           <p className="text-sm text-muted mt-[3px]">Here's what's happening across your agency today.</p>
         </div>
       </div>
@@ -193,24 +297,34 @@ export default function OverviewPage() {
 
         <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3 mb-4">
-            <div className="font-display text-md font-bold text-[var(--color-text-main)]">Needs Attention</div>
+            <div className="font-display text-md font-bold text-[var(--color-text-main)] flex items-center gap-2">
+              <Activity className="w-4 h-4 text-red-500" />
+              Needs Attention
+            </div>
             <span className="inline-flex items-center gap-[5px] text-xs font-bold px-[9px] py-[3px] rounded-full bg-[var(--color-yellow-dim)] text-[var(--color-yellow)] border border-[rgba(255,209,102,0.2)]">
-               Review needed
+               {needsAttentionItems.length} issues
             </span>
           </div>
           
           {needsAttentionItems.length === 0 ? (
-            <div className="text-sm text-faint py-4 text-center">All clear. No issues found.</div>
+            <div className="text-sm text-faint py-8 text-center flex flex-col items-center gap-2">
+              <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+              All clear. No issues found.
+            </div>
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
               {needsAttentionItems.map((item) => (
-                <div key={item.id} onClick={() => window.location.hash = '#campaigns'} className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border border-transparent hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-subtle)] mb-2">
-                  <div className={cn("w-[9px] h-[9px] rounded-full shrink-0 shadow-[0_0_8px_currentColor]")} style={{ color: item.color }} />
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold text-[var(--color-text-main)]">{item.title}</div>
-                    <div className="text-xs text-muted mt-[1px]">{item.reason}</div>
+                <div 
+                  key={item.id} 
+                  onClick={() => window.location.hash = item.type === 'task' ? '#workspace' : '#campaigns'} 
+                  className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border border-transparent hover:bg-[var(--color-surface2)] hover:border-[var(--color-border-subtle)] group"
+                >
+                  <div className={cn("w-1 h-8 rounded-full shrink-0")} style={{ backgroundColor: item.color }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-[var(--color-text-main)] truncate group-hover:text-[var(--color-cyan)] transition-colors">{item.title}</div>
+                    <div className="text-[10px] font-bold text-faint uppercase tracking-tight">{item.reason}</div>
                   </div>
-                  <ChevronRight className="w-[13px] h-[13px] text-faint" />
+                  <ChevronRight className="w-[14px] h-[14px] text-faint group-hover:translate-x-0.5 transition-transform" />
                 </div>
               ))}
             </div>
@@ -254,18 +368,36 @@ export default function OverviewPage() {
 
         <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3 mb-4">
-            <div className="font-display text-md font-bold text-[var(--color-text-main)]">Recent Activity</div>
+            <div className="font-display text-md font-bold text-[var(--color-text-main)] flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[var(--color-cyan)]" />
+              Recent Activity
+            </div>
+            <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-cyan)] animate-pulse shadow-[0_0_8px_rgba(0,185,255,0.5)]"></div>
           </div>
           {recentActivity.length === 0 ? <div className="text-sm text-faint py-4 text-center">No recent activity.</div> : (
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-3">
               {recentActivity.map((activity, idx) => (
-                <div key={`act-${idx}`} className="flex items-start gap-3 py-2 border-b border-[var(--color-divider)] last:border-0 hover:bg-[var(--color-surface-hover)] p-2 -mx-2 rounded-lg transition-colors">
-                  <div className={cn("w-[28px] h-[28px] rounded-md flex items-center justify-center shrink-0 mt-[1px]", activity.type === 'upload' ? "bg-[var(--color-cyan-dim)] text-[var(--color-cyan)]" : "bg-[var(--color-green-dim)] text-[var(--color-green)]")}>
-                    {activity.type === 'upload' ? <Upload className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                <div key={`act-${idx}`} className="flex items-start gap-4 p-3 rounded-xl hover:bg-[var(--color-surface2)] transition-colors group">
+                  <div className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-[1px] border border-white/5",
+                    activity.type === 'upload' ? "bg-[var(--color-cyan-dim)] text-[var(--color-cyan)]" : 
+                    activity.type === 'task' ? "bg-purple-500/10 text-purple-400" :
+                    "bg-[var(--color-green-dim)] text-[var(--color-green)]"
+                  )}>
+                    {activity.type === 'upload' ? <Upload className="w-3.5 h-3.5" /> : 
+                     activity.type === 'task' ? <Zap className="w-3.5 h-3.5" /> :
+                     <Plus className="w-3.5 h-3.5" />}
                   </div>
-                  <div>
-                    <div className="text-sm text-[var(--color-text-main)] leading-relaxed"><strong>{activity.title}</strong> — {activity.detail}</div>
-                    <div className="text-xs text-faint mt-[1px]" title={activity.rawDate.toLocaleString()}>{activity.dateStr}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-[var(--color-text-main)] leading-relaxed font-bold group-hover:text-[var(--color-cyan)] transition-colors">
+                      {activity.author ? <span className="text-faint font-medium">{activity.author} added </span> : null}
+                      {activity.detail}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] font-black uppercase text-faint tracking-widest">{activity.title}</span>
+                      <span className="w-1 h-1 rounded-full bg-white/10"></span>
+                      <span className="text-[10px] font-bold text-faint/60" title={activity.rawDate.toLocaleString()}>{activity.dateStr}</span>
+                    </div>
                   </div>
                 </div>
               ))}

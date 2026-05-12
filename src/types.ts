@@ -15,6 +15,47 @@ export interface CsvRow {
   [key: string]: any;
 }
 
+export interface WorkspaceRole {
+  role: 'OWNER' | 'MANAGER' | 'MEMBER' | 'VIEWER';
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkspaceMember {
+  id: string;
+  workspaceId: string;
+  userId: string | null;
+  email?: string;
+  name?: string;
+  fullName?: string;
+  role: WorkspaceRole['role'];
+  status?: 'active' | 'pending';
+  createdAt?: string;
+}
+
+export interface WorkspaceFile {
+  id: string;
+  workspaceId: string;
+  clientId?: string;
+  campaignId?: string;
+  title?: string;
+  name?: string;
+  type: 'FILE' | 'LINK' | 'file' | 'link';
+  fileUrl?: string | null;
+  linkUrl?: string | null;
+  url?: string;
+  description?: string;
+  uploadedBy?: string;
+  createdByUserId?: string;
+  createdAt: string | any;
+  updatedAt?: string;
+}
+
 export interface InvitedClipper {
   creator: string;
   campaign: string;
@@ -46,6 +87,7 @@ export interface ClientAccount {
   retainer?: number; // Custom billing amount
   billingCycle?: 'Monthly' | 'Quarterly' | 'Yearly';
   userId: string;
+  workspaceId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -66,6 +108,7 @@ export interface CampaignIntake {
 export interface Campaign {
   id: string;
   userId: string;
+  workspaceId?: string;
   clientId?: string; // Link to ClientAccount
   name: string;
   status: CampaignStatus;
@@ -83,6 +126,7 @@ export interface Campaign {
   createdAt: string;
   updatedAt: string;
   budget?: number; // This can be used for the campaign specific retainer
+  cpm?: number; // Cost per 1000 views
   retainer?: number; // Explicit retainer field
   portalEnabled?: boolean;
   portalToken?: string;
@@ -150,6 +194,9 @@ export interface AppState {
   updates: CampaignUpdate[];
   onboarding: InvitedClipper[];
   workspace?: WorkspaceSettings;
+  activeWorkspace?: Workspace | null;
+  workspaceMembers?: WorkspaceMember[];
+  workspaceFiles?: WorkspaceFile[];
   clipMetrics: ClipMetric[];
   currentTier?: import('./lib/plans').Tier;
   reportsGeneratedMonth?: number;

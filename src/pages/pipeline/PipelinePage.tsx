@@ -1,16 +1,16 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAppContext } from '../../lib/store';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Search, Plus, ArrowLeft, Mail, Phone, User, Briefcase, Plus as PlusIcon, X } from 'lucide-react';
+import { Users, Search, Plus, ArrowLeft, Mail, Phone, User, Briefcase, Plus as PlusIcon, X, RefreshCw } from 'lucide-react';
 import { ClientAccount } from '../../types';
 import { useToast } from '../../lib/toast';
-import { collection, doc, setDoc, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, addDoc, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { db, auth } from '../../lib/firebase';
 import { cn } from '../../lib/utils';
 
 export default function ClientsPage() {
   const { addToast } = useToast();
-  const { campaignsList, clients, data } = useAppContext();
+  const { campaignsList, clients, data, activeWorkspaceId } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddingClient, setIsAddingClient] = useState(false);
   const [isEditingClient, setIsEditingClient] = useState(false);
@@ -46,6 +46,7 @@ export default function ClientsPage() {
         retainer: Number(formData.get('retainer')) || 0,
         stage: 'Active',
         userId: auth.currentUser.uid,
+        workspaceId: activeWorkspaceId || auth.currentUser.uid,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -75,19 +76,62 @@ export default function ClientsPage() {
     }
   };
 
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+
   const handleDeleteClient = async () => {
     if (!selectedClient) return;
-    if (!window.confirm(`Are you sure you want to delete ${selectedClient.name}? This will also delete all associated campaigns.`)) return;
+    
+    setShowConfirmDelete(false);
+    setIsDeleting(true);
+    const clientId = selectedClient.id;
+    const clientName = selectedClient.name;
+    console.log("Starting deletion for client:", clientId);
+    addToast(`Deleting client ${clientName}...`, "info");
+
     try {
-      await deleteDoc(doc(db, 'clients', selectedClient.id));
-      // Delete associated campaigns
-      for (const campaign of selectedClientCampaigns) {
-        await deleteDoc(doc(db, 'campaigns', campaign.id));
-      }
-      addToast("Client deleted successfully", "success");
+      // 1. Get all campaigns for this client
+      const campaignsToDelete = [...selectedClientCampaigns];
+      
+      // 2. Parallel deep cleanup for all campaigns
+      const cleanupPromises = campaignsToDelete.map(async (camp) => {
+        const campId = camp.id;
+        const relatedCols = ['campaign_updates', 'clipMetrics', 'campaign_briefs', 'workspaceFiles', 'submissions'];
+        
+        await Promise.all(relatedCols.map(async (col) => {
+          try {
+            const q = query(collection(db, col), where('campaignId', '==', campId));
+            const snap = await getDocs(q);
+            console.log(`[Pipeline Cleanup] Found ${snap.size} documents in ${col} for campaignId: ${campId}`);
+            if (!snap.empty) {
+              const batch = writeBatch(db);
+              snap.docs.forEach(d => {
+                console.log(`[Pipeline Cleanup] Deleting doc: ${d.id} from ${col}`);
+                batch.delete(d.ref);
+              });
+              await batch.commit();
+              console.log(`[Pipeline Cleanup] Deleted ${snap.size} documents from ${col}`);
+            }
+          } catch (e) {
+            console.error(`Sub-cleanup failed for ${col}`, e);
+          }
+        }));
+        
+        await deleteDoc(doc(db, 'campaigns', campId));
+      });
+
+      await Promise.all(cleanupPromises);
+      
+      // 3. Delete client document itself
+      await deleteDoc(doc(db, 'clients', clientId));
+      
+      addToast(`Client ${clientName} deleted successfully`, "success");
       setSelectedClient(null);
     } catch (err: any) {
-      addToast(err.message, "error");
+      console.error("Delete client failed:", err);
+      addToast(`Failed to delete client: ${err.message || 'Unknown error'}`, "error");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -104,7 +148,7 @@ export default function ClientsPage() {
       { gradient: 'linear-gradient(135deg, #c084fc, #7c3aed)', glow: 'var(--color-purple)' },
       { gradient: 'linear-gradient(135deg, #00d4e8, #007b8a)', glow: 'var(--color-cyan)' },
     ];
-    return list[idx % list.length];
+    return list[Math.abs(idx) % list.length];
   };
 
   const getCampaignStats = (campaigns: any[]) => {
@@ -209,7 +253,7 @@ export default function ClientsPage() {
             </button>
             
             <div className="bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-2xl p-6 mb-4 flex items-center gap-5 relative overflow-hidden shadow-sm">
-               <div className="w-16 h-16 rounded-xl flex items-center justify-center font-display font-extrabold text-white text-lg shrink-0 z-10 shadow-md" style={{ background: getClientColor(clients.findIndex(c => c.id === selectedClient.id)).gradient }}>
+               <div className="w-16 h-16 rounded-xl flex items-center justify-center font-display font-extrabold text-white text-lg shrink-0 z-10 shadow-md" style={{ background: selectedClient ? getClientColor(clients.findIndex(c => c.id === selectedClient.id)).gradient : 'linear-gradient(135deg, #ccc, #999)' }}>
                   {selectedClient.name.substring(0, 2).toUpperCase()}
                </div>
                <div className="z-10 relative flex-1">
@@ -229,7 +273,19 @@ export default function ClientsPage() {
                    setEditingClientData({ ...selectedClient });
                    setIsEditingClient(true);
                  }} className="btn btn-ghost btn-sm bg-[var(--color-surface2)] hover:bg-[var(--color-surface-hover)]">Edit</button>
-                 <button onClick={handleDeleteClient} className="btn btn-ghost btn-sm text-[var(--color-red)] bg-[var(--color-red-dim)] hover:bg-[rgba(255,0,0,0.1)] border border-transparent hover:border-[rgba(255,0,0,0.2)]">Delete</button>
+                 <button 
+                   onClick={handleDeleteClient} 
+                   disabled={isDeleting}
+                   className={cn(
+                     "btn btn-ghost btn-sm transition-all flex items-center gap-2 font-bold",
+                     isDeleting 
+                       ? "bg-[var(--color-surface2)] text-faint opacity-50 cursor-not-allowed" 
+                       : "text-[var(--color-red)] bg-[var(--color-red-dim)] hover:bg-[rgba(255,0,0,0.1)] border border-transparent hover:border-[rgba(255,0,0,0.2)]"
+                   )}
+                 >
+                   {isDeleting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                   {isDeleting ? 'Deleting...' : 'Delete'}
+                 </button>
                </div>
             </div>
 

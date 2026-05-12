@@ -4,6 +4,7 @@ import { Wand2, X, Zap, Mail, Link as LinkIcon } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '../lib/toast';
+import { useAppContext } from '../lib/store';
 import { Campaign, CampaignIntake, CampaignStatus } from '../types';
 import { GoogleGenAI, Type } from "@google/genai";
 
@@ -29,6 +30,7 @@ export default function CampaignIntakeModal({
   clientWebsite
 }: CampaignIntakeModalProps) {
   const { addToast } = useToast();
+  const { activeWorkspaceId } = useAppContext();
   const [flow, setFlow] = useState<'internal' | 'client' | null>(null);
 
   const handleCreateLead = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -45,6 +47,7 @@ export default function CampaignIntakeModal({
       const newCampaign: Campaign = {
         id: campaignId,
         userId: auth.currentUser.uid,
+        workspaceId: activeWorkspaceId || auth.currentUser.uid,
         clientId: clientId,
         name: brandName,
         status: 'Draft',
@@ -132,6 +135,7 @@ export default function CampaignIntakeModal({
       const newCampaign: Campaign = {
         id: campaignId,
         userId: auth.currentUser.uid,
+        workspaceId: activeWorkspaceId || auth.currentUser.uid,
         clientId: clientId, // Link to client
         name: draft.campaignName || intake.brandName,
         status: 'Draft',

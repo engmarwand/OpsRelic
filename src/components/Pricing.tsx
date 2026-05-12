@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Check, ArrowRight, X } from 'lucide-react';
 import { PLANS as APP_PLANS } from '../lib/plans';
-import { WhopCheckoutEmbed } from "@whop/checkout/react";
+import { useAppContext } from '../lib/store';
 
 const DISPLAY_PLANS = [
   { 
@@ -57,7 +57,7 @@ const DISPLAY_PLANS = [
 
 export default function Pricing({ onClose, requiresAuth, onAuthRequired }: { onClose?: () => void, requiresAuth?: boolean, onAuthRequired?: () => void }) {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-  const [selectedWhopId, setSelectedWhopId] = useState<string | null>(null);
+  const { currentTier } = useAppContext();
 
   const handleGetStarted = (planId: string) => {
     if (requiresAuth && onAuthRequired) {
@@ -65,53 +65,9 @@ export default function Pricing({ onClose, requiresAuth, onAuthRequired }: { onC
       return;
     }
     
-    // Map of Whop Checkout IDs based on plan and billing cycle
-    const planMapping: Record<string, { monthly: string; yearly: string }> = {
-      starter: { monthly: 'free', yearly: 'free' },
-      pro: { monthly: 'plan_3abAVC0tgumce', yearly: 'plan_njQdhjIx4eG6n' },
-      agency: { monthly: 'plan_5bnzRrzNEhrt7', yearly: 'plan_Bn8HH2w6nT9ye' }
-    };
-
-    const whopId = planMapping[planId]?.[billingCycle];
-
-    if (whopId === 'free' || !whopId) {
-      if (onClose) onClose();
-      return;
-    }
-
-    setSelectedWhopId(whopId);
-  };
-
-  const handleComplete = (planId: string, receiptId: string) => {
-    console.log('Payment complete for plan:', planId, 'Receipt:', receiptId);
-    // You could also redirect or show success here
+    // Just close the modal or show a message if they try to upgrade from the modal
     if (onClose) onClose();
-    // Force a reload or update context to reflect new plan
-    window.location.href = '/?status=success';
   };
-
-  if (selectedWhopId) {
-    return (
-      <div className="min-h-[600px] bg-[#050505] flex flex-col items-center justify-center p-8 relative">
-        <button 
-          onClick={() => setSelectedWhopId(null)}
-          className="absolute top-8 left-8 text-[#555] hover:text-white flex items-center gap-2 text-xs font-black uppercase tracking-widest"
-        >
-          <ArrowRight className="w-4 h-4 rotate-180" /> Back to plans
-        </button>
-        
-        <div className="w-full max-w-2xl bg-[#0A0A0A] rounded-[42px] border border-white/5 overflow-hidden shadow-2xl">
-          <WhopCheckoutEmbed
-            planId={selectedWhopId}
-            onComplete={handleComplete}
-            theme="dark"
-          />
-        </div>
-
-        <p className="mt-8 text-[10px] text-[#333] font-black uppercase tracking-[0.3em]">opsrelic secured checkout</p>
-      </div>
-    );
-  }
 
   return (
     <div className="py-24 px-6 bg-[#050505] text-white overflow-hidden relative">
@@ -146,22 +102,29 @@ export default function Pricing({ onClose, requiresAuth, onAuthRequired }: { onC
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto relative z-10">
-        {DISPLAY_PLANS.map((plan, i) => (
+        {DISPLAY_PLANS.map((plan, i) => {
+          const isCurrentPlan = currentTier === plan.id;
+          
+          return (
           <motion.div 
             key={plan.name}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className={`relative bg-[#0A0A0A] p-10 rounded-[48px] border transition-all duration-500 ${plan.popular ? 'border-blue-500 shadow-[0_0_80px_-20px_rgba(37,99,235,0.15)] ring-1 ring-blue-500/50' : 'border-white/5 hover:border-white/20'}`}
+            className={`relative bg-[#0A0A0A] p-10 rounded-[48px] border transition-all duration-500 ${plan.popular && !isCurrentPlan ? 'border-blue-500 shadow-[0_0_80px_-20px_rgba(37,99,235,0.15)] ring-1 ring-blue-500/50' : isCurrentPlan ? 'border-emerald-500/50 shadow-[0_0_40px_-10px_rgba(16,185,129,0.1)] ring-1 ring-emerald-500/30' : 'border-white/5 hover:border-white/20'}`}
           >
-            {plan.popular && (
+            {isCurrentPlan ? (
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] font-black px-6 py-2 rounded-full uppercase tracking-[0.2em] shadow-xl z-20">
+                Current Plan
+              </div>
+            ) : plan.popular && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-black px-6 py-2 rounded-full uppercase tracking-[0.2em] shadow-xl z-20">
                 Recommended
               </div>
             )}
             
             <div className="mb-10">
-              <div className="text-xs font-black mb-4 uppercase tracking-[0.2em]" style={{ color: plan.popular ? '#3B82F6' : '#555' }}>{plan.name}</div>
+              <div className="text-xs font-black mb-4 uppercase tracking-[0.2em]" style={{ color: isCurrentPlan ? '#10B981' : plan.popular ? '#3B82F6' : '#555' }}>{plan.name}</div>
               <div className="flex items-baseline gap-1 mb-3">
                 <span className="text-6xl font-black tracking-tighter">
                   ${billingCycle === 'yearly' ? Math.floor(plan.price * 0.8) : plan.price}
@@ -176,8 +139,8 @@ export default function Pricing({ onClose, requiresAuth, onAuthRequired }: { onC
             <ul className="space-y-4 mb-10">
               {plan.features.map(f => (
                 <li key={f} className="text-[#888] flex items-start gap-3 group transition-colors hover:text-white">
-                  <div className={`mt-1.5 w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${plan.popular ? 'bg-blue-500/20' : 'bg-white/5'}`}>
-                    <Check className={`w-2.5 h-2.5 ${plan.popular ? 'text-blue-500' : 'text-[#444]'}`} />
+                  <div className={`mt-1.5 w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${isCurrentPlan ? 'bg-emerald-500/20' : plan.popular ? 'bg-blue-500/20' : 'bg-white/5'}`}>
+                    <Check className={`w-2.5 h-2.5 ${isCurrentPlan ? 'text-emerald-500' : plan.popular ? 'text-blue-500' : 'text-[#444]'}`} />
                   </div>
                   <span className="text-sm font-medium tracking-tight">{f}</span>
                 </li>
@@ -185,13 +148,14 @@ export default function Pricing({ onClose, requiresAuth, onAuthRequired }: { onC
             </ul>
 
             <button 
-              className={`w-full py-5 rounded-[24px] font-black uppercase tracking-[0.15em] text-[10px] transition-all flex items-center justify-center gap-3 active:scale-95 ${plan.popular ? 'bg-blue-600 hover:bg-blue-500 shadow-2xl shadow-blue-600/30 text-white' : 'bg-white text-black hover:bg-gray-200 shadow-xl'}`}
-              onClick={() => handleGetStarted(plan.id)}
+              className={`w-full py-5 rounded-[24px] font-black uppercase tracking-[0.15em] text-[10px] transition-all flex items-center justify-center gap-3 active:scale-95 ${isCurrentPlan ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 cursor-default shadow-none pointer-events-none' : plan.popular ? 'bg-blue-600 hover:bg-blue-500 shadow-2xl shadow-blue-600/30 text-white' : 'bg-white text-black hover:bg-gray-200 shadow-xl'}`}
+              onClick={() => { if (!isCurrentPlan) handleGetStarted(plan.id) }}
+              disabled={isCurrentPlan}
             >
-              {plan.cta} <ArrowRight className="w-4 h-4" />
+              {isCurrentPlan ? 'Current Plan' : plan.cta} {isCurrentPlan ? <Check className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
             </button>
           </motion.div>
-        ))}
+        )})}
       </div>
       
       <div className="mt-20 text-center max-w-2xl mx-auto">

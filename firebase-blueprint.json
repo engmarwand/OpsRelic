@@ -143,6 +143,56 @@
         "timestamp": { "type": "string", "format": "date-time" },
         "clientVisible": { "type": "boolean" }
       }
+    },
+    "WorkspaceTask": {
+      "title": "Workspace Task",
+      "description": "Task for agency team collaboration",
+      "type": "object",
+      "properties": {
+        "workspaceId": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string", "enum": ["todo", "in_progress", "done"] },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "clientId": { "type": ["string", "null"] },
+        "campaignId": { "type": ["string", "null"] },
+        "description": { "type": ["string", "null"] },
+        "dueDate": { "type": ["string", "null"], "format": "date" },
+        "assigneeId": { "type": ["string", "null"] },
+        "assigneeName": { "type": ["string", "null"] },
+        "creatorId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["workspaceId", "title", "status", "creatorId"]
+    },
+    "WorkspaceMessage": {
+      "title": "Workspace Message",
+      "description": "Chat message or announcement in workspace",
+      "type": "object",
+      "properties": {
+        "workspaceId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "mentions": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["workspaceId", "authorId", "content", "timestamp"]
+    },
+    "WorkspaceFile": {
+      "title": "Workspace File",
+      "description": "Uploaded asset or link in the workspace",
+      "type": "object",
+      "properties": {
+        "workspaceId": { "type": "string" },
+        "name": { "type": "string" },
+        "url": { "type": "string" },
+        "type": { "type": "string" },
+        "size": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["workspaceId", "name", "url", "creatorId"]
     }
   },
   "firestore": {
@@ -153,6 +203,18 @@
     "/workspaces/{userId}": {
       "schema": "Workspace",
       "description": "Agency workspace configuration"
+    },
+    "/workspaces/{workspaceId}/tasks/{taskId}": {
+      "schema": "WorkspaceTask",
+      "description": "Tasks within a workspace"
+    },
+    "/workspaces/{workspaceId}/discussion/{messageId}": {
+      "schema": "WorkspaceMessage",
+      "description": "Team discussion thread messages"
+    },
+    "/workspaces/{workspaceId}/files/{fileId}": {
+      "schema": "WorkspaceFile",
+      "description": "Recent assets and files"
     },
     "/campaigns/{campaignId}": {
       "schema": "Campaign",

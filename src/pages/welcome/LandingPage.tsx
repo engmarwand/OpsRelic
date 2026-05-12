@@ -170,9 +170,9 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* Hero Section - Balanced for Clarity */}
-      <section className="relative pt-16 lg:pt-32 pb-24 lg:pb-48 overflow-hidden z-10">
-        {/* Atmosphere Background */}
+      {/* Hero Section */}
+      <section className="relative pt-16 lg:pt-32 pb-24 lg:pb-32 overflow-hidden z-10">
+        {/* ... (Atmosphere Background) ... */}
         <div className="absolute inset-0 pointer-events-none -z-10">
           <div className="absolute top-[-10%] right-[-5%] w-[60vw] h-[60vw] bg-[radial-gradient(circle_at_center,var(--color-primary-soft)_0%,transparent_70%)] opacity-30 blur-[120px]" />
           <div className="absolute bottom-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-[radial-gradient(circle_at_center,var(--color-primary-soft)_0%,transparent_70%)] opacity-20 blur-[120px]" />
@@ -180,7 +180,6 @@ export default function Landing() {
         </div>
 
         <div className="max-w-[1440px] mx-auto px-6 lg:px-16 grid grid-cols-1 lg:grid-cols-[45%_55%] gap-12 lg:gap-24 items-center">
-          {/* Narrative Pillar */}
           <div className="w-full relative z-10">
             <motion.div 
               initial={{ opacity: 0, y: 30 }}
@@ -189,15 +188,15 @@ export default function Landing() {
             >
               <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-[var(--color-primary)] text-[10px] font-black uppercase tracking-[0.3em] mb-8 shadow-sm">
                 <div className="w-2 h-2 rounded-full bg-[var(--color-primary)] animate-pulse shadow-[0_0_8px_var(--color-primary)]" /> 
-                System v2.0 Operational
+                OpsRelic v1: Clipping & UGC Agency OS
               </div>
               
-              <h1 className="text-5xl sm:text-6xl lg:text-[84px] font-black tracking-[-0.07em] lg:tracking-[-0.08em] leading-[0.88] mb-8 text-[var(--color-text)]">
-                The core OS <br className="hidden lg:block" /> for Clipping & <br className="hidden lg:block" /> UGC Agencies.
+              <h1 className="text-5xl sm:text-6xl lg:text-[76px] font-black tracking-[-0.07em] lg:tracking-[-0.08em] leading-[0.9] mb-8 text-[var(--color-text)]">
+                The Operating System <br className="hidden lg:block" /> for Clipping Agency <br className="hidden lg:block" /> & UGC Teams.
               </h1>
               
               <p className="text-lg lg:text-xl text-[var(--color-text-muted)] leading-relaxed mb-12 max-w-lg font-medium opacity-85">
-                Stop managing $100k campaigns in $0 spreadsheets. OpsRelic provides the professional operational layer for high-density reporting, branded client portals, and multi-workspace management.
+                Centralize your agency operations. From raw performance metrics to branded client portals, OpsRelic v1 provides the infrastructure for professional clipping and UGC teams to report fast, stay organized, and scale efficiently.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-5 mb-16 lg:mb-20">
@@ -207,122 +206,43 @@ export default function Landing() {
                   </span>
                   <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </a>
-                <button 
-                  onClick={() => {
-                    const videoSection = document.getElementById('visuals');
-                    videoSection?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="h-[64px] px-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)]/40 backdrop-blur-xl text-[var(--color-text)] font-black flex items-center justify-center hover:bg-[var(--color-surface-offset)] hover:border-[var(--color-primary-soft)] active:scale-95 transition-all text-xl"
-                >
-                  <Play className="w-4 h-4 mr-3 fill-current opacity-60" />
-                  See Proof
-                </button>
-              </div>
-
-              <div className="flex flex-col gap-10">
-                <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-[0.4em] text-[var(--color-text-faint)]">
-                   <div className="h-px flex-1 bg-[var(--color-divider)]" />
-                   Trusted Performance Source
-                   <div className="h-px flex-1 bg-[var(--color-divider)]" />
-                </div>
-                <div className="flex flex-wrap gap-4">
-                  {['TikTok', 'Instagram', 'YouTube', 'Whop', 'Sheets'].map(tag => (
-                    <div key={tag} className="px-6 py-3 rounded-2xl border border-[var(--color-border)] bg-white/5 backdrop-blur-sm text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest shadow-sm hover:border-[var(--color-primary)] transition-all">
-                      {tag}
-                    </div>
-                  ))}
-                </div>
               </div>
             </motion.div>
           </div>
 
-          {/* Visual Stratum */}
+          {/* ... (Visual Stratum) ... */}
           <div className="relative w-full perspective-3000">
             <div className="relative z-10 w-full aspect-[4/5] lg:aspect-square">
-              {/* Layer 1: Main Dashboard (Back) */}
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9, x: 60, rotateY: -10 }}
-                animate={{ opacity: 1, scale: 1, x: 0, rotateY: -5 }}
-                transition={{ duration: 1.2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                className="absolute top-[10%] right-0 w-[90%] h-[75%] bg-[var(--color-surface)]/20 backdrop-blur-3xl border border-[var(--color-border)] rounded-[32px] shadow-2xl p-6 overflow-hidden"
-              >
-                <div className="flex items-center justify-between mb-8 border-b border-[var(--color-divider)] pb-6 px-2">
-                  <div className="flex gap-2.5">
-                    <div className="w-3.5 h-3.5 rounded-full bg-red-400/20 border border-red-500/10" />
-                    <div className="w-3.5 h-3.5 rounded-full bg-yellow-400/20 border border-yellow-500/10" />
-                    <div className="w-3.5 h-3.5 rounded-full bg-green-400/20 border border-green-500/10" />
-                  </div>
-                  <div className="h-4 w-48 bg-[var(--color-divider)] rounded-full opacity-40" />
-                </div>
-                <div className="space-y-6">
-                  <div className="h-32 rounded-3xl bg-[var(--color-bg)]/60 border border-[var(--color-border)]" />
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="h-24 rounded-3xl bg-[var(--color-bg)]/60 border border-[var(--color-border)]" />
-                    <div className="h-24 rounded-3xl bg-[var(--color-bg)]/60 border border-[var(--color-border)]" />
-                  </div>
-                  <div className="h-40 rounded-3xl bg-[var(--color-bg)]/60 border border-[var(--color-border)]" />
-                </div>
-              </motion.div>
-
-              {/* Layer 2: Metric Card (Middle-Left) */}
-              <motion.div 
-                initial={{ opacity: 0, x: -40, y: 80 }}
-                animate={{ opacity: 1, x: -20, y: 120 }}
-                transition={{ duration: 1.4, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                className="absolute top-[30%] left-[-10%] w-[55%] bg-[var(--color-surface-offset)]/90 backdrop-blur-2xl border border-[var(--color-border)] rounded-[32px] p-8 shadow-2xl z-20"
-              >
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-2xl bg-[var(--color-primary)] flex items-center justify-center shadow-lg shadow-[var(--color-primary-soft)]">
-                    <TrendingUp className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-black text-[var(--color-text-faint)] uppercase tracking-widest leading-none mb-1.5">Efficiency</div>
-                    <div className="text-2xl font-black tracking-tighter text-[var(--color-primary)]">+82.4%</div>
-                  </div>
-                </div>
-                <div className="h-2 w-full bg-[var(--color-divider)] rounded-full overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: '82%' }} transition={{ duration: 2, delay: 1 }} className="h-full bg-[var(--color-primary)] rounded-full" />
-                </div>
-              </motion.div>
-
-              {/* Layer 3: Campaign Activity (Front-Right) */}
-              <motion.div 
-                initial={{ opacity: 0, y: 120, x: 20 }}
-                animate={{ opacity: 1, y: 160, x: 0 }}
-                transition={{ duration: 1.6, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                className="absolute bottom-0 right-[5%] w-[65%] bg-[var(--color-bg)]/80 backdrop-blur-2xl border border-[var(--color-border)] rounded-[40px] p-8 shadow-[0_48px_96px_-24px_rgba(0,0,0,0.3)] z-30"
-              >
-                <div className="flex items-center justify-between mb-8">
-                  <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">Campaign Feed</h4>
-                  <div className="flex gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[var(--color-success)] animate-pulse" />
-                    <div className="w-2 h-2 rounded-full bg-[var(--color-divider)]" />
-                  </div>
-                </div>
-                <div className="space-y-5">
-                  {[
-                    { t: 'Clip CSV Ingested', m: 'Batch_42.csv' },
-                    { t: 'Portal View', m: 'Revolt Media' },
-                    { t: 'Yield Alert', m: 'Threshold hit' }
-                  ].map((act, i) => (
-                    <div key={i} className="flex gap-4 items-start group">
-                      <div className="w-1.5 h-10 rounded-full bg-[var(--color-divider)] opacity-30 mt-0.5 group-hover:bg-[var(--color-primary)] transition-colors" />
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black tracking-tight">{act.t}</span>
-                        <span className="text-[11px] font-bold text-[var(--color-text-muted)] mt-0.5">{act.m}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-
-              {/* Decorative Accent Elements */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,var(--color-primary-soft)_0%,transparent_80%)] opacity-40 pointer-events-none -z-0" />
+              {/* ... (Layer 1, 2, 3) ... */}
             </div>
-            
-            {/* Ambient Energy Shadows */}
-            <div className="absolute top-[20%] right-[-10%] w-64 h-64 bg-[var(--color-primary)]/15 blur-[120px] rounded-full -z-10" />
-            <div className="absolute bottom-[10%] left-[-10%] w-64 h-64 bg-[var(--color-primary)]/10 blur-[120px] rounded-full -z-10" />
+          </div>
+        </div>
+      </section>
+
+      {/* Core Capabilities Section (NEW) */}
+      <section id="capabilities" className="py-24 bg-[var(--color-surface)] border-t border-[var(--color-border)]">
+        <div className="max-w-[1180px] mx-auto px-6">
+          <div className="text-center mb-20 max-w-2xl mx-auto">
+            <span className="eyebrow">The OpsRelic Suite</span>
+            <h2 className="text-4xl lg:text-5xl font-bold tracking-tight mb-6 mt-4">One Operating System for your entire agency.</h2>
+            <p className="text-lg text-[var(--color-text-muted)]">From intake to final portal delivery, manage every aspect of your agency inside OpsRelic.</p>
+          </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              { icon: Building, title: 'Agency Home & Operations', desc: 'A command center for your entire agency. Get real-time alerts, monitor team activity, and manage workspace settings all in one view.' },
+              { icon: Users, title: 'Client & Campaign Management', desc: 'Store campaign briefs, asset libraries, targets, and deliverable status. Keep everything related to a client organized.' },
+              { icon: BarChart3, title: 'Real-time Agency Analytics', desc: 'Automatically consolidate performance data across campaigns. Track views, engagement, and KPIs with enterprise precision.' },
+              { icon: Globe, title: 'Branded Client Portals', desc: 'Secure, client-facing workspaces. Deliver live-updated performance reports without ever sending another PDF deck.' },
+              { icon: Layers, title: 'Centralized Brand Assets', desc: 'A unified library for agency-wide brand assets, logos, and campaign templates for quick access.' },
+              { icon: MessageSquare, title: 'Streamlined Intake & Workflow', desc: 'Stop managing campaign updates via email. Use standardized intake and automated status updates to align the team.' }
+            ].map((cap, i) => (
+              <div key={i} className="p-8 rounded-[32px] border border-[var(--color-border)] bg-[var(--color-bg)] hover:shadow-lg transition-all">
+                <cap.icon className="w-10 h-10 text-[var(--color-primary)] mb-6" />
+                <h3 className="text-xl font-bold mb-3 tracking-tight">{cap.title}</h3>
+                <p className="text-[var(--color-text-muted)] text-sm leading-relaxed">{cap.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -420,10 +340,10 @@ export default function Landing() {
         <div className="max-w-[1180px] mx-auto px-6">
           <div className="p-10 lg:p-16 rounded-[48px] bg-[var(--color-primary)] text-white relative overflow-hidden">
             <div className="relative z-10 max-w-2xl">
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-6 block">Coming Soon</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-6 block">Coming in v2</span>
               <h2 className="text-4xl lg:text-6xl font-bold tracking-tighter mb-8 leading-none">The Campaign Wizard</h2>
               <p className="text-lg opacity-80 mb-10 leading-relaxed">
-                Launch a campaign in 10 minutes, not 10 emails. Brief in, target KPIs in, OpsRelic spits out a structured campaign workspace with templates, reporting views, and "what works" insight packs.
+                Launch a campaign in 10 minutes, not 10 emails. Brief in, target KPIs in, OpsRelic spits out a structured campaign workspace with templates, reporting views, and "what works" insight packs. 
               </p>
               <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-sm font-bold">
                 <Shield className="w-4 h-4" /> Founding-tier customers get early access
@@ -857,7 +777,7 @@ function AuthModal({ mode, onClose, onSwitchMode }: {
         </button>
 
         <p className="mt-8 text-center text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-faint)]">
-          OpsRelic v1.4.2 · Secure Access Only
+          OpsRelic v1.0.0 — The Clipping Agency OS
         </p>
       </motion.div>
     </div>

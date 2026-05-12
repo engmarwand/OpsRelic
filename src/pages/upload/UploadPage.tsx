@@ -9,7 +9,7 @@ import { useToast } from '../../lib/toast';
 import { cn } from '../../lib/utils';
 
 export default function UploadPage() {
-  const { campaignsList, data: existingSubmissions } = useAppContext();
+  const { campaignsList, data: existingSubmissions, activeWorkspaceId } = useAppContext();
   const { addToast } = useToast();
   
   const [file, setFile] = useState<File | null>(null);
@@ -166,6 +166,7 @@ export default function UploadPage() {
               clipLinkId,
               campaignId: resolvedCampaignId,
               userId: auth.currentUser?.uid,
+              workspaceId: activeWorkspaceId || auth.currentUser?.uid,
               url,
               platform,
               title,
@@ -195,6 +196,7 @@ export default function UploadPage() {
             const submissionRef = doc(collection(db, 'submissions'));
             batch.set(submissionRef, {
               userId: auth.currentUser.uid,
+              workspaceId: activeWorkspaceId || auth.currentUser.uid,
               campaignId: resolvedCampaignId,
               Campaign: campaign?.name || resolvedCampaignId,
               title: title || 'Untitled Asset',

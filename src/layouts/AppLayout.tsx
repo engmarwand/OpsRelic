@@ -1,27 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Users, FolderOpen, Upload, BarChart2, ExternalLink, Settings, UserPlus, Plus, Moon, Sun, X } from 'lucide-react';
+import { 
+  LayoutDashboard, Users, FolderOpen, Upload, BarChart2, 
+  ExternalLink, Settings, UserPlus, Plus, Moon, Sun, X, 
+  PanelLeftClose, PanelLeft, Kanban, FileText, Globe
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import Pricing from '../components/Pricing';
 import { useAppContext } from '../lib/store';
 import { User as FirebaseUser } from 'firebase/auth';
 
-export const primaryNavItems = [
+export const managementNavItems = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, hash: '#overview' },
-  { id: 'clients', label: 'Clients', icon: Users, hash: '#clients', badge: '4' },
-  { id: 'campaigns', label: 'Campaigns', icon: FolderOpen, hash: '#campaigns', badge: '7' },
+  { id: 'clients', label: 'Clients', icon: Users, hash: '#clients' },
+  { id: 'campaigns', label: 'Campaigns', icon: FolderOpen, hash: '#campaigns' },
 ];
 
-export const secondaryNavItems = [
+export const workflowNavItems = [
   { id: 'uploads', label: 'Uploads', icon: Upload, hash: '#uploads' },
-  { id: 'reports', label: 'Reports', icon: BarChart2, hash: '#reports' },
+  { id: 'reports', label: 'Reports', icon: FileText, hash: '#reports' },
 ];
 
-export const sharingNavItems = [
-  { id: 'portal', label: 'Client Portal', icon: ExternalLink, hash: '#portal' },
+export const assetsNavItems = [
+  { id: 'workspace', label: 'Agency Home', icon: LayoutDashboard, hash: '#workspace' },
+  { id: 'workspace-files', label: 'Brand Assets', icon: FolderOpen, hash: '#workspace-files' },
 ];
 
 export const systemNavItems = [
+  { id: 'portal', label: 'Client Portal', icon: Globe, hash: '#portal' },
   { id: 'settings', label: 'Settings', icon: Settings, hash: '#settings' },
 ];
 
@@ -36,145 +42,237 @@ export const AppLayout = ({
   onLogout: () => void,
   activeTab: string
 }) => {
-  const { workspace, data, plan, showPricing, setShowPricing, userRole, portalContext, clients, campaignsList } = useAppContext();
+  const { workspace, data, plan, showPricing, setShowPricing, userRole, portalContext, clients, campaignsList, currentTier } = useAppContext();
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [collapsed, setCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebar-collapsed');
+    return saved === 'true';
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    localStorage.setItem('sidebar-collapsed', collapsed.toString());
+  }, [collapsed]);
+
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
-  const navItemsWithCounts = primaryNavItems.map(item => {
-    if (item.id === 'clients') return { ...item, badge: clients.length > 0 ? clients.length.toString() : undefined };
-    if (item.id === 'campaigns') return { ...item, badge: campaignsList.length > 0 ? campaignsList.length.toString() : undefined };
-    return item;
-  });
-
-  const currentPrimaryNav = userRole === 'client' ? [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard, hash: '#overview' }
-  ] : navItemsWithCounts;
-
-  const NavItem = ({ item }: { item: typeof primaryNavItems[0] }) => {
+  const NavItem = ({ item }: { item: any }) => {
     const isActive = activeTab === item.id;
+    const badge = item.id === 'clients' ? (clients.length > 0 ? clients.length.toString() : null) : 
+                   item.id === 'campaigns' ? (campaignsList.length > 0 ? campaignsList.length.toString() : null) : null;
+
     return (
       <a
         href={item.hash}
         className={cn(
-          "flex items-center gap-[10px] px-3 py-[8px] rounded-md text-sm font-medium transition-all relative select-none mb-[2px]",
+          "flex items-center gap-[12px] px-3 py-[10px] rounded-xl text-sm font-medium transition-all relative select-none mb-[4px] group",
+          collapsed ? "justify-center px-0 hover:px-0" : "",
           isActive 
-            ? "bg-gradient-to-br from-[var(--color-cyan-dim)] to-[rgba(0,114,255,0.08)] text-[var(--color-cyan)] font-semibold border border-[rgba(0,212,232,0.15)]" 
+            ? "bg-gradient-to-br from-[var(--color-cyan-dim)] to-[rgba(0,114,255,0.06)] text-[var(--color-cyan)] font-semibold border border-[rgba(0,212,232,0.1)]" 
             : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-main)]"
         )}
       >
-        <item.icon className="w-[15px] h-[15px] flex-shrink-0" />
-        <span>{item.label}</span>
-        {item.badge && (
+        <div className={cn("relative flex items-center justify-center transition-transform duration-300", collapsed && "group-hover:scale-110")}>
+          <item.icon className={cn("w-[20px] h-[20px] flex-shrink-0 transition-colors", isActive && "text-[var(--color-cyan)]")} />
+          {badge && collapsed && (
+            <span className={cn(
+              "absolute -top-1.5 -right-1.5 w-[14px] h-[14px] rounded-full text-[8px] font-black flex items-center justify-center shadow-lg border border-[var(--color-surface)]",
+              isActive ? "bg-[var(--color-cyan)] text-[var(--color-cyan-on)]" : "bg-blue-600 text-white"
+            )}>
+              {badge}
+            </span>
+          )}
+        </div>
+
+        {!collapsed && <span className="truncate">{item.label}</span>}
+        
+        {badge && !collapsed && (
           <span className={cn(
-            "ml-auto text-[0.6rem] font-bold px-[7px] py-[1px] rounded-full min-w-[20px] text-center",
-            isActive ? "bg-[var(--color-cyan-dim)] text-[var(--color-cyan)]" : "bg-[var(--color-surface3)] text-[var(--color-text-muted)]"
+            "ml-auto text-[0.6rem] font-bold px-[8px] py-[1.5px] rounded-full min-w-[22px] text-center",
+            isActive ? "bg-[var(--color-cyan)] text-[var(--color-cyan-on)]" : "bg-[var(--color-surface3)] text-[var(--color-text-muted)]"
           )}>
-            {item.badge}
+            {badge}
           </span>
+        )}
+
+        {collapsed && (
+          <div 
+            className="absolute left-[calc(100%+12px)] px-3 py-2 bg-[var(--color-surface2)] text-white text-[11px] font-bold rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 scale-95 group-hover:scale-100 whitespace-nowrap z-[100] border border-[var(--color-border-subtle)] shadow-2xl pointer-events-none flex items-center gap-2"
+          >
+            {item.label}
+            {badge && (
+              <span className="bg-[var(--color-cyan)] text-[var(--color-cyan-on)] px-1.5 py-0.5 rounded-full text-[9px]">
+                {badge}
+              </span>
+            )}
+            {/* Arrow */}
+            <div className="absolute right-full top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[6px] border-r-[var(--color-surface2)]" />
+          </div>
         )}
       </a>
     );
   };
 
-  const pageNames: Record<string, string> = {
-    overview: 'Overview', clients: 'Clients', campaigns: 'Campaigns', 
-    uploads: 'Uploads', reports: 'Reports', portal: 'Client Portal', settings: 'Settings'
+  const NavGroup = ({ title, items }: { title: string, items: any[] }) => {
+    if (collapsed) return (
+      <div className="flex flex-col gap-0.5 mb-2">
+        {items.map(item => <NavItem key={item.id} item={item} />)}
+        <div className="h-[1px] w-[16px] bg-[var(--color-divider)] mx-auto my-3 opacity-30" />
+      </div>
+    );
+    
+    return (
+      <div className="mb-6 last:mb-0">
+        <div className="text-[0.65rem] font-black tracking-[0.15em] uppercase text-faint px-3 pb-2 flex items-center gap-2">
+          {title}
+          <div className="h-px bg-[var(--color-divider)] flex-1"></div>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          {items.map(item => <NavItem key={item.id} item={item} />)}
+        </div>
+      </div>
+    );
   };
 
+  const pageNames: Record<string, string> = {
+    overview: 'Overview', clients: 'Clients', campaigns: 'Campaigns', 
+    uploads: 'Uploads', reports: 'Reports', portal: 'Client Portal', settings: 'Settings',
+    workspace: 'Agency Home', 'workspace-files': 'Brand Assets'
+  };
+
+  const sidebarWidth = collapsed ? '72px' : '260px';
+
   return (
-    <div className="grid h-screen w-full" style={{ gridTemplateColumns: 'var(--sidebar-w) 1fr', gridTemplateRows: 'var(--topbar-h) 1fr' }}>
+    <div className="flex h-screen w-full overflow-hidden bg-[var(--color-bg)]">
       
       {/* SIDEBAR */}
-      <aside className="bg-[var(--color-surface)] border-r border-[var(--color-border-subtle)] flex flex-col relative overflow-hidden" style={{ gridRow: '1/3' }}>
+      <aside 
+        className={cn(
+          "bg-[var(--color-surface)] border-r border-[var(--color-border-subtle)] flex flex-col relative z-30 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] shadow-2xl",
+        )}
+        style={{ width: sidebarWidth, flexShrink: 0 }}
+      >
         <div className="absolute top-0 left-0 right-0 h-[220px] pointer-events-none z-0" style={{ background: 'radial-gradient(ellipse at 50% 0%, var(--color-cyan-glow) 0%, transparent 70%)' }}></div>
         
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-[var(--color-divider)] relative z-10 flex-shrink-0">
-          <div className="w-[30px] h-[30px] rounded flex items-center justify-center relative">
+        {/* LOGO AREA */}
+        <div className={cn("flex items-center gap-3 border-b border-[var(--color-divider)] relative z-10 flex-shrink-0 transition-all px-5 py-4", collapsed && "justify-center px-0")}>
+          <div className="w-[32px] h-[32px] rounded-lg bg-[var(--color-bg)] flex items-center justify-center relative shadow-inner overflow-hidden border border-[var(--color-border-subtle)] shrink-0">
              {workspace?.brand?.logoUrl ? (
-                <img src={workspace.brand.logoUrl} alt="Logo" className="w-[30px] h-[30px] object-contain drop-shadow-[0_0_10px_var(--color-cyan-glow)]" />
+                <img src={workspace.brand.logoUrl} alt="Logo" className="w-[32px] h-[32px] object-contain drop-shadow-[0_0_10px_var(--color-cyan-glow)]" />
               ) : (
                 <img src="/logo.png" alt="OpsRelic Logo" className="w-full h-full object-contain drop-shadow-[0_0_8px_var(--color-cyan-glow)]" />
               )}
           </div>
-          <div>
-            <div className="font-display text-md font-bold text-[var(--color-text-main)] -tracking-[0.01em]">{workspace?.brand?.name || 'OpsRelic'}</div>
-            <div className="text-[0.62rem] text-faint tracking-[0.1em] uppercase">Agency OS</div>
-          </div>
+          {!collapsed && (
+            <div className="overflow-hidden">
+              <div className="font-display text-md font-extrabold text-[var(--color-text-main)] -tracking-[0.02em] truncate">{workspace?.brand?.name || 'OpsRelic'}</div>
+              <div className="text-[0.62rem] text-faint tracking-[0.1em] uppercase font-bold">Agency OS</div>
+            </div>
+          )}
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-2 py-3 relative z-10">
-          <div className="text-[0.6rem] font-bold tracking-[0.12em] uppercase text-faint px-3 pb-1 mt-1">Workspace</div>
-          {currentPrimaryNav.map(item => <NavItem key={item.id} item={item} />)}
-
-          {userRole !== 'client' && (
+        {/* NAVIGATION */}
+        <nav className={cn(
+          "flex-1 custom-scrollbar px-3 relative z-10",
+          collapsed ? "py-4 overflow-y-visible" : "py-6 overflow-y-auto"
+        )}>
+          {userRole === 'client' ? (
+            <NavGroup title="Main" items={[{ id: 'overview', label: 'Overview', icon: LayoutDashboard, hash: '#overview' }]} />
+          ) : (
             <>
-              <div className="text-[0.6rem] font-bold tracking-[0.12em] uppercase text-faint px-3 pb-1 mt-4">Data</div>
-              {secondaryNavItems.map(item => <NavItem key={item.id} item={item} />)}
-
-              <div className="text-[0.6rem] font-bold tracking-[0.12em] uppercase text-faint px-3 pb-1 mt-4">Sharing</div>
-              {sharingNavItems.map(item => <NavItem key={item.id} item={item} />)}
-
-              <div className="text-[0.6rem] font-bold tracking-[0.12em] uppercase text-faint px-3 pb-1 mt-4">System</div>
-              {systemNavItems.map(item => <NavItem key={item.id} item={item} />)}
+              <NavGroup title="Management" items={managementNavItems} />
+              <NavGroup title="Workflow" items={workflowNavItems} />
+              <NavGroup title="Team Workspace" items={assetsNavItems} />
+              <NavGroup title="System" items={systemNavItems} />
             </>
           )}
         </nav>
 
-        <div className="px-4 py-3 border-t border-[var(--color-divider)] relative z-10 flex-shrink-0">
+        {/* USER PROFILE */}
+        <div className="px-3 py-4 border-t border-[var(--color-divider)] relative z-10 flex-shrink-0">
           <div className="relative group">
-            <button className="flex items-center gap-3 w-full text-left p-2 -mx-2 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors peer">
-              <div className="w-[32px] h-[32px] rounded-full bg-gradient-to-br from-[var(--color-cyan)] to-[#0072ff] flex items-center justify-center text-xs font-extrabold text-white flex-shrink-0 shadow-[0_0_12px_var(--color-cyan-glow)]">
+            <button className={cn("flex items-center gap-3 w-full text-left p-2 rounded-xl hover:bg-[var(--color-surface-hover)] transition-all peer", collapsed && "justify-center p-0")}>
+              <div className="w-[36px] h-[36px] rounded-xl bg-gradient-to-br from-[var(--color-cyan)] to-[#0072ff] flex items-center justify-center text-sm font-black text-white flex-shrink-0 shadow-[0_4px_12px_rgba(0,212,232,0.25)] border border-white/10">
                 {user?.displayName ? user.displayName.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : 'M')}
               </div>
-              <div>
-                <div className="text-xs font-semibold text-[var(--color-text-main)] truncate max-w-[120px]">{user?.displayName || user?.email || 'John Doe'}</div>
-                <div className="text-[0.62rem] text-faint">{userRole === 'client' ? 'Client' : 'Agency Owner · Pro'}</div>
-              </div>
+              {!collapsed && (
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-[var(--color-text-main)] truncate">{user?.displayName || user?.email?.split('@')[0] || 'John Doe'}</div>
+                  <div className="text-[0.65rem] text-faint font-semibold uppercase tracking-wider">{userRole === 'client' ? 'Client' : `${currentTier || 'Starter'}`}</div>
+                </div>
+              )}
             </button>
-            <div className="absolute bottom-full left-0 mb-2 w-full min-w-[200px] bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible peer-focus:opacity-100 peer-focus:visible hover:opacity-100 hover:visible transition-all flex flex-col z-50 py-1 overflow-hidden">
+            <div className={cn(
+              "absolute mb-2 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible peer-focus:opacity-100 peer-focus:visible hover:opacity-100 hover:visible transition-all duration-300 flex flex-col z-50 py-2 overflow-hidden min-w-[220px]",
+              collapsed 
+                ? "left-[calc(100%+12px)] bottom-0 translate-x-[-12px] group-hover:translate-x-0" 
+                : "left-0 w-full bottom-full"
+            )}>
                {userRole !== 'client' && (
                  <>
-                   <a href="#settings" className="px-4 py-2 text-sm text-[var(--color-text-main)] hover:bg-[var(--color-surface-hover)] transition-colors">Settings</a>
-                   <a href="#settings?tab=billing" className="px-4 py-2 text-sm text-[var(--color-text-main)] hover:bg-[var(--color-surface-hover)] transition-colors text-left w-full block">Plan & Billing</a>
-                   <div className="h-px bg-[var(--color-border-subtle)] my-1"></div>
+                   <a href="#settings" className="px-5 py-2.5 text-sm font-medium text-[var(--color-text-main)] hover:bg-[var(--color-surface-hover)] transition-colors flex items-center gap-3">
+                     <Settings className="w-4 h-4 text-muted" /> Settings
+                   </a>
+                   <a href="#settings?tab=billing" className="px-5 py-2.5 text-sm font-medium text-[var(--color-text-main)] hover:bg-[var(--color-surface-hover)] transition-colors flex items-center gap-3">
+                     <BarChart2 className="w-4 h-4 text-muted" /> Plan & Billing
+                   </a>
+                   <div className="h-px bg-[var(--color-divider)] my-1 mx-2"></div>
                  </>
                )}
-               <button onClick={onLogout} className="px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors text-left w-full font-medium">Log out</button>
+               <button onClick={onLogout} className="px-5 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors text-left w-full font-bold flex items-center gap-3">
+                 <X className="w-4 h-4" /> Log out
+               </button>
+               {collapsed && (
+                 <div className="absolute left-[-12px] bottom-[20px] w-0 h-0 border-y-[8px] border-y-transparent border-r-[12px] border-r-[var(--color-surface2)]" />
+               )}
             </div>
           </div>
         </div>
       </aside>
 
-      {/* TOPBAR */}
-      <header className="bg-[var(--color-surface)] border-b border-[var(--color-border-subtle)] flex items-center justify-between px-6 z-20" style={{ gridColumn: 2 }}>
-        <span className="font-display text-md font-bold text-[var(--color-text-main)]">{pageNames[activeTab] || activeTab}</span>
-        
-        {userRole !== 'client' && (
-          <div className="flex items-center gap-2">
-            <button onClick={() => window.location.hash = '#clients?new=true'} className="inline-flex items-center gap-2 px-[14px] py-[7px] rounded-md text-sm font-semibold transition-all border border-transparent whitespace-nowrap bg-transparent text-muted hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-main)] hover:border-[var(--color-border-subtle)]">
-              <UserPlus className="w-[13px] h-[13px]" /> New Client
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        {/* TOPBAR */}
+        <header className="h-[64px] bg-[var(--color-bg)]/80 backdrop-blur-xl border-b border-[var(--color-border-subtle)] flex items-center justify-between px-8 z-20 shrink-0">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setCollapsed(!collapsed)}
+              className="p-2 -ml-2 rounded-lg text-muted hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-main)] transition-all"
+            >
+              {collapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
             </button>
-            <button onClick={() => window.location.hash = '#campaigns?new=true'} className="inline-flex items-center gap-2 px-[14px] py-[7px] rounded-md text-sm font-semibold transition-all border border-transparent whitespace-nowrap bg-gradient-to-br from-[var(--color-cyan)] to-[#0099ff] text-[var(--color-cyan-on)] hover:from-[var(--color-cyan-hover)] hover:to-[#0080e6] shadow-[0_2px_14px_rgba(0,212,232,0.3)] hover:shadow-[0_4px_22px_rgba(0,212,232,0.5)] transform hover:-translate-y-[1px]">
-              <Plus className="w-[13px] h-[13px]" /> New Campaign
-            </button>
-            <button onClick={toggleTheme} className="w-[34px] h-[34px] rounded-md flex items-center justify-center text-muted border border-[var(--color-border-subtle)] transition-all hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-main)] hover:border-strong ml-2">
-              {theme === 'dark' ? <Moon className="w-[15px] h-[15px]" /> : <Sun className="w-[15px] h-[15px]" />}
-            </button>
+            <h1 className="font-display text-lg font-black text-[var(--color-text-main)] tracking-tight">
+              {pageNames[activeTab] || activeTab}
+            </h1>
           </div>
-        )}
-      </header>
+          
+          {userRole !== 'client' && (
+            <div className="flex items-center gap-3">
+              <button onClick={() => window.location.hash = '#clients?new=true'} className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border border-[var(--color-border-subtle)] bg-[var(--color-surface)] text-muted hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-main)] shadow-sm">
+                <UserPlus className="w-4 h-4" /> New Client
+              </button>
+              <button onClick={() => window.location.hash = '#campaigns?new=true'} className="inline-flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-black transition-all bg-gradient-to-r from-[var(--color-cyan)] to-[#0099ff] text-[var(--color-cyan-on)] hover:shadow-[0_8px_24px_rgba(0,212,232,0.3)] shadow-md transform hover:-translate-y-0.5 active:translate-y-0">
+                <Plus className="w-4 h-4" /> New Campaign
+              </button>
+              <div className="w-px h-6 bg-[var(--color-divider)] mx-2 hidden sm:block"></div>
+              <button onClick={toggleTheme} className="w-[40px] h-[40px] rounded-xl flex items-center justify-center text-muted border border-[var(--color-border-subtle)] transition-all hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-main)] bg-[var(--color-surface)]">
+                {theme === 'dark' ? <Moon className="w-[18px] h-[18px]" /> : <Sun className="w-[18px] h-[18px]" />}
+              </button>
+            </div>
+          )}
+        </header>
 
-      {/* MAIN */}
-      <main className="overflow-y-auto bg-[var(--color-bg)]" style={{ gridColumn: 2 }}>
-        {children}
-      </main>
+        {/* MAIN CONTENT */}
+        <main className="flex-1 overflow-y-auto custom-scrollbar relative">
+          <div className="max-w-[1600px] mx-auto w-full">
+            {children}
+          </div>
+        </main>
+      </div>
 
       {/* Auth Modal / Pricing */}
       <AnimatePresence>

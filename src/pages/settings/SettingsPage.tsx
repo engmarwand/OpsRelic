@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Bell, Shield, CreditCard, Paintbrush, ChevronRight, Save, Palette, Image as ImageIcon } from 'lucide-react';
+import { User, Bell, Shield, CreditCard, Paintbrush, ChevronRight, Save, Palette, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { useToast } from '../../lib/toast';
 import { useAppContext } from '../../lib/store';
 import { PLANS } from '../../lib/plans';
 import { WorkspaceSettings } from '../../types';
+import ResetData from '../../components/ResetData';
 
 export default function SettingsPage() {
   const { workspace, saveWorkspace, currentTier, setShowPricing, userDoc } = useAppContext();
   const [activeTab, setActiveTab] = useState('profile');
+  const [isResetting, setIsResetting] = useState(false);
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -18,6 +20,8 @@ export default function SettingsPage() {
   useEffect(() => {
     setLocalWorkspace(workspace);
   }, [workspace]);
+
+  // ... (rest of the file content)
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -36,7 +40,53 @@ export default function SettingsPage() {
     { id: 'appearance', icon: Palette, label: 'Appearance & Branding' },
     { id: 'notifications', icon: Bell, label: 'Notifications' },
     { id: 'billing', icon: CreditCard, label: 'Billing' },
+    { id: 'danger', icon: AlertTriangle, label: 'Danger Zone' },
   ];
+
+  const handleReset = async () => {
+    if (!window.confirm("Are you sure you want to PERMANENTLY delete ALL your data? This cannot be undone.")) return;
+    
+    setIsResetting(true);
+    addToast("Starting data reset...", "info");
+
+    try {
+      const collections = [
+        'campaigns', 'clients', 'submissions', 'campaign_briefs', 'campaign_updates', 'clipMetrics', 'user_config'
+      ];
+
+      // Batch delete for root collections
+      for (const colName of collections) {
+        const querySnapshot = await getDocs(collection(db, colName));
+        if (querySnapshot.size > 0) {
+          const batch = writeBatch(db);
+          querySnapshot.docs.forEach((doc) => batch.delete(doc.ref));
+          await batch.commit();
+        }
+      }
+
+      // Workspace subcollections if workspace exists
+      if (workspace?.id) {
+        const subCollections = ['tasks', 'discussion', 'files'];
+        for (const subCol of subCollections) {
+          const q = collection(db, 'workspaces', workspace.id, subCol);
+          const querySnapshot = await getDocs(q);
+          if (querySnapshot.size > 0) {
+            const batch = writeBatch(db);
+            querySnapshot.docs.forEach((doc) => batch.delete(doc.ref));
+            await batch.commit();
+          }
+        }
+      }
+
+      addToast("Data reset successfully", "success");
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to reset data", "error");
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!localWorkspace) return;
@@ -118,7 +168,7 @@ export default function SettingsPage() {
                          <div className="flex flex-col gap-[5px]">
                             <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Workspace Name</label>
                             <input 
-                              value={localWorkspace.brand.name} 
+                              value={localWorkspace.brand.name || ''} 
                               onChange={e => setLocalWorkspace({...localWorkspace, brand: {...localWorkspace.brand, name: e.target.value}})}
                               className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" 
                             />
@@ -147,6 +197,10 @@ export default function SettingsPage() {
                              <option value="Europe/London">London</option>
                              <option value="Europe/Berlin">Berlin</option>
                           </select>
+                       </div>
+                       <div className="pt-8 mt-8 border-t border-[var(--color-border-subtle)]">
+                          <h3 className="text-sm font-bold text-[var(--color-text-main)] mb-4">Danger Zone</h3>
+                          <ResetData />
                        </div>
                     </div>
                   )}
@@ -239,10 +293,10 @@ export default function SettingsPage() {
                           </div>
                           <div className="flex gap-3 mt-6">
                             <button 
-                              onClick={() => window.open('https://whop.com', '_blank')} 
+                              onClick={() => setShowPricing(true)} 
                               className="btn btn-primary flex-1 justify-center py-2.5"
                             >
-                              Manage Plan on Whop
+                              View Plans
                             </button>
                           </div>
                        </div>

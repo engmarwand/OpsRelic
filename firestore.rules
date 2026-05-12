@@ -32,13 +32,13 @@ service cloud.firestore {
     // --- Rules ---
 
     match /users/{userId} {
-      allow get: if true; // Public for plan/tier verification
+      allow read: if true; // Public for plan/tier verification
       allow create: if isOwner(userId) && isValidUser(incoming());
       allow update: if (isOwner(userId) && isValidUser(incoming())) || isAdmin();
     }
 
     match /workspaces/{userId} {
-      allow get: if true; // Public for branding
+      allow read: if true; // Public for branding
       allow create: if isOwner(userId) && isValidWorkspace(incoming());
       allow update: if (isOwner(userId) && isValidWorkspace(incoming())) || isAdmin();
     }
@@ -47,49 +47,75 @@ service cloud.firestore {
       allow read, write: if isOwner(userId) || isAdmin();
     }
 
+    match /workspaces_metadata/{workspaceId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == workspaceId;
+    }
+
+    match /workspaceMembers/{memberId} {
+      allow read: if isSignedIn() && (resource.data.workspaceId == request.auth.uid || resource.data.email == request.auth.token.email || resource.data.userId == request.auth.uid || resource.data.workspaceId != null);
+      allow write: if isSignedIn();
+    }
+
+    match /workspaceFiles/{fileId} {
+      allow read: if isSignedIn() && (resource.data.workspaceId == request.auth.uid || resource.data.uploadedBy == request.auth.uid || resource.data.workspaceId != null);
+      allow write: if isSignedIn();
+    }
+
     match /clients/{clientId} {
-      allow get, list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow update: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid && incoming().userId == existing().userId);
-      allow delete: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow get, list: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.workspaceId == request.auth.uid));
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (isSignedIn() && (existing().userId == request.auth.uid || existing().workspaceId == request.auth.uid));
+      allow delete: if isAdmin() || (isSignedIn() && (existing().userId == request.auth.uid || existing().workspaceId == request.auth.uid));
     }
 
     match /campaigns/{campaignId} {
       allow get: if true;
-      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid) || (resource.data.portalEnabled == true);
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow update: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid && incoming().userId == existing().userId);
-      allow delete: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.workspaceId == request.auth.uid)) || (resource.data.portalEnabled == true);
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (isSignedIn() && (existing().userId == request.auth.uid || existing().workspaceId == request.auth.uid));
+      allow delete: if isAdmin() || (isSignedIn() && (existing().userId == request.auth.uid || existing().workspaceId == request.auth.uid));
     }
 
     match /submissions/{submissionId} {
       allow get: if true;
-      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid) || (resource.data.campaignId != null);
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow update: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid && (incoming().userId == null || incoming().userId == existing().userId));
-      allow delete: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.workspaceId == request.auth.uid)) || (resource.data.campaignId != null);
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (isSignedIn() && (existing().userId == request.auth.uid || existing().workspaceId == request.auth.uid));
+      allow delete: if isAdmin() || (isSignedIn() && (existing().userId == request.auth.uid || existing().workspaceId == request.auth.uid));
     }
 
     match /campaign_updates/{updateId} {
       allow get: if true;
-      allow list: if isAdmin() || (isSignedIn() && (resource.data.authorId == request.auth.uid || resource.data.campaignId == 'All')) || (resource.data.clientVisible == true);
-      allow create: if isSignedIn() && incoming().authorId == request.auth.uid;
-      allow update: if isAdmin() || (isSignedIn() && existing().authorId == request.auth.uid && (incoming().authorId == null || incoming().authorId == existing().authorId));
-      allow delete: if isAdmin() || (isSignedIn() && existing().authorId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && (resource.data.authorId == request.auth.uid || resource.data.workspaceId == request.auth.uid || resource.data.campaignId == 'All')) || (resource.data.clientVisible == true);
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (isSignedIn() && (existing().authorId == request.auth.uid || existing().workspaceId == request.auth.uid));
+      allow delete: if isAdmin() || (isSignedIn() && (existing().authorId == request.auth.uid || existing().workspaceId == request.auth.uid));
     }
 
     match /campaign_briefs/{briefId} {
-      allow get, list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid) || (resource.data.campaignId != null);
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow update: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid && (incoming().userId == null || incoming().userId == existing().userId));
-      allow delete: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow get, list: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.workspaceId == request.auth.uid)) || (resource.data.campaignId != null);
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (isSignedIn() && (existing().userId == request.auth.uid || existing().workspaceId == request.auth.uid));
+      allow delete: if isAdmin() || (isSignedIn() && (existing().userId == request.auth.uid || existing().workspaceId == request.auth.uid));
     }
 
     match /clipMetrics/{metricId} {
-      allow get, list: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userId == null)) || (resource.data.campaignId != null);
+      allow get, list: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.workspaceId == request.auth.uid || resource.data.userId == null)) || (resource.data.campaignId != null);
       allow create: if isSignedIn();
-      allow update: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
-      allow delete: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow update: if isAdmin() || (isSignedIn() && (existing().userId == request.auth.uid || existing().workspaceId == request.auth.uid));
+      allow delete: if isAdmin() || (isSignedIn() && (existing().userId == request.auth.uid || existing().workspaceId == request.auth.uid));
+    }
+
+    // --- Workspace Subcollections ---
+    match /workspaces/{workspaceId}/tasks/{taskId} {
+      allow read, write: if isSignedIn();
+    }
+    match /workspaces/{workspaceId}/discussion/{messageId} {
+      allow read, write: if isSignedIn();
+    }
+    match /workspaces/{workspaceId}/files/{fileId} {
+      allow read, write: if isSignedIn();
     }
   }
 }
