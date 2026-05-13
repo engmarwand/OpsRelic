@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useAppContext } from '../../lib/store';
 import { 
   Globe, Shield, Key, Copy, ExternalLink, Eye, EyeOff, 
-  Search, ChevronRight, Lock, Unlock, AlertCircle, RefreshCw
+  Search, ChevronRight, Lock, Unlock, AlertCircle, RefreshCw, User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
@@ -30,6 +30,7 @@ export default function PortalPage() {
   , [campaignsList, clients, searchTerm]);
 
   const [password, setPassword] = useState('');
+  const [portalClientName, setPortalClientName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const handleTogglePortal = async () => {
@@ -139,12 +140,14 @@ export default function PortalPage() {
                     setSelectedCampaignId(camp.id);
                     setIsPreviewing(false);
                     setPassword(camp.portalPassword || '');
+                    setPortalClientName(camp.portalClientName || '');
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       setSelectedCampaignId(camp.id);
                       setIsPreviewing(false);
                       setPassword(camp.portalPassword || '');
+                      setPortalClientName(camp.portalClientName || '');
                     }
                   }}
                   className={cn(
@@ -279,12 +282,12 @@ export default function PortalPage() {
                               <div className="flex items-center gap-2 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg p-2.5">
                                  <input 
                                    readOnly 
-                                   value={selectedCampaign.portalEnabled ? `${window.location.origin}/portal/${selectedCampaign.portalToken}` : 'Portal Disabled'}
+                                   value={selectedCampaign.portalEnabled ? `opsrelic.com/portal/${selectedCampaign.portalToken}` : 'Portal Disabled'}
                                    className="flex-1 bg-transparent border-none outline-none text-xs font-mono text-[var(--color-text-main)] truncate"
                                  />
                                  <button 
                                    onClick={() => {
-                                      navigator.clipboard.writeText(`${window.location.origin}/portal/${selectedCampaign.portalToken}`);
+                                      navigator.clipboard.writeText(`https://opsrelic.com/portal/${selectedCampaign.portalToken}`);
                                       addToast("Link copied!", "success");
                                    }}
                                    className="p-1.5 hover:bg-[var(--color-surface-hover)] rounded-md text-muted transition-colors"
@@ -295,7 +298,7 @@ export default function PortalPage() {
                            </div>
                            <div className="flex gap-3">
                               <button 
-                                onClick={() => window.open(`${window.location.origin}/portal/${selectedCampaign.portalToken}`, '_blank')}
+                                onClick={() => window.open(`https://opsrelic.com/portal/${selectedCampaign.portalToken}`, '_blank')}
                                 className="flex-1 btn btn-secondary btn-sm flex items-center justify-center gap-2"
                               >
                                  <ExternalLink className="w-3.5 h-3.5" /> Open in New Tab
@@ -391,6 +394,54 @@ export default function PortalPage() {
                               </p>
                            </div>
                         </div>
+                      </div>
+                   </div>
+
+                   {/* Portal Identity */}
+                   <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
+                      <div className="flex items-center gap-3 mb-6">
+                         <div className="w-10 h-10 rounded-xl bg-[var(--color-surface2)] flex items-center justify-center text-[var(--color-cyan)] border border-[var(--color-border-subtle)]">
+                            <User className="w-5 h-5" />
+                         </div>
+                         <h3 className="font-display text-md font-bold text-[var(--color-text-main)]">Portal Identity</h3>
+                      </div>
+
+                      <div className="space-y-4">
+                         <p className="text-xs text-muted leading-relaxed">
+                           Set how the client's name appears inside their portal.
+                         </p>
+
+                         <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-bold text-muted uppercase tracking-widest">Portal Client Name</label>
+                            <input 
+                              type="text"
+                              value={portalClientName}
+                              onChange={e => setPortalClientName(e.target.value)}
+                              className="w-full bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-xl px-4 py-2.5 text-sm focus:border-[var(--color-cyan)] outline-none transition-all placeholder:text-faint"
+                              placeholder={clients.find(c => c.id === selectedCampaign.clientId)?.name || "Client Name"}
+                            />
+                         </div>
+
+                         <button 
+                           onClick={async () => {
+                             setIsSaving(true);
+                             try {
+                               await updateDoc(doc(db, 'campaigns', selectedCampaign.id), {
+                                 portalClientName: portalClientName,
+                                 updatedAt: new Date().toISOString()
+                               });
+                               addToast("Portal identity updated", "success");
+                             } catch (err) {
+                               addToast("Failed to update portal identity", "error");
+                             } finally {
+                               setIsSaving(false);
+                             }
+                           }}
+                           disabled={isSaving || portalClientName === (selectedCampaign.portalClientName || '')}
+                           className="btn btn-primary btn-sm w-full"
+                         >
+                           {isSaving ? 'Saving...' : 'Update Portal Name'}
+                         </button>
                       </div>
                    </div>
                 </div>

@@ -3,7 +3,8 @@ import { useAppContext } from '../../lib/store';
 import { formatViews } from '../../lib/data';
 import { 
   TrendingUp, Users, PlayCircle, Zap, ExternalLink, Calendar,
-  BarChart2, Presentation, ShieldCheck, ChevronDown, ChevronRight, DollarSign
+  BarChart2, Presentation, ShieldCheck, ChevronDown, ChevronRight,
+  Info, Sparkles, Filter
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
@@ -13,6 +14,12 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
   const { data, workspace, updates, campaignsList, clients, clipMetrics } = useAppContext();
   const [selectedAuthor, setSelectedAuthor] = React.useState<string>('All');
   const [expandedAuthors, setExpandedAuthors] = React.useState<Set<string>>(new Set());
+  
+  // Date Range State
+  const [dateRange, setDateRange] = React.useState({
+    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
+  });
 
   const toggleAuthor = (author: string) => {
     const next = new Set(expandedAuthors);
@@ -38,12 +45,24 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
   }, [clients, campaign]);
 
   const campaignData = useMemo(() => {
-    let filtered = (data || []).filter(r => (!campaignId || r.Campaign === campaignId || r._campaignId === campaignId) && ((r.Status||'').toLowerCase() === 'approved'));
+    let filtered = (data || []).filter(r => (!campaignId || r.Campaign === campaignId || r._campaignId === campaignId));
+    
+    // Filter by date range
+    const start = new Date(dateRange.start).getTime();
+    const end = new Date(dateRange.end).getTime();
+    
+    filtered = filtered.filter(row => {
+      const rowDateStr = row["Submission Date"] || row.submissionDate || row.Date || row.Timestamp || '';
+      if (!rowDateStr) return true;
+      const rowTime = new Date(rowDateStr).getTime();
+      return rowTime >= start && rowTime <= end + (24 * 60 * 60 * 1000); // end of day
+    });
+
     if (selectedAuthor !== 'All') {
       filtered = filtered.filter(r => r.Creator === selectedAuthor);
     }
     return filtered;
-  }, [data, campaignId, selectedAuthor]);
+  }, [data, campaignId, selectedAuthor, dateRange]);
 
    const stats = useMemo(() => {
     const platforms: Record<string, number> = {};
@@ -69,16 +88,21 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
   const chartData = useMemo(() => {
     const viewsByDate: Record<string, number> = {};
     const dates: string[] = [];
-    const now = new Date();
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      dates.push(d.toISOString().split('T')[0]);
+    
+    const start = new Date(dateRange.start);
+    const end = new Date(dateRange.end);
+    const dayCount = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    
+    for (let i = 0; i <= dayCount; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      const dateStr = d.toISOString().split('T')[0];
+      dates.push(dateStr);
+      viewsByDate[dateStr] = 0;
     }
-    dates.forEach(d => viewsByDate[d] = 0);
 
     campaignData.forEach(row => {
-      const d = (row["Submission Date"] || row.submissionDate || '').split('T')[0];
+      const d = (row["Submission Date"] || row.submissionDate || row.Date || row.Timestamp || '').split('T')[0];
       if (d && viewsByDate[d] !== undefined) {
         viewsByDate[d] += (row.Views || row.views || 0);
       }
@@ -88,7 +112,7 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
       labels: dates.map(date => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
       dataPoints: dates.map(date => viewsByDate[date])
     };
-  }, [campaignData]);
+  }, [campaignData, dateRange]);
 
   const brandColor = workspace?.color?.primary || '#00d4e8';
 
@@ -145,6 +169,39 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
            .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
   , [updates, campaignId]);
 
+  const executiveSummary = useMemo(() => {
+    if (campaignClipMetrics.length === 0) return null;
+
+    const totalViews = stats.views;
+    const avgEngagement = campaignClipMetrics.reduce((sum, m) => sum + (m.engagementRate || 0), 0) / campaignClipMetrics.length;
+    const topCreator = Object.entries(
+      campaignClipMetrics.reduce((acc, m) => {
+        acc[m.author] = (acc[m.author] || 0) + (m.views || 0);
+        return acc;
+      }, {} as Record<string, number>)
+    ).sort((a,b) => b[1] - a[1])[0];
+
+    const insights = [];
+    
+    if (totalViews > 100000) {
+      insights.push("Significant reach achieved across primary platforms.");
+    } else if (totalViews > 0) {
+      insights.push("Steady audience growth and brand awareness development.");
+    }
+
+    if (avgEngagement > 0.05) {
+      insights.push("Exceptional engagement rate, suggesting high content quality and audience resonance.");
+    } else if (avgEngagement > 0.02) {
+      insights.push("Healthy interaction levels consistent with industry benchmarks.");
+    }
+
+    if (topCreator) {
+      insights.push(`@${topCreator[0]} is currently the high-performance lead for this campaign.`);
+    }
+
+    return insights;
+  }, [campaignClipMetrics, stats]);
+
   return (
     <div className="page active p-6 md:p-8 min-h-[calc(100vh-var(--topbar-h))]">
       {/* Header */}
@@ -152,33 +209,84 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
           <div className="space-y-4">
              <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full shadow-glow" style={{ backgroundColor: brandColor }} />
-                <span className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted">Portal Feed</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted">Client Portal</span>
              </div>
              <h1 className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tracking-[-0.025em]">
                {campaign?.name || 'Campaign'} Insights
              </h1>
              <p className="text-sm text-muted max-w-lg">
-                Verified viewing metrics and asset performance for {client?.name || 'your campaign'}. Updated via agency reports.
+                Verified viewing metrics and asset performance for {campaign?.portalClientName || client?.name || 'your campaign'}. Updated via agency reports.
              </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <label className="text-[10px] font-bold text-muted uppercase tracking-widest whitespace-nowrap">Filter Creator:</label>
-            <select 
-              value={selectedAuthor} 
-              onChange={(e) => setSelectedAuthor(e.target.value)}
-              className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2 text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] min-w-[160px]"
-            >
-              <option value="All">All Creators</option>
-              {Array.from(new Set([
-                ...clipMetrics.filter(m => m.campaignId === campaignId).map(c => c.author),
-                ...data.filter(r => (!campaignId || r.Campaign === campaignId || r._campaignId === campaignId)).map(r => r.Creator)
-              ].filter(Boolean))).sort().map(author => (
-                <option key={author} value={author}>{author}</option>
-              ))}
-            </select>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-xl p-1">
+               <div className="flex items-center gap-1 px-3 py-1.5 border-r border-[var(--color-border-subtle)]">
+                 <Calendar className="w-3.5 h-3.5 text-muted" />
+                 <input 
+                   type="date"
+                   value={dateRange.start}
+                   onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                   className="bg-transparent text-[11px] font-bold text-[var(--color-text-main)] outline-none cursor-pointer"
+                 />
+               </div>
+               <div className="flex items-center gap-1 px-3 py-1.5">
+                 <input 
+                   type="date"
+                   value={dateRange.end}
+                   onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                   className="bg-transparent text-[11px] font-bold text-[var(--color-text-main)] outline-none cursor-pointer"
+                 />
+               </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] font-bold text-muted uppercase tracking-widest whitespace-nowrap">Filter:</label>
+              <select 
+                value={selectedAuthor} 
+                onChange={(e) => setSelectedAuthor(e.target.value)}
+                className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-xl px-4 py-2 text-xs font-bold text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] min-w-[140px]"
+              >
+                <option value="All">All Creators</option>
+                {Array.from(new Set([
+                  ...clipMetrics.filter(m => m.campaignId === campaignId).map(c => c.author),
+                  ...data.filter(r => (!campaignId || r.Campaign === campaignId || r._campaignId === campaignId)).map(r => r.Creator)
+                ].filter(Boolean))).sort().map(author => (
+                  <option key={author} value={author}>{author}</option>
+                ))}
+              </select>
+            </div>
           </div>
        </div>
+
+      {/* Executive Summary / Understanding the numbers */}
+      <AnimatePresence>
+        {executiveSummary && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 p-6 bg-gradient-to-br from-[var(--color-brand-primary)]/5 to-transparent border border-[var(--color-brand-primary)]/10 rounded-2xl relative overflow-hidden group"
+          >
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <Sparkles className="w-12 h-12 text-[var(--color-brand-primary)]" />
+            </div>
+            <div className="flex items-center gap-2 mb-4">
+              <Zap className="w-4 h-4 text-[var(--color-brand-primary)]" />
+              <h3 className="text-xs font-black uppercase tracking-[0.1em] text-[var(--color-brand-primary)]">Executive Summary</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {executiveSummary.map((insight, i) => (
+                <div key={i} className="flex gap-3">
+                  <div className="w-1 h-full bg-[var(--color-brand-primary)]/20 rounded-full shrink-0" />
+                  <p className="text-sm font-medium text-[var(--color-text-main)] leading-relaxed italic">
+                    "{insight}"
+                  </p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm relative overflow-hidden">
@@ -216,7 +324,7 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
          <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm min-h-[400px] flex flex-col">
             <div className="flex justify-between items-center mb-6">
                <h3 className="font-display text-md font-bold text-[var(--color-text-main)]">Performance Trajectory</h3>
-               <span className="text-xs text-muted font-medium bg-[var(--color-surface2)] px-2 py-1 rounded">Last 14 Days</span>
+               <span className="text-xs text-muted font-medium bg-[var(--color-surface2)] px-2 py-1 rounded">Selected Range</span>
             </div>
             <div className="relative flex-1">
                <canvas ref={chartRef}></canvas>
@@ -267,6 +375,7 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
                         platform: r.Platform,
                         views: r.Views || 0,
                         likes: r.Likes || 0,
+                        status: r.Status || 'Pending',
                         isCSV: true,
                         updatedAt: r.Date || r.Timestamp
                       } as any);
@@ -289,11 +398,6 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
                   return Object.entries(groups).sort((a, b) => b[1].length - a[1].length).map(([author, clips]) => {
                     const isExpanded = expandedAuthors.has(author);
                     const creatorViews = clips.reduce((sum, c) => sum + (c.views || 0), 0);
-                    const creatorPayout = clips.reduce((sum, c) => {
-                      let p = ((c.views || 0) / 1000 * (campaign?.cpm || 0));
-                      if (campaign?.maxPayout && p > campaign.maxPayout) p = campaign.maxPayout;
-                      return sum + p;
-                    }, 0);
                     
                     return (
                       <div key={author} className="border border-[var(--color-border-subtle)] rounded-xl overflow-hidden bg-[var(--color-surface)] shadow-sm">
@@ -315,12 +419,8 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
                               <div className="text-[10px] font-bold text-muted uppercase tracking-tighter text-right">Reach</div>
                               <div className="text-sm font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(creatorViews)}</div>
                             </div>
-                            <div className="text-right hidden sm:block">
-                              <div className="text-[10px] font-bold text-muted uppercase tracking-tighter text-right">Earnings</div>
-                              <div className="text-sm font-extrabold text-[var(--color-green)] tabular-nums">${creatorPayout.toFixed(2)}</div>
-                            </div>
                             <div className={cn("p-2 rounded-lg bg-[var(--color-surface2)] text-muted transition-transform duration-300", isExpanded && "rotate-180")}>
-                              <ChevronDown className="w-4 h-4" />
+                               <ChevronDown className="w-4 h-4" />
                             </div>
                           </div>
                         </div>
@@ -335,49 +435,47 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
                             >
                               <div className="p-4 space-y-3">
                                 {clips.sort((a,b) => (b.views || 0) - (a.views || 0)).map(clip => (
-                                  <div key={clip.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-[var(--color-surface)] rounded-xl border border-[var(--color-border-subtle)] gap-4 hover:border-brand-primary/50 transition-all group">
-                                    <div className="flex items-center gap-4 min-w-0">
-                                      <div className="w-12 h-12 rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] flex items-center justify-center shrink-0 text-muted transition-colors group-hover:text-brand-primary">
-                                        <PlayCircle className="w-6 h-6 opacity-60" />
-                                      </div>
-                                      <div className="min-w-0">
-                                        <div className="text-sm font-bold text-[var(--color-text-main)] truncate max-w-full">
-                                          {clip.title || 'Untitled Asset'}
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-[var(--color-surface)] rounded-xl border border-[var(--color-border-subtle)] gap-4 hover:border-brand-primary/50 transition-all group">
+                                      <div className="flex items-center gap-4 min-w-0">
+                                        <div className="w-12 h-12 rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] flex items-center justify-center shrink-0 text-muted transition-colors group-hover:text-brand-primary">
+                                          <PlayCircle className="w-6 h-6 opacity-60" />
                                         </div>
-                                        <div className="text-[10px] text-muted flex items-center gap-x-2 mt-1 font-medium">
-                                          <span className="bg-[var(--color-surface2)] px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest">{clip.platform || 'Clip'}</span>
-                                          <span>•</span>
-                                          <span>{clip.updatedAt ? new Date(clip.updatedAt.toMillis ? clip.updatedAt.toMillis() : clip.updatedAt).toLocaleDateString() : 'Verified'}</span>
+                                        <div className="min-w-0">
+                                          <div className="text-sm font-bold text-[var(--color-text-main)] truncate max-w-full">
+                                            {clip.title || 'Untitled Asset'}
+                                          </div>
+                                          <div className="text-[10px] text-muted flex items-center gap-x-2 mt-1 font-medium">
+                                            <span className="bg-[var(--color-surface2)] px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest">{clip.platform || 'Clip'}</span>
+                                            <span>•</span>
+                                            <span>{clip.updatedAt ? new Date(clip.updatedAt.toMillis ? clip.updatedAt.toMillis() : clip.updatedAt).toLocaleDateString() : 'Verified'}</span>
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 shrink-0">
-                                      <div className="text-left md:text-right">
-                                        <div className="font-display font-black text-sm tabular-nums text-[var(--color-text-main)]">{formatViews(clip.views || 0)}</div>
-                                        <div className="text-[9px] text-muted font-bold uppercase tracking-widest">Views</div>
-                                      </div>
-                                       <div className="text-left md:text-right">
-                                         <div className="font-display font-black text-sm tabular-nums text-[var(--color-green)]">
-                                           ${(() => {
-                                             let p = ((clip.views || 0) / 1000 * (campaign?.cpm || 0));
-                                             if (campaign?.maxPayout && p > campaign.maxPayout) p = campaign.maxPayout;
-                                             return p.toFixed(2);
-                                           })()}
+                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 shrink-0">
+                                        <div className="text-left md:text-right">
+                                          <div className="font-display font-black text-sm tabular-nums text-[var(--color-text-main)]">{formatViews(clip.views || 0)}</div>
+                                          <div className="text-[9px] text-muted font-bold uppercase tracking-widest">Views</div>
+                                        </div>
+                                         <div className="text-left md:text-right">
+                                            <div className={cn(
+                                              "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest",
+                                              clip.status?.toLowerCase() === 'approved' ? "bg-[var(--color-green)]/10 text-[var(--color-green)]" : "bg-[var(--color-surface2)] text-muted"
+                                            )}>
+                                              {clip.status || 'Pending'}
+                                            </div>
+                                            <div className="text-[9px] text-muted font-bold uppercase tracking-widest block mt-1">Status</div>
                                          </div>
-                                         <div className="text-[9px] text-[var(--color-green)] opacity-80 font-bold uppercase tracking-widest">Payout</div>
-                                       </div>
-                                      <div className="text-left md:text-right hidden sm:block">
-                                        <div className="font-display font-black text-sm tabular-nums text-[var(--color-cyan)]">{clip.engagementRate ? (clip.engagementRate * 100).toFixed(1) + '%' : '0%'}</div>
-                                        <div className="text-[9px] text-[var(--color-cyan)] opacity-80 font-bold uppercase tracking-widest">Engagement</div>
-                                      </div>
-                                      <div className="text-right flex items-center justify-end">
-                                        <a href={clip.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-[var(--color-surface2)] text-muted hover:text-brand-primary hover:bg-brand-primary/10 transition-all">
-                                          <ExternalLink className="w-4 h-4" />
-                                        </a>
+                                        <div className="text-left md:text-right hidden sm:block">
+                                          <div className="font-display font-black text-sm tabular-nums text-[var(--color-cyan)]">{clip.engagementRate ? (clip.engagementRate * 100).toFixed(1) + '%' : '0%'}</div>
+                                          <div className="text-[9px] text-[var(--color-cyan)] opacity-80 font-bold uppercase tracking-widest">Engagement</div>
+                                        </div>
+                                        <div className="text-right flex items-center justify-end">
+                                          <a href={clip.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-[var(--color-surface2)] text-muted hover:text-brand-primary hover:bg-brand-primary/10 transition-all">
+                                            <ExternalLink className="w-4 h-4" />
+                                          </a>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
                                 ))}
                               </div>
                             </motion.div>

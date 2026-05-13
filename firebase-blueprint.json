@@ -87,6 +87,7 @@
         "portalPassword": { "type": "string" },
         "portalToken": { "type": "string" },
         "portalEnabled": { "type": "boolean" },
+        "portalClientName": { "type": "string" },
         "revenue": { "type": "number" },
         "cpm": { "type": "number" },
         "maxPayout": { "type": "number" }
