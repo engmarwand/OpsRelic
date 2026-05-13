@@ -124,8 +124,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const portalIdParam = params.get('portal');
     let portalId = portalIdParam;
     
-    if (window.location.pathname.startsWith('/portal/')) {
-      portalId = window.location.pathname.split('/').filter(Boolean).pop() || null;
+    if (window.location.pathname.startsWith('/portal')) {
+      const parts = window.location.pathname.split('/');
+      // Path is /portal/TOKEN or /portal/TOKEN/
+      // parts would be ['', 'portal', 'TOKEN'] or ['', 'portal', 'TOKEN', '']
+      portalId = parts.filter(p => !!p && p !== 'portal').pop() || null;
     }
 
     if (portalId) {

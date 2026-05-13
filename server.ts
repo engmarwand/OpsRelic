@@ -220,9 +220,34 @@ async function startServer() {
     });
   } else {
     const distPath = path.join(process.cwd(), "dist");
+    const indexPath = path.join(distPath, "index.html");
+    
+    console.log(`Production mode: serving static files from ${distPath}`);
+    console.log(`Fallback index path: ${indexPath}`);
+
     app.use(express.static(distPath));
+    
+    // Explicitly handle portal routes to ensure they fall through to index.html
+    app.get("/portal/*", (req, res) => {
+      console.log(`Portal request: ${req.url} -> serving index.html`);
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        console.error(`ERROR: index.html not found at ${indexPath}`);
+        res.status(404).send("Application not found. Please contact support.");
+      }
+    });
+
     app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+      if (req.url.startsWith('/api')) {
+        return res.status(404).json({ error: "Endpoint not found" });
+      }
+      
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(404).send("Page not found");
+      }
     });
   }
 

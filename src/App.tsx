@@ -175,7 +175,7 @@ function AppWrapper({ onLogout }: { onLogout: () => void }) {
   const { portalContext } = useAppContext();
 
   const isIntakePage = window.location.pathname.startsWith('/intake/');
-  const isPortalPage = window.location.pathname.startsWith('/portal/');
+  const isPortalPage = window.location.pathname.startsWith('/portal');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
