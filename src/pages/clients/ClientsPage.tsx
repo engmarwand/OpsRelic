@@ -10,7 +10,7 @@ import { cn } from '../../lib/utils';
 
 export default function ClientsPage() {
   const { addToast } = useToast();
-  const { campaignsList, clients, data, activeWorkspaceId } = useAppContext();
+  const { campaignsList, clients, data, clipMetrics, activeWorkspaceId } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddingClient, setIsAddingClient] = useState(false);
   const [isEditingClient, setIsEditingClient] = useState(false);
@@ -156,10 +156,24 @@ export default function ClientsPage() {
     let totalClips = 0;
     let totalProfit = 0;
     campaigns.forEach(camp => {
-      const campData = data.filter(d => d._campaignId === camp.id);
-      totalViews += campData.reduce((s, r) => s + (r.Views || 0), 0);
-      totalClips += campData.length;
-      totalProfit += (camp.revenue || 0) - (camp.spend || 0);
+      let campTotalViews = 0;
+
+      const campCsv = data.filter(d => d._campaignId === camp.id);
+      campCsv.forEach(r => {
+        campTotalViews += (r.Views || 0);
+      });
+
+      const campLive = clipMetrics.filter(m => m.campaignId === camp.id);
+      campLive.forEach(c => {
+        campTotalViews += (c.views || 0);
+      });
+      
+      const campCsvClipsCount = campCsv.length;
+      const campLiveClipsCount = campLive.length;
+
+      totalViews += campTotalViews;
+      totalClips += campCsvClipsCount + campLiveClipsCount;
+      totalProfit += (camp.revenue || 0) - (camp.budget || 0);
     });
     return { views: totalViews, clips: totalClips, profit: totalProfit };
   };

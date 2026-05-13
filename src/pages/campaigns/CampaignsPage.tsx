@@ -60,34 +60,43 @@ export default function CampaignsPage() {
   };
 
   const [isCreating, setIsCreating] = useState(false);
-  const [newCampaign, setNewCampaign] = useState<Partial<Campaign>>({ name: '', clientId: '', status: 'Active' as CampaignStatus, budget: undefined, cpm: undefined });
+  const [newCampaign, setNewCampaign] = useState<Partial<Campaign>>({ name: '', clientId: '', status: 'Active' as CampaignStatus, budget: undefined, cpm: undefined, maxPayout: undefined });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.split('?')[1]);
     const forClient = params.get('new_for_client');
-    if (forClient) {
-      setNewCampaign({ name: '', clientId: forClient, status: 'Active', budget: undefined, cpm: undefined });
+    if (forClient && clients.length > 0) {
+      const selectedClient = clients.find(c => c.id === forClient);
+      setNewCampaign(prev => ({ ...prev, name: '', clientId: forClient, status: 'Active', budget: undefined, cpm: undefined, maxPayout: undefined, revenue: selectedClient?.retainer || undefined }));
       setIsCreating(true);
       window.history.replaceState(null, '', window.location.pathname + '#campaigns');
     } else if (params.get('new') === 'true') {
       setIsCreating(true);
       window.history.replaceState(null, '', window.location.pathname + '#campaigns');
     }
-  }, []);
+  }, [clients]);
 
   const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCampaign.name || !newCampaign.clientId) return;
     try {
-      await addDoc(collection(db, 'campaigns'), {
+      const payload: any = {
         ...newCampaign,
         userId: auth.currentUser?.uid,
         workspaceId: activeWorkspaceId || auth.currentUser?.uid,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
+      };
+      
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === undefined) {
+          delete payload[key];
+        }
       });
+      
+      await addDoc(collection(db, 'campaigns'), payload);
       setIsCreating(false);
-      setNewCampaign({ name: '', clientId: '', status: 'Active' as CampaignStatus, budget: undefined, cpm: undefined });
+      setNewCampaign({ name: '', clientId: '', status: 'Active' as CampaignStatus, budget: undefined, cpm: undefined, maxPayout: undefined, revenue: undefined });
       addToast("Campaign created successfully", "success");
     } catch (err) {
       console.error("Failed to create campaign", err);
@@ -121,22 +130,47 @@ export default function CampaignsPage() {
   }, [selectedCampaign, data]);
 
   const campaignStats = useMemo(() => {
-    if (!selectedCampaign) return { views: 0, likes: 0, assets: 0, csvUrls: new Set<string>() };
+    if (!selectedCampaign) return { views: 0, likes: 0, assets: 0, payout: 0, csvUrls: new Set<string>() };
     
     const csvUrls = new Set(campaignData.map(r => r["Submission URL"]).filter(Boolean));
     
-    // Sum views from CSV data
-    let totalViews = campaignData.reduce((s, r) => s + (r.Views || 0), 0);
-    let totalLikes = campaignData.reduce((s, r) => s + (r.Likes || 0), 0);
+    let totalViews = 0;
+    let totalLikes = 0;
+    let totalPayout = 0;
+
+    const cpm = selectedCampaign.cpm || 0;
+    const maxPayout = selectedCampaign.maxPayout;
     
-    // Sum unique assets from both sources
+    // Process CSV data
+    campaignData.forEach(r => {
+      const v = r.Views || 0;
+      totalViews += v;
+      totalLikes += (r.Likes || 0);
+      
+      let pItem = (v / 1000) * cpm;
+      if (maxPayout !== undefined && maxPayout > 0 && pItem > maxPayout) {
+        pItem = maxPayout;
+      }
+      totalPayout += pItem;
+    });
+    
+    // Process standalone clips
     const standaloneClips = campaignClipMetrics.filter(c => !c.url || !csvUrls.has(c.url));
-    totalViews += standaloneClips.reduce((s, c) => s + (c.views || 0), 0);
-    totalLikes += standaloneClips.reduce((s, c) => s + (c.likes || 0), 0);
+    standaloneClips.forEach(c => {
+      const v = c.views || 0;
+      totalViews += v;
+      totalLikes += (c.likes || 0);
+      
+      let pItem = (v / 1000) * cpm;
+      if (maxPayout !== undefined && maxPayout > 0 && pItem > maxPayout) {
+        pItem = maxPayout;
+      }
+      totalPayout += pItem;
+    });
     
     const totalAssets = campaignData.length + standaloneClips.length;
     
-    return { views: totalViews, likes: totalLikes, assets: totalAssets, csvUrls };
+    return { views: totalViews, likes: totalLikes, assets: totalAssets, payout: totalPayout, csvUrls };
   }, [campaignData, campaignClipMetrics, selectedCampaign]);
 
   const formatViews = (val: number) => {
@@ -184,7 +218,10 @@ export default function CampaignsPage() {
         name: selectedCampaign.name,
         clientId: selectedCampaign.clientId,
         status: selectedCampaign.status,
+        revenue: selectedCampaign.revenue || 0,
         budget: selectedCampaign.budget || 0,
+        cpm: selectedCampaign.cpm || 0,
+        maxPayout: selectedCampaign.maxPayout || undefined,
         startDate: selectedCampaign.startDate || '',
         endDate: selectedCampaign.endDate || ''
       });
@@ -195,12 +232,21 @@ export default function CampaignsPage() {
     e.preventDefault();
     if (!selectedCampaign || !localCampaign.name) return;
     try {
-      await updateDoc(doc(db, 'campaigns', selectedCampaign.id), {
-        ...localCampaign,
-        updatedAt: new Date().toISOString()
-      });
+      const payload: any = { ...localCampaign, updatedAt: new Date().toISOString() };
+      if (payload.maxPayout === undefined) {
+        payload.maxPayout = null;
+      }
+      if (payload.cpm === undefined) {
+        payload.cpm = 0;
+      }
+      await updateDoc(doc(db, 'campaigns', selectedCampaign.id), payload);
       addToast("Campaign settings updated", "success");
-      setSelectedCampaign(prev => prev ? { ...prev, ...localCampaign } as Campaign : null);
+      
+      const updatedCampaign = { ...selectedCampaign, ...localCampaign };
+      if (localCampaign.maxPayout === undefined) {
+         delete updatedCampaign.maxPayout;
+      }
+      setSelectedCampaign(updatedCampaign as Campaign);
     } catch (err) {
       addToast("Settings update failed", "error");
     }
@@ -546,7 +592,7 @@ export default function CampaignsPage() {
                 const totalViews = campaignStats.views;
                 const totalLikes = campaignStats.likes;
                 const totalAssets = campaignStats.assets;
-                const payout = selectedCampaign.cpm ? (totalViews / 1000) * selectedCampaign.cpm : 0;
+                const payout = campaignStats.payout;
                 const budget = selectedCampaign.budget || 0;
                 const budgetPercent = budget > 0 ? (payout / budget) * 100 : 0;
 
@@ -689,7 +735,15 @@ export default function CampaignsPage() {
                                   </div>
                                   {selectedCampaign.cpm !== undefined && (
                                     <div className="text-left md:text-right col-span-1">
-                                      <div className="font-display font-bold text-base tabular-nums text-[var(--color-green)]">${((clip.views || 0) / 1000 * selectedCampaign.cpm).toFixed(2)}</div>
+                                      <div className="font-display font-bold text-base tabular-nums text-[var(--color-green)]">
+                                        ${(() => {
+                                          let p = ((clip.views || 0) / 1000 * selectedCampaign.cpm!);
+                                          if (selectedCampaign.maxPayout !== undefined && selectedCampaign.maxPayout > 0 && p > selectedCampaign.maxPayout) {
+                                            p = selectedCampaign.maxPayout;
+                                          }
+                                          return p.toFixed(2);
+                                        })()}
+                                      </div>
                                       <div className="text-[9px] text-[var(--color-green)] opacity-80 font-bold uppercase tracking-widest">Payout</div>
                                     </div>
                                   )}
@@ -793,6 +847,10 @@ export default function CampaignsPage() {
                            <input type="number" step="0.01" value={localCampaign.cpm || ''} onChange={e=>setLocalCampaign({...localCampaign, cpm: parseFloat(e.target.value) || 0})} className="input-field py-2 text-xs" />
                         </div>
                         <div className="flex flex-col gap-1.5">
+                           <label className="text-[10px] font-bold uppercase tracking-widest text-muted">Max Payout ($)</label>
+                           <input type="number" step="0.01" value={localCampaign.maxPayout || ''} onChange={e=>setLocalCampaign({...localCampaign, maxPayout: parseFloat(e.target.value) || undefined})} className="input-field py-2 text-xs" placeholder="No limit" />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted">Status</label>
                            <select value={localCampaign.status||'Active'} onChange={e=>setLocalCampaign({...localCampaign, status: e.target.value as CampaignStatus})} className="input-field py-2 text-xs cursor-pointer">
                              <option value="Active">Active</option>
@@ -860,12 +918,20 @@ export default function CampaignsPage() {
                    </div>
                    <div className="flex flex-col gap-[5px]">
                       <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Client</label>
-                      <select required value={newCampaign.clientId} onChange={e=>setNewCampaign({...newCampaign, clientId: e.target.value})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all cursor-pointer">
+                      <select required value={newCampaign.clientId} onChange={e => {
+                        const clientId = e.target.value;
+                        const selectedClient = clients.find(c => c.id === clientId);
+                        setNewCampaign({
+                          ...newCampaign, 
+                          clientId: clientId,
+                          revenue: selectedClient?.retainer || undefined
+                        });
+                      }} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all cursor-pointer">
                         <option value="">Select a Client...</option>
                         {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
                    </div>
-                   <div className="grid grid-cols-2 gap-4">
+                   <div className="grid grid-cols-2 gap-4 mb-4">
                      <div className="flex flex-col gap-[5px]">
                         <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Budget ($)</label>
                         <input type="number" step="0.01" min="0" value={newCampaign.budget || ''} onChange={e=>setNewCampaign({...newCampaign, budget: parseFloat(e.target.value) || undefined})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" placeholder="e.g. 5000" />
@@ -873,6 +939,10 @@ export default function CampaignsPage() {
                      <div className="flex flex-col gap-[5px]">
                         <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Cost per 1k Views (CPM) ($)</label>
                         <input type="number" step="0.01" min="0" value={newCampaign.cpm || ''} onChange={e=>setNewCampaign({...newCampaign, cpm: parseFloat(e.target.value) || undefined})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" placeholder="e.g. 2.50" />
+                     </div>
+                     <div className="flex flex-col gap-[5px] col-span-2">
+                        <label className="text-xs font-bold uppercase tracking-[0.07em] text-muted">Max Payout ($) <span className="opacity-60 normal-case ml-1">- Optional</span></label>
+                        <input type="number" step="0.01" min="0" value={newCampaign.maxPayout || ''} onChange={e=>setNewCampaign({...newCampaign, maxPayout: parseFloat(e.target.value) || undefined})} className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-[9px] text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] focus:ring-[3px] focus:ring-[var(--color-cyan-dim)] transition-all" placeholder="e.g. 1500" />
                      </div>
                    </div>
                  </div>

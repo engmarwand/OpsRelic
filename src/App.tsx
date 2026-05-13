@@ -13,7 +13,7 @@ import Pricing from './components/Pricing';
 import ClientDashboardPage from './pages/client-portal/ClientDashboardPage';
 import PortalPage from './pages/portal/PortalPage';
 import ReportsPage from './pages/reports/ReportsPage';
-import PipelinePage from './pages/pipeline/PipelinePage';
+import ClientsPage from './pages/clients/ClientsPage';
 import WorkspaceHomePage from './pages/workspace/WorkspaceHomePage';
 import WorkspaceFilesPage from './pages/workspace/WorkspaceFilesPage';
 import { AppLayout, managementNavItems, workflowNavItems, assetsNavItems, systemNavItems } from './layouts/AppLayout';
@@ -120,7 +120,7 @@ function AppContent({ user, onLogout }: { user: FirebaseUser | null, onLogout: (
           {activeTab === 'overview' && <OverviewPage />}
           {activeTab === 'uploads' && <UploadPage />}
           {activeTab === 'campaigns' && <CampaignsPage />}
-          {activeTab === 'clients' && <PipelinePage />}
+          {activeTab === 'clients' && <ClientsPage />}
           {activeTab === 'reports' && <ReportsPage />}
           {activeTab === 'settings' && <SettingsPage />}
           {activeTab === 'portal' && <PortalPage />}

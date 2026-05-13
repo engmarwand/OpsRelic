@@ -698,6 +698,7 @@ export default function WorkspaceHomePage() {
   const { workspace, activeWorkspace, workspaceMembers, clients, campaignsList, activeWorkspaceId, userRole, currentTier } = useAppContext();
   const { addToast } = useToast();
   const [tasks, setTasks] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'tasks' | 'team' | 'assets'>('tasks');
   
   const workspaceName = (activeWorkspace as any)?.brand?.name || workspace?.brand?.name || 'Agency Hub';
   
@@ -817,99 +818,136 @@ export default function WorkspaceHomePage() {
         </div>
       </div>
 
-      {/* MAIN CONTENT GRID */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-        
-        {/* TASKS SECTION */}
-        <div className="xl:col-span-8 space-y-8">
-          <TaskBoard workspaceId={workspaceId} tasks={tasks} setTasks={setTasks} />
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <TeamChat workspaceId={workspaceId} />
-            
-            {/* TEAM MEMBERS POP-OUT */}
-            <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-3xl overflow-hidden shadow-xl">
-              <div className="p-5 border-b border-[var(--color-divider)] flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-[var(--color-text-main)] text-sm">Team Members</h3>
-                </div>
-                <div className="w-8 h-8 rounded-xl bg-[var(--color-surface2)] flex items-center justify-center text-[var(--color-text-subtle)]">
-                  <Users className="w-4 h-4" />
-                </div>
-              </div>
+      {/* Tabs */}
+      <div className="flex space-x-2 bg-[var(--color-surface2)] p-2 rounded-2xl border border-[var(--color-border-subtle)] overflow-x-auto no-scrollbar shadow-sm">
+        {[
+          { id: 'tasks', label: 'Tasks & Deliverables', icon: CheckCircle2 },
+          { id: 'team', label: 'Team & Discussion', icon: MessageSquare },
+          { id: 'assets', label: 'Workspace Assets', icon: FolderOpen },
+        ].map(t => (
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id as any)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+              activeTab === t.id 
+                ? 'bg-[var(--color-cyan)]/10 text-[var(--color-cyan)] shadow-sm border border-[var(--color-cyan)]/20' 
+                : 'text-faint hover:text-[var(--color-text-main)] hover:bg-[var(--color-surface)] border border-transparent'
+            }`}
+          >
+            <t.icon className="w-4 h-4" />
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-              <div className="p-3 space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar">
-                {(workspaceMembers || []).map((member) => (
-                  <div key={member.id} className="flex items-center gap-3 p-2 rounded-2xl hover:bg-[var(--color-surface2)] transition-all group/member">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-xs font-black text-white border border-white/5">
-                      {member.fullName?.[0]?.toUpperCase() || member.email?.[0]?.toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-bold text-[var(--color-text-main)] truncate">{member.fullName || 'Invited'}</div>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        {getRoleIcon(member.role)}
-                        <span className="text-[9px] font-semibold text-faint uppercase">{member.role}</span>
-                      </div>
-                    </div>
-                    {isOwnerOrManager && member.userId !== auth.currentUser?.uid && (
-                      <button 
-                        onClick={() => handleRemoveMember(member.id, member.email || member.fullName)}
-                        className="p-2 text-red-500/30 hover:text-red-500 hover:bg-red-500/10 rounded-lg opacity-0 group-hover/member:opacity-100 transition-all"
-                        title="Remove Member"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+      {/* MAIN CONTENT GRID */}
+      <div>
+        {activeTab === 'tasks' && (
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+            <div className="xl:col-span-8 space-y-8">
+              <TaskBoard workspaceId={workspaceId} tasks={tasks} setTasks={setTasks} />
+            </div>
+            <div className="xl:col-span-4 space-y-8">
+              <CampaignsSnapshot />
             </div>
           </div>
-        </div>
+        )}
 
-        {/* SIDEBAR: CAMPAIGNS & ASSETS */}
-        <div className="xl:col-span-4 space-y-8">
-          <CampaignsSnapshot />
-          <RecentAssets workspaceId={workspaceId} />
-
-          {/* INVITE BOX */}
-          {isOwnerOrManager && (
-            <div className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-3xl p-6 shadow-xl">
-                <div className="text-[10px] font-black uppercase tracking-widest text-faint mb-4 flex items-center gap-2">
-                  <UserPlus className="w-3 h-3" /> Growth: Team Invite
-                </div>
-                <form onSubmit={handleInvite} className="space-y-4">
-                  <input 
-                    type="email" 
-                    required
-                    placeholder="Enter email address"
-                    className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl px-4 py-3 text-xs text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] shadow-inner transition-colors"
-                    value={inviteEmail}
-                    onChange={e => setInviteEmail(e.target.value)}
-                  />
-                  <div className="flex gap-2">
-                    <select 
-                      className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl px-3 py-3 text-xs text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] shadow-inner transition-colors"
-                      value={inviteRole}
-                      onChange={e => setInviteRole(e.target.value as any)}
-                    >
-                      <option value="MANAGER">Manager</option>
-                      <option value="MEMBER">Member</option>
-                      <option value="VIEWER">Viewer</option>
-                    </select>
-                    <button 
-                      type="submit"
-                      disabled={isInviting || !inviteEmail}
-                      className="bg-white text-black hover:opacity-90 disabled:opacity-50 px-6 py-3 rounded-2xl text-xs font-black shadow-lg transition-all active:scale-95"
-                    >
-                      Invite
-                    </button>
-                  </div>
-                </form>
+        {activeTab === 'team' && (
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+            <div className="xl:col-span-8 space-y-8">
+              <TeamChat workspaceId={workspaceId} />
             </div>
-          )}
-        </div>
+            
+            <div className="xl:col-span-4 space-y-8">
+              {/* TEAM MEMBERS POP-OUT */}
+              <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-3xl overflow-hidden shadow-xl">
+                <div className="p-5 border-b border-[var(--color-divider)] flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-[var(--color-text-main)] text-sm">Team Members</h3>
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-[var(--color-surface2)] flex items-center justify-center text-[var(--color-text-subtle)]">
+                    <Users className="w-4 h-4" />
+                  </div>
+                </div>
 
+                <div className="p-3 space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar">
+                  {(workspaceMembers || []).map((member) => (
+                    <div key={member.id} className="flex items-center gap-3 p-2 rounded-2xl hover:bg-[var(--color-surface2)] transition-all group/member">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-xs font-black text-white border border-white/5">
+                        {member.fullName?.[0]?.toUpperCase() || member.email?.[0]?.toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-[var(--color-text-main)] truncate">{member.fullName || 'Invited'}</div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {getRoleIcon(member.role)}
+                          <span className="text-[9px] font-semibold text-faint uppercase">{member.role}</span>
+                        </div>
+                      </div>
+                      {isOwnerOrManager && member.userId !== auth.currentUser?.uid && (
+                        <button 
+                          onClick={() => handleRemoveMember(member.id, member.email || member.fullName)}
+                          className="p-2 text-red-500/30 hover:text-red-500 hover:bg-red-500/10 rounded-lg opacity-0 group-hover/member:opacity-100 transition-all"
+                          title="Remove Member"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* INVITE BOX */}
+              {isOwnerOrManager && (
+                <div className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-3xl p-6 shadow-xl">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-faint mb-4 flex items-center gap-2">
+                      <UserPlus className="w-3 h-3" /> Growth: Team Invite
+                    </div>
+                    <form onSubmit={handleInvite} className="space-y-4">
+                      <input 
+                        type="email" 
+                        required
+                        placeholder="Enter email address"
+                        className="w-full bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl px-4 py-3 text-xs text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] shadow-inner transition-colors"
+                        value={inviteEmail}
+                        onChange={e => setInviteEmail(e.target.value)}
+                      />
+                      <div className="flex gap-2">
+                        <select 
+                          className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl px-3 py-3 text-xs text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] shadow-inner transition-colors"
+                          value={inviteRole}
+                          onChange={e => setInviteRole(e.target.value as any)}
+                        >
+                          <option value="MANAGER">Manager</option>
+                          <option value="MEMBER">Member</option>
+                          <option value="VIEWER">Viewer</option>
+                        </select>
+                        <button 
+                          type="submit"
+                          disabled={isInviting || !inviteEmail}
+                          className="bg-white text-black hover:opacity-90 disabled:opacity-50 px-6 py-3 rounded-2xl text-xs font-black shadow-lg transition-all active:scale-95"
+                        >
+                          Invite
+                        </button>
+                      </div>
+                    </form>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'assets' && (
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+            <div className="xl:col-span-8 space-y-8">
+              <RecentAssets workspaceId={workspaceId} />
+            </div>
+            <div className="xl:col-span-4 space-y-8">
+               <CampaignsSnapshot />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

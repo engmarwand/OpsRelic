@@ -126,8 +126,10 @@ export interface Campaign {
   createdAt: string;
   updatedAt: string;
   budget?: number; // This can be used for the campaign specific retainer
+  revenue?: number; // How much the client paid
   cpm?: number; // Cost per 1000 views
   retainer?: number; // Explicit retainer field
+  maxPayout?: number; // Maximum amount a creator can earn
   portalEnabled?: boolean;
   portalToken?: string;
   portalPassword?: string;
