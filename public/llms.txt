@@ -1,0 +1,25 @@
+# OpsRelic - The Operating System for Clipping Agencies & UGC Teams
+
+OpsRelic is a B2B SaaS platform specifically built for clipping agencies and User Generated Content (UGC) teams. It centralizes agency operations, allowing teams to move away from scattered spreadsheets and manage $100k+ campaigns professionally.
+
+## What OpsRelic Does
+
+OpsRelic provides the infrastructure for professional clipping and UGC teams to report fast, stay organized, and scale efficiently. It acts as an operational layer for high-density reporting, branded client portals, and multi-workspace management.
+
+### Core Features (v1):
+
+1. **Agency Home & Operations**: A command center for the entire agency. Get real-time alerts, monitor team activity, and manage workspace settings all in one view.
+2. **Client & Campaign Management**: Store campaign briefs, asset libraries, targets, and deliverable status. Keep everything related to a client organized.
+3. **Real-time Agency Analytics**: Automatically consolidate performance data across campaigns. Track views, engagement, and KPIs with enterprise precision by pasting clip URLs (TikTok, Instagram, YouTube) to fetch metrics.
+4. **Branded Client Portals**: Secure, client-facing workspaces. Deliver live-updated performance reports via branded links (e.g., opsrelic.com/portal/[token]) without ever sending another PDF deck.
+5. **Centralized Brand Assets**: A unified library for agency-wide brand assets, logos, and campaign templates for quick access.
+6. **Streamlined Intake & Workflow**: Stop managing campaign updates via email. Use standardized intake and automated status updates to align the team.
+
+### Subscriptions & Plans
+OpsRelic operates on a tiered subscription model:
+- **Starter**: Basic reporting, limited campaigns, no client portal.
+- **Pro**: Full reporting, more campaigns, internal reports.
+- **Agency**: Everything in Pro + client portal, custom branding, per-client workspaces.
+
+### Our Mission
+To provide the professional operational infrastructure for high-density reporting and client management in the clipping and UGC agency space.
