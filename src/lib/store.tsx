@@ -57,6 +57,7 @@ interface AppContextType extends AppState {
   showPricing: boolean;
   setShowPricing: (show: boolean) => void;
   activeWorkspaceId: string | null;
+  connectionError: string | null;
   portalContext: { active: boolean; campaignId: string | null; ownerId: string | null; authorized: boolean; authorize: (pw: string) => Promise<boolean>; loading: boolean };
 }
 
@@ -111,6 +112,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [campaignsList, setCampaignsList] = useState<any[]>([]);
   const [showPricing, setShowPricing] = useState(false);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [portalContext, setPortalContext] = useState<{ active: boolean; campaignId: string | null; ownerId: string | null; authorized: boolean; loading: boolean }>({
     active: false,
     campaignId: null,
@@ -178,6 +180,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
       }, (error) => {
         console.error("Portal snapshot error:", error);
+        if (error.message.includes('blocked by client') || error.message.includes('failed to fetch')) {
+          setConnectionError("Firestore connection blocked by browser extension/ad-blocker.");
+        }
         setPortalContext(prev => ({ ...prev, loading: false }));
       });
       return () => unsubscribe();
@@ -557,6 +562,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     showPricing,
     setShowPricing,
     activeWorkspaceId,
+    connectionError,
     portalContext: { ...portalContext, authorize: authorizePortal }
   }), [
     state,
@@ -564,6 +570,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     currentPlan,
     showPricing,
     activeWorkspaceId,
+    connectionError,
     portalContext
   ]);
 

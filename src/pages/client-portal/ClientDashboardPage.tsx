@@ -64,7 +64,7 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
     return filtered;
   }, [data, campaignId, selectedAuthor, dateRange]);
 
-   const stats = useMemo(() => {
+  const stats = useMemo(() => {
     const platforms: Record<string, number> = {};
     campaignClipMetrics.forEach(m => {
       const p = m.platform;
@@ -72,12 +72,16 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
     });
     const topPlatform = Object.entries(platforms).sort((a,b) => b[1] - a[1])[0]?.[0] || 'TikTok';
 
+    const approvedCount = campaignClipMetrics.filter(m => m.status?.toLowerCase() === 'approved' || m.status?.toLowerCase() === 'paid').length;
+
     return {
       views: campaignClipMetrics.reduce((sum, m) => sum + (m.views || 0), 0),
       likes: campaignClipMetrics.reduce((sum, m) => sum + (m.likes || 0), 0),
       comments: campaignClipMetrics.reduce((sum, m) => sum + (m.comments || 0), 0),
       shares: campaignClipMetrics.reduce((sum, m) => sum + (m.shares || 0), 0),
       creators: new Set(campaignClipMetrics.map(m => m.author || 'Creator')).size,
+      approvedCount,
+      totalCount: campaignClipMetrics.length,
       topPlatform
     };
   }, [campaignClipMetrics]);
@@ -174,6 +178,7 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
 
     const totalViews = stats.views;
     const avgEngagement = campaignClipMetrics.reduce((sum, m) => sum + (m.engagementRate || 0), 0) / campaignClipMetrics.length;
+    
     const topCreator = Object.entries(
       campaignClipMetrics.reduce((acc, m) => {
         acc[m.author] = (acc[m.author] || 0) + (m.views || 0);
@@ -183,20 +188,35 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
 
     const insights = [];
     
-    if (totalViews > 100000) {
-      insights.push("Significant reach achieved across primary platforms.");
-    } else if (totalViews > 0) {
-      insights.push("Steady audience growth and brand awareness development.");
+    // Performance insight
+    if (totalViews > 500000) {
+      insights.push("Campaign reach is outstanding, significantly outpacing standard UGC benchmarks for this timeframe.");
+    } else if (totalViews > 100000) {
+      insights.push("Strong organic traction observed across primary channels with high potential for viral scaling.");
+    } else {
+      insights.push("Consistent audience engagement is building a solid foundation for brand authority.");
     }
 
-    if (avgEngagement > 0.05) {
-      insights.push("Exceptional engagement rate, suggesting high content quality and audience resonance.");
-    } else if (avgEngagement > 0.02) {
-      insights.push("Healthy interaction levels consistent with industry benchmarks.");
+    // Engagement insight
+    if (avgEngagement > 0.08) {
+      insights.push("Viral-level audience interaction suggests high community trust and content resonance.");
+    } else if (avgEngagement > 0.04) {
+      insights.push("Healthy engagement metrics indicate strong creative-to-audience alignment.");
+    } else {
+      insights.push("Interaction rates remain stable, reflecting a target-aligned viewer base.");
     }
 
-    if (topCreator) {
-      insights.push(`@${topCreator[0]} is currently the high-performance lead for this campaign.`);
+    // Distribution insight
+    const platformCount = new Set(campaignClipMetrics.map(m => m.platform)).size;
+    if (platformCount >= 3) {
+      insights.push("Multi-platform distribution is effectively diversifying brand exposure.");
+    } else if (stats.topPlatform === 'TikTok') {
+      insights.push("TikTok continues to dominate as our primary growth engine for this campaign.");
+    }
+
+    // Creator insight
+    if (topCreator && topCreator[1] > totalViews * 0.4) {
+        insights.push(`Creative by @${topCreator[0]} is driving disproportionate value, serving as a high-conversion benchmark.`);
     }
 
     return insights;
@@ -214,9 +234,29 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
              <h1 className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tracking-[-0.025em]">
                {campaign?.name || 'Campaign'} Insights
              </h1>
-             <p className="text-sm text-muted max-w-lg">
-                Verified viewing metrics and asset performance for {campaign?.portalClientName || client?.name || 'your campaign'}. Updated via agency reports.
-             </p>
+             <div className="flex items-center gap-3">
+               <p className="text-sm text-muted max-w-lg">
+                  Verified viewing metrics and asset performance for {campaign?.portalClientName || client?.name || 'your campaign'}. Updated via agency reports.
+               </p>
+               <button 
+                 onClick={async () => {
+                   try {
+                     const response = await fetch(`/api/campaigns/${campaignId}/refresh`, { method: 'POST' });
+                     if (response.ok) {
+                       const data = await response.json();
+                       alert(data.message || "Metrics refreshed!");
+                     }
+                   } catch (err) {
+                     console.error("Refresh failed", err);
+                   }
+                 }}
+                 className="p-2 hover:bg-[var(--color-surface-hover)] rounded-lg text-muted transition-colors flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest border border-transparent hover:border-[var(--color-border-subtle)]"
+                 title="Manually re-fetch latest metrics"
+               >
+                 <Zap className="w-3.5 h-3.5" />
+                 Refresh
+               </button>
+             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
@@ -288,7 +328,7 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm relative overflow-hidden">
            <div className="absolute top-0 right-0 w-24 h-24 opacity-10 blur-xl rounded-full translate-x-1/2 -translate-y-1/2" style={{ backgroundColor: brandColor }}></div>
            <div className="flex items-center gap-3 mb-4">
@@ -298,6 +338,18 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
              <div className="text-xs font-bold text-muted uppercase tracking-[0.07em]">Total Reach</div>
            </div>
            <div className="font-display text-3xl font-extrabold text-[var(--color-text-main)]">{formatViews(stats.views)}</div>
+        </div>
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
+           <div className="flex items-center gap-3 mb-4">
+             <div className="w-10 h-10 rounded-xl bg-[var(--color-surface2)] text-[var(--color-text-main)] flex items-center justify-center border border-[var(--color-border-subtle)]">
+               <ShieldCheck className="w-5 h-5 text-[var(--color-green)]"/>
+             </div>
+             <div className="text-xs font-bold text-muted uppercase tracking-[0.07em]">Approved Assets</div>
+           </div>
+           <div className="flex items-baseline gap-1">
+             <div className="font-display text-3xl font-extrabold text-[var(--color-text-main)]">{stats.approvedCount}</div>
+             <div className="text-xs font-bold text-muted">/ {stats.totalCount} total</div>
+           </div>
         </div>
         <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
            <div className="flex items-center gap-3 mb-4">

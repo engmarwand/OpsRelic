@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AppProvider } from './lib/store';
-import { Home, UploadCloud, BarChart2, FileText, UserPlus, TrendingUp, Settings, Bell, X, Zap, Sparkles, Bot, LayoutGrid, Database } from 'lucide-react';
+import { Home, UploadCloud, BarChart2, FileText, UserPlus, TrendingUp, Settings, Bell, X, Zap, Sparkles, Bot, LayoutGrid, Database, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 // Components
@@ -172,7 +172,7 @@ import ClientIntakePage from './pages/intake/ClientIntakePage';
 function AppWrapper({ onLogout }: { onLogout: () => void }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const { portalContext } = useAppContext();
+  const { portalContext, connectionError } = useAppContext();
 
   const isIntakePage = window.location.pathname.startsWith('/intake/');
   const isPortalPage = window.location.pathname.startsWith('/portal');
@@ -201,23 +201,54 @@ function AppWrapper({ onLogout }: { onLogout: () => void }) {
     return <ClientIntakePage />;
   }
 
-  if (isPortalPage || portalContext.active) {
-    if (portalContext.active && !portalContext.authorized) {
-      return <PortalAuth />;
-    }
-    if (portalContext.authorized) {
-      return <AppContent user={user} onLogout={onLogout} />;
-    }
-    // If we're on a portal page but not active yet (still looking up token)
-    if (isPortalPage && !portalContext.active && !portalContext.loading) {
-       // This handles the case where the token lookup finished but found nothing
-       return <PortalAuth />; 
-    }
-  }
+  return (
+    <>
+      <AnimatePresence>
+        {connectionError && (
+          <motion.div 
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="fixed top-0 left-0 right-0 z-[9999] bg-red-600/90 backdrop-blur-md text-white py-2 px-4 shadow-xl flex items-center justify-center gap-4 text-xs font-bold border-b border-white/10"
+          >
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4" />
+              <span>{connectionError}</span>
+            </div>
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors uppercase tracking-wider"
+            >
+              Retry
+            </button>
+            <button 
+              onClick={() => (window as any).setConnectionError(null)}
+              className="px-2 py-1 opacity-60 hover:opacity-100"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-  return user || portalContext.authorized ? (
-    <AppContent user={user} onLogout={onLogout} />
-  ) : (
-    <LandingPage />
+      {(isPortalPage || portalContext.active) ? (
+        portalContext.active && !portalContext.authorized ? (
+          <PortalAuth />
+        ) : portalContext.authorized ? (
+          <AppContent user={user} onLogout={onLogout} />
+        ) : (isPortalPage && !portalContext.active && !portalContext.loading) ? (
+          <PortalAuth />
+        ) : (
+          <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+             <div className="w-8 h-8 border-4 border-[var(--color-brand-primary)]/20 border-t-[var(--color-brand-primary)] rounded-full animate-spin"></div>
+          </div>
+        )
+      ) : (
+        user || portalContext.authorized ? (
+          <AppContent user={user} onLogout={onLogout} />
+        ) : (
+          <LandingPage />
+        )
+      )}
+    </>
   );
 }
