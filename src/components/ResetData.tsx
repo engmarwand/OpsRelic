@@ -7,7 +7,7 @@ import { useAppContext } from '../lib/store';
 
 export default function ResetData() {
   const [isResetting, setIsResetting] = useState(false);
-  const { workspace } = useAppContext();
+  const { workspace, activeWorkspace } = useAppContext();
   const { addToast } = useToast();
 
   const handleReset = async () => {
@@ -30,10 +30,11 @@ export default function ResetData() {
         }
       }
 
-      if (workspace?.id) {
+      const wsId = activeWorkspace?.id || (workspace as any)?.id;
+      if (wsId) {
         const subCollections = ['tasks', 'discussion', 'files'];
         for (const subCol of subCollections) {
-          const q = collection(db, 'workspaces', workspace.id, subCol);
+          const q = collection(db, 'workspaces', wsId, subCol);
           const querySnapshot = await getDocs(q);
           if (querySnapshot.size > 0) {
             const batch = writeBatch(db);

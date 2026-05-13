@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useAppContext } from '../../lib/store';
 import { 
-  FolderOpen, Plus, Search, ChevronRight, BarChart2, Bell, ExternalLink, Settings, 
-  TrendingUp, Users, Target, Key, Lock, ArrowLeft, Copy, RefreshCw, AlertTriangle, Link2, FileText, Trash2
+  FolderOpen, Plus, Search, ChevronRight, ChevronDown, BarChart2, Bell, ExternalLink, Settings, 
+  TrendingUp, Users, Target, Key, Lock, ArrowLeft, Copy, RefreshCw, AlertTriangle, Link2, FileText, Trash2, PlayCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Campaign, CampaignStatus } from '../../types';
@@ -323,6 +323,15 @@ export default function CampaignsPage() {
 
   const [isRefreshingAll, setIsRefreshingAll] = useState(false);
   const [refreshingClipId, setRefreshingClipId] = useState<string | null>(null);
+  const [selectedAuthor, setSelectedAuthor] = useState<string>('All');
+  const [expandedAuthors, setExpandedAuthors] = useState<Set<string>>(new Set());
+
+  const toggleAuthor = (author: string) => {
+    const next = new Set(expandedAuthors);
+    if (next.has(author)) next.delete(author);
+    else next.add(author);
+    setExpandedAuthors(next);
+  };
 
   const refreshClip = async (clip: any) => {
     setRefreshingClipId(clip.id);
@@ -671,18 +680,37 @@ export default function CampaignsPage() {
 
                   {/* Assets List */}
                   <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                       <div className="font-display text-md font-bold text-[var(--color-text-main)]">Campaign Content Assets</div>
-                      <div className="text-xs text-muted font-medium">{campaignStats.assets} items</div>
+                      
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold text-muted uppercase tracking-widest whitespace-nowrap">Filter Creator:</label>
+                        <select 
+                          value={selectedAuthor} 
+                          onChange={(e) => setSelectedAuthor(e.target.value)}
+                          className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg px-3 py-1.5 text-xs text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)]"
+                        >
+                          <option value="All">All Creators</option>
+                          {Array.from(new Set([
+                            ...campaignClipMetrics.map(c => c.author),
+                            ...campaignData.map(r => r.Creator)
+                          ].filter(Boolean))).sort().map(author => (
+                            <option key={author} value={author}>{author}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-4">
                       {campaignStats.assets === 0 ? (
-                        <div className="text-sm text-faint py-8 text-center border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl bg-[var(--color-surface2)]">No content assets tracked yet. Upload a CSV to get started.</div>
+                        <div className="text-sm text-faint py-12 text-center border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl bg-[var(--color-surface2)]/50">
+                           <PlayCircle className="w-8 h-8 text-faint mx-auto mb-3 opacity-20" />
+                           No content assets tracked yet. Upload a CSV or add clip links.
+                        </div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                           {(() => {
-                            const displayList = [...campaignClipMetrics];
+                            const displayList: any[] = [...campaignClipMetrics];
                             const clipUrls = new Set(campaignClipMetrics.map(c => c.url).filter(Boolean));
                             campaignData.forEach(r => {
                               if (r["Submission URL"] && !clipUrls.has(r["Submission URL"])) {
@@ -690,66 +718,142 @@ export default function CampaignsPage() {
                                   id: `csv-${Math.random()}`,
                                   url: r["Submission URL"],
                                   title: r["Content Title"],
-                                  author: r.Creator,
+                                  author: r.Creator || 'Unknown',
                                   platform: r.Platform,
-                                  views: r.Views,
-                                  likes: r.Likes,
-                                  isCSV: true
+                                  views: r.Views || 0,
+                                  likes: r.Likes || 0,
+                                  isCSV: true,
+                                  timestamp: r.Timestamp || r.Date
                                 } as any);
                               }
                             });
 
-                            return displayList.sort((a,b) => (b.views || 0) - (a.views || 0)).map(clip => (
-                              <div key={clip.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-[var(--color-surface2)] rounded-xl border border-[var(--color-border-subtle)] gap-4 hover:border-[var(--color-cyan-dim)] transition-colors">
-                                <div className="flex items-center gap-4 min-w-0">
-                                  <div className="w-10 h-10 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border-subtle)] flex items-center justify-center shrink-0 text-muted">
-                                     {clip.url ? (
-                                       <a href={clip.url} target="_blank" rel="noreferrer" className="hover:text-[var(--color-cyan)] transition-colors"><ExternalLink className="w-4 h-4" /></a>
-                                     ) : (
-                                       <TrendingUp className="w-4 h-4" />
-                                     )}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <div className="text-sm font-bold text-[var(--color-text-main)] truncate max-w-full flex items-center gap-2">
-                                      <span className={cn("capitalize truncate", !clip.title && "opacity-60")}>
-                                        {clip.title || 'Untitled Asset'}
-                                      </span>
-                                      {(clip as any).isCSV && <span className="text-[8px] bg-amber-500/10 text-amber-500 px-1 rounded">CSV</span>}
-                                    </div>
-                                    <div className="text-[11px] text-muted flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
-                                      {clip.author && <span className="font-bold text-[var(--color-cyan)] truncate">@{clip.author}</span>}
-                                      {clip.platform && <span className="uppercase tracking-wider font-semibold truncate text-[10px] opacity-70">{clip.platform}</span>}
-                                      <span className="text-[10px] opacity-70">{new Date(clip.createdAt || clip.updatedAt || Date.now()).toLocaleDateString()}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 shrink-0 pl-14 md:pl-0">
-                                  <div className="text-left md:text-right">
-                                    <div className="font-display font-bold text-base tabular-nums text-[var(--color-text-main)]">{formatViews(clip.views)}</div>
-                                    <div className="text-[9px] text-muted font-bold uppercase tracking-widest">Views</div>
-                                  </div>
-                                  <div className="text-left md:text-right hidden sm:block">
-                                    <div className="font-display font-bold text-base tabular-nums text-[var(--color-text-main)]">{formatViews(clip.likes)}</div>
-                                    <div className="text-[9px] text-muted font-bold uppercase tracking-widest">Likes</div>
-                                  </div>
-                                  {selectedCampaign.cpm !== undefined && (
-                                    <div className="text-left md:text-right col-span-1">
-                                      <div className="font-display font-bold text-base tabular-nums text-[var(--color-green)]">
-                                        ${(() => {
-                                          let p = ((clip.views || 0) / 1000 * selectedCampaign.cpm!);
-                                          if (selectedCampaign.maxPayout !== undefined && selectedCampaign.maxPayout > 0 && p > selectedCampaign.maxPayout) {
-                                            p = selectedCampaign.maxPayout;
-                                          }
-                                          return p.toFixed(2);
-                                        })()}
+                            let filteredList = displayList;
+                            if (selectedAuthor !== 'All') {
+                              filteredList = displayList.filter(item => item.author === selectedAuthor);
+                            }
+
+                            // Group by author
+                            const groups: Record<string, any[]> = {};
+                            filteredList.forEach(item => {
+                              const author = item.author || 'Unknown';
+                              if (!groups[author]) groups[author] = [];
+                              groups[author].push(item);
+                            });
+
+                            return Object.entries(groups).sort((a, b) => b[1].length - a[1].length).map(([author, clips]) => {
+                              const isExpanded = expandedAuthors.has(author);
+                              const creatorViews = clips.reduce((sum, c) => sum + (c.views || 0), 0);
+                              const creatorPayout = clips.reduce((sum, c) => {
+                                let p = ((c.views || 0) / 1000 * (selectedCampaign.cpm || 0));
+                                if (selectedCampaign.maxPayout !== undefined && selectedCampaign.maxPayout > 0 && p > selectedCampaign.maxPayout) {
+                                  p = selectedCampaign.maxPayout;
+                                }
+                                return sum + p;
+                              }, 0);
+
+                              return (
+                                <div key={author} className="border border-[var(--color-border-subtle)] rounded-xl overflow-hidden bg-[var(--color-surface)] shadow-sm">
+                                  <div 
+                                    onClick={() => toggleAuthor(author)}
+                                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-[var(--color-surface2)] transition-colors"
+                                  >
+                                    <div className="flex items-center gap-4">
+                                      <div className="w-10 h-10 rounded-full bg-[var(--color-brand-primary)]/10 text-[var(--color-brand-primary)] border border-[var(--color-brand-primary)]/20 flex items-center justify-center font-bold text-sm uppercase">
+                                        {author.charAt(0)}
                                       </div>
-                                      <div className="text-[9px] text-[var(--color-green)] opacity-80 font-bold uppercase tracking-widest">Payout</div>
+                                      <div>
+                                        <div className="text-sm font-extrabold text-[var(--color-text-main)]">@{author}</div>
+                                        <div className="text-[10px] text-muted uppercase tracking-widest font-bold mt-0.5">{clips.length} Clips Contributed</div>
+                                      </div>
                                     </div>
-                                  )}
+                                    <div className="flex items-center gap-8">
+                                      <div className="text-right hidden sm:block">
+                                        <div className="text-[10px] font-bold text-muted uppercase tracking-tighter">Views</div>
+                                        <div className="text-sm font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(creatorViews)}</div>
+                                      </div>
+                                      <div className="text-right hidden sm:block">
+                                        <div className="text-[10px] font-bold text-muted uppercase tracking-tighter">Earnings</div>
+                                        <div className="text-sm font-extrabold text-[var(--color-green)] tabular-nums">${creatorPayout.toFixed(2)}</div>
+                                      </div>
+                                      <div className={cn("p-2 rounded-lg bg-[var(--color-surface2)] text-muted transition-transform duration-300", isExpanded && "rotate-180")}>
+                                        <ChevronDown className="w-4 h-4" />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <AnimatePresence initial={false}>
+                                    {isExpanded && (
+                                      <motion.div 
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden border-t border-[var(--color-border-subtle)] bg-[var(--color-surface2)]/30 shadow-inner"
+                                      >
+                                        <div className="p-4 space-y-3">
+                                          {clips.sort((a,b) => (b.views || 0) - (a.views || 0)).map(clip => (
+                                            <div key={clip.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-[var(--color-surface)] rounded-xl border border-[var(--color-border-subtle)] gap-4 hover:border-[var(--color-cyan-dim)]/50 transition-all">
+                                              <div className="flex items-center gap-4 min-w-0">
+                                                <div className="w-12 h-12 rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] flex items-center justify-center shrink-0 text-muted">
+                                                  {clip.url ? (
+                                                    <a href={clip.url} target="_blank" rel="noreferrer" className="hover:text-[var(--color-cyan)] transition-colors"><ExternalLink className="w-5 h-5" /></a>
+                                                  ) : (
+                                                    <PlayCircle className="w-6 h-6 opacity-40" />
+                                                  )}
+                                                </div>
+                                                <div className="min-w-0">
+                                                  <div className="text-sm font-bold text-[var(--color-text-main)] truncate max-w-full flex items-center gap-2">
+                                                    <span className={cn("capitalize truncate", !clip.title && "opacity-60")}>
+                                                      {clip.title || 'Untitled Asset'}
+                                                    </span>
+                                                    {clip.isCSV && <span className="text-[9px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">CSV</span>}
+                                                  </div>
+                                                  <div className="text-[10px] text-muted flex items-center gap-x-2 mt-1 font-medium">
+                                                    <span className="bg-[var(--color-surface2)] px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest">{clip.platform || 'Clip'}</span>
+                                                    <span>•</span>
+                                                    <span>{clip.timestamp ? new Date(clip.timestamp).toLocaleDateString() : 'Active'}</span>
+                                                  </div>
+                                                </div>
+                                              </div>
+
+                                              <div className="flex items-center gap-8 shrink-0">
+                                                <div className="text-left md:text-right">
+                                                  <div className="font-display font-black text-sm tabular-nums text-[var(--color-text-main)]">{formatViews(clip.views)}</div>
+                                                  <div className="text-[9px] text-muted font-bold uppercase tracking-widest">Views</div>
+                                                </div>
+                                                {selectedCampaign.cpm !== undefined && (
+                                                  <div className="text-left md:text-right">
+                                                    <div className="font-display font-black text-sm tabular-nums text-[var(--color-green)]">
+                                                      ${(() => {
+                                                        let p = ((clip.views || 0) / 1000 * selectedCampaign.cpm!);
+                                                        if (selectedCampaign.maxPayout !== undefined && selectedCampaign.maxPayout > 0 && p > selectedCampaign.maxPayout) {
+                                                          p = selectedCampaign.maxPayout;
+                                                        }
+                                                        return p.toFixed(2);
+                                                      })()}
+                                                    </div>
+                                                    <div className="text-[9px] text-[var(--color-green)] opacity-80 font-bold uppercase tracking-widest">Payout</div>
+                                                  </div>
+                                                )}
+                                                {!clip.isCSV && (
+                                                  <button 
+                                                    onClick={() => refreshClip(clip)}
+                                                    disabled={refreshingClipId === clip.id}
+                                                    className="p-2.5 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] text-muted hover:text-[var(--color-cyan)] hover:border-[var(--color-cyan-dim)] transition-all disabled:opacity-50"
+                                                  >
+                                                    <RefreshCw className={cn("w-4 h-4", refreshingClipId === clip.id && "animate-spin")} />
+                                                  </button>
+                                                )}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
                                 </div>
-                              </div>
-                            ));
+                              );
+                            });
                           })()}
                         </div>
                       )}

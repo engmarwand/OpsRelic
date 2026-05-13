@@ -3,7 +3,7 @@ import { useAppContext } from '../../lib/store';
 import { formatViews } from '../../lib/data';
 import { 
   TrendingUp, Users, PlayCircle, Zap, ExternalLink, Calendar,
-  BarChart2, Presentation, ShieldCheck
+  BarChart2, Presentation, ShieldCheck, ChevronDown, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
@@ -11,22 +11,39 @@ import Chart from 'chart.js/auto';
 
 export default function ClientDashboardPage({ campaignId }: { campaignId?: string }) {
   const { data, workspace, updates, campaignsList, clients, clipMetrics } = useAppContext();
+  const [selectedAuthor, setSelectedAuthor] = React.useState<string>('All');
+  const [expandedAuthors, setExpandedAuthors] = React.useState<Set<string>>(new Set());
+
+  const toggleAuthor = (author: string) => {
+    const next = new Set(expandedAuthors);
+    if (next.has(author)) next.delete(author);
+    else next.add(author);
+    setExpandedAuthors(next);
+  };
   
   const campaign = useMemo(() => {
     return campaignsList.find(c => c.id === campaignId);
   }, [campaignsList, campaignId]);
 
   const campaignClipMetrics = useMemo(() => {
-    return clipMetrics.filter(m => m.campaignId === campaignId);
-  }, [clipMetrics, campaignId]);
+    let filtered = clipMetrics.filter(m => m.campaignId === campaignId);
+    if (selectedAuthor !== 'All') {
+      filtered = filtered.filter(m => m.author === selectedAuthor);
+    }
+    return filtered;
+  }, [clipMetrics, campaignId, selectedAuthor]);
 
   const client = useMemo(() => {
     return clients.find(c => c.id === campaign?.clientId);
   }, [clients, campaign]);
 
   const campaignData = useMemo(() => {
-    return (data || []).filter(r => (!campaignId || r.Campaign === campaignId || r._campaignId === campaignId) && ((r.Status||'').toLowerCase() === 'approved'));
-  }, [data, campaignId]);
+    let filtered = (data || []).filter(r => (!campaignId || r.Campaign === campaignId || r._campaignId === campaignId) && ((r.Status||'').toLowerCase() === 'approved'));
+    if (selectedAuthor !== 'All') {
+      filtered = filtered.filter(r => r.Creator === selectedAuthor);
+    }
+    return filtered;
+  }, [data, campaignId, selectedAuthor]);
 
    const stats = useMemo(() => {
     const platforms: Record<string, number> = {};
@@ -131,20 +148,37 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
   return (
     <div className="page active p-6 md:p-8 min-h-[calc(100vh-var(--topbar-h))]">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 border-b border-[var(--color-border-subtle)] pb-6 bg-[var(--color-surface)] -m-6 md:-m-8 mb-6 p-6 md:p-8 shrink-0">
-         <div className="space-y-4">
-            <div className="flex items-center gap-2">
-               <div className="w-2 h-2 rounded-full shadow-glow" style={{ backgroundColor: brandColor }} />
-               <span className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted">Portal Feed</span>
-            </div>
-            <h1 className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tracking-[-0.025em]">
-              {campaign?.name || 'Campaign'} Insights
-            </h1>
-            <p className="text-sm text-muted max-w-lg">
-               Verified viewing metrics and asset performance for {client?.name || 'your campaign'}. Updated via agency reports.
-            </p>
-         </div>
-      </div>
+       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 border-b border-[var(--color-border-subtle)] pb-6 bg-[var(--color-surface)] -m-6 md:-m-8 mb-6 p-6 md:p-8 shrink-0">
+          <div className="space-y-4">
+             <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full shadow-glow" style={{ backgroundColor: brandColor }} />
+                <span className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted">Portal Feed</span>
+             </div>
+             <h1 className="font-display text-2xl font-extrabold text-[var(--color-text-main)] tracking-[-0.025em]">
+               {campaign?.name || 'Campaign'} Insights
+             </h1>
+             <p className="text-sm text-muted max-w-lg">
+                Verified viewing metrics and asset performance for {client?.name || 'your campaign'}. Updated via agency reports.
+             </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <label className="text-[10px] font-bold text-muted uppercase tracking-widest whitespace-nowrap">Filter Creator:</label>
+            <select 
+              value={selectedAuthor} 
+              onChange={(e) => setSelectedAuthor(e.target.value)}
+              className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg px-4 py-2 text-sm text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)] min-w-[160px]"
+            >
+              <option value="All">All Creators</option>
+              {Array.from(new Set([
+                ...clipMetrics.filter(m => m.campaignId === campaignId).map(c => c.author),
+                ...data.filter(r => (!campaignId || r.Campaign === campaignId || r._campaignId === campaignId)).map(r => r.Creator)
+              ].filter(Boolean))).sort().map(author => (
+                <option key={author} value={author}>{author}</option>
+              ))}
+            </select>
+          </div>
+       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm relative overflow-hidden">
@@ -208,71 +242,121 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
          </div>
       </div>
 
-      {/* Asset Grid */}
+      {/* Asset Grid grouped by Creator */}
       <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl shadow-sm overflow-hidden flex flex-col">
          <div className="p-6 border-b border-[var(--color-border-subtle)] bg-[var(--color-surface2)]">
             <h3 className="font-display text-md font-bold text-[var(--color-text-main)] flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-[var(--color-green)]" /> Verified Content Assets
             </h3>
          </div>
-         {campaignClipMetrics.length === 0 ? (
-           <div className="py-20 text-center text-muted text-sm">No assets verified yet.</div>
-         ) : (
-           <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                 <thead>
-                    <tr className="bg-[var(--color-surface2)] border-b border-[var(--color-border-subtle)]">
-                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.07em] text-muted">Asset Title</th>
-                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.07em] text-muted">Platform</th>
-                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.07em] text-muted">Creator</th>
-                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.07em] text-muted text-right">Views</th>
-                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.07em] text-muted text-right">Likes</th>
-                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.07em] text-muted text-right">Shares</th>
-                       <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.07em] text-muted text-right">Eng. Rate</th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-[var(--color-border-subtle)]">
-                    {campaignClipMetrics.sort((a,b) => (b.views||0) - (a.views||0)).map(clip => (
-                      <tr key={clip.id} className="hover:bg-[var(--color-surface-hover)] transition-colors group">
-                         <td className="px-6 py-[14px]">
-                            <div className="flex items-center gap-4">
-                               <div className="w-10 h-10 rounded-lg bg-[var(--color-surface2)] text-[var(--color-text-main)] flex items-center justify-center border border-[var(--color-border-subtle)]">
-                                  <PlayCircle className="w-5 h-5 text-muted" />
-                               </div>
-                               <div className="flex flex-col">
-                                  <div className="flex items-center gap-2">
-                                     <a href={clip.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-[var(--color-text-main)] hover:text-[var(--color-cyan)] truncate max-w-[180px] transition-colors">{clip.title || 'View Content Asset'}</a>
-                                  </div>
-                                  <span className="text-[10px] text-muted mt-[2px] uppercase font-bold tracking-[0.07em]">
-                                     {clip.updatedAt ? `Synced: ${new Date(clip.updatedAt.toMillis ? clip.updatedAt.toMillis() : clip.updatedAt).toLocaleDateString()}` : 'Verified Asset'}
-                                  </span>
-                               </div>
+         <div className="p-6">
+           {campaignClipMetrics.length === 0 ? (
+             <div className="py-12 text-center text-muted text-sm border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl">No assets verified yet.</div>
+           ) : (
+             <div className="space-y-4">
+                {(() => {
+                  let filteredList = [...campaignClipMetrics];
+                  if (selectedAuthor !== 'All') {
+                    filteredList = filteredList.filter(item => item.author === selectedAuthor);
+                  }
+
+                  // Group by author
+                  const groups: Record<string, any[]> = {};
+                  filteredList.forEach(item => {
+                    const author = item.author || 'Verified Creator';
+                    if (!groups[author]) groups[author] = [];
+                    groups[author].push(item);
+                  });
+
+                  return Object.entries(groups).sort((a, b) => b[1].length - a[1].length).map(([author, clips]) => {
+                    const isExpanded = expandedAuthors.has(author);
+                    const creatorViews = clips.reduce((sum, c) => sum + (c.views || 0), 0);
+                    
+                    return (
+                      <div key={author} className="border border-[var(--color-border-subtle)] rounded-xl overflow-hidden bg-[var(--color-surface)] shadow-sm">
+                        <div 
+                          onClick={() => toggleAuthor(author)}
+                          className="flex items-center justify-between p-4 cursor-pointer hover:bg-[var(--color-surface2)] transition-colors"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-[var(--color-brand-primary)]/10 text-[var(--color-brand-primary)] border border-[var(--color-brand-primary)]/20 flex items-center justify-center font-bold text-sm uppercase">
+                              {author.charAt(0)}
                             </div>
-                         </td>
-                         <td className="px-6 py-[14px]">
-                            <span className="px-3 py-1 bg-[var(--color-surface3)] border border-[var(--color-border-subtle)] rounded-full text-xs font-semibold text-muted capitalize">
-                               {clip.platform}
-                            </span>
-                          </td>
-                          <td className="px-6 py-[14px] text-sm text-[var(--color-text-main)] font-medium">{clip.author || 'Verified Creator'}</td>
-                          <td className="px-6 py-[14px] text-right">
-                             <span className="text-sm font-bold text-[var(--color-text-main)] tabular-nums">{formatViews(clip.views || 0)}</span>
-                          </td>
-                          <td className="px-6 py-[14px] text-right">
-                             <span className="text-sm font-medium text-muted tabular-nums">{formatViews(clip.likes || 0)}</span>
-                          </td>
-                          <td className="px-6 py-[14px] text-right">
-                             <span className="text-sm font-medium text-muted tabular-nums">{formatViews(clip.shares || 0)}</span>
-                          </td>
-                          <td className="px-6 py-[14px] text-right">
-                             <span className="text-sm font-bold text-[var(--color-cyan)] tabular-nums">{clip.engagementRate ? (clip.engagementRate * 100).toFixed(1) + '%' : '0%'}</span>
-                          </td>
-                       </tr>
-                    ))}
-                 </tbody>
-              </table>
-           </div>
-         )}
+                            <div>
+                              <div className="text-sm font-extrabold text-[var(--color-text-main)]">@{author}</div>
+                              <div className="text-[10px] text-muted uppercase tracking-widest font-bold mt-0.5">{clips.length} Clips</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-8">
+                            <div className="text-right hidden sm:block">
+                              <div className="text-[10px] font-bold text-muted uppercase tracking-tighter">Total Reach</div>
+                              <div className="text-sm font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(creatorViews)}</div>
+                            </div>
+                            <div className={cn("p-2 rounded-lg bg-[var(--color-surface2)] text-muted transition-transform duration-300", isExpanded && "rotate-180")}>
+                              <ChevronDown className="w-4 h-4" />
+                            </div>
+                          </div>
+                        </div>
+
+                        <AnimatePresence initial={false}>
+                          {isExpanded && (
+                            <motion.div 
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden border-t border-[var(--color-border-subtle)] bg-[var(--color-surface2)]/30 shadow-inner"
+                            >
+                              <div className="p-4 space-y-3">
+                                {clips.sort((a,b) => (b.views || 0) - (a.views || 0)).map(clip => (
+                                  <div key={clip.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-[var(--color-surface)] rounded-xl border border-[var(--color-border-subtle)] gap-4 hover:border-brand-primary/50 transition-all group">
+                                    <div className="flex items-center gap-4 min-w-0">
+                                      <div className="w-12 h-12 rounded-lg bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] flex items-center justify-center shrink-0 text-muted transition-colors group-hover:text-brand-primary">
+                                        <PlayCircle className="w-6 h-6 opacity-60" />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="text-sm font-bold text-[var(--color-text-main)] truncate max-w-full">
+                                          {clip.title || 'Untitled Asset'}
+                                        </div>
+                                        <div className="text-[10px] text-muted flex items-center gap-x-2 mt-1 font-medium">
+                                          <span className="bg-[var(--color-surface2)] px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest">{clip.platform || 'Clip'}</span>
+                                          <span>•</span>
+                                          <span>{clip.updatedAt ? new Date(clip.updatedAt.toMillis ? clip.updatedAt.toMillis() : clip.updatedAt).toLocaleDateString() : 'Verified'}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 shrink-0">
+                                      <div className="text-left md:text-right">
+                                        <div className="font-display font-black text-sm tabular-nums text-[var(--color-text-main)]">{formatViews(clip.views || 0)}</div>
+                                        <div className="text-[9px] text-muted font-bold uppercase tracking-widest">Views</div>
+                                      </div>
+                                      <div className="text-left md:text-right">
+                                        <div className="font-display font-black text-sm tabular-nums text-[var(--color-text-main)]">{formatViews(clip.likes || 0)}</div>
+                                        <div className="text-[9px] text-muted font-bold uppercase tracking-widest">Likes</div>
+                                      </div>
+                                      <div className="text-left md:text-right hidden sm:block">
+                                        <div className="font-display font-black text-sm tabular-nums text-[var(--color-cyan)]">{clip.engagementRate ? (clip.engagementRate * 100).toFixed(1) + '%' : '0%'}</div>
+                                        <div className="text-[9px] text-[var(--color-cyan)] opacity-80 font-bold uppercase tracking-widest">Engagement</div>
+                                      </div>
+                                      <div className="text-right flex items-center justify-end">
+                                        <a href={clip.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-[var(--color-surface2)] text-muted hover:text-brand-primary hover:bg-brand-primary/10 transition-all">
+                                          <ExternalLink className="w-4 h-4" />
+                                        </a>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  });
+                })()}
+             </div>
+           )}
+         </div>
       </div>
     </div>
   );
