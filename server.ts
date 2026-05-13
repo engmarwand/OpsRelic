@@ -227,15 +227,17 @@ async function startServer() {
 
     app.use(express.static(distPath));
     
-    // Explicitly handle portal routes to ensure they fall through to index.html
-    app.get("/portal/*", (req, res) => {
-      console.log(`Portal request: ${req.url} -> serving index.html`);
-      if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-      } else {
-        console.error(`ERROR: index.html not found at ${indexPath}`);
-        res.status(404).send("Application not found. Please contact support.");
-      }
+    // Explicitly handle common SPA routes to ensure they fall through to index.html
+    const spaRoutes = ["/portal", "/intake", "/dashboard", "/campaigns"];
+    spaRoutes.forEach(route => {
+      app.get(`${route}*`, (req, res) => {
+        console.log(`SPA route request: ${req.url} -> serving index.html`);
+        if (fs.existsSync(indexPath)) {
+          res.sendFile(indexPath);
+        } else {
+          res.status(404).send("Application not found.");
+        }
+      });
     });
 
     app.get("*", (req, res) => {
@@ -243,6 +245,7 @@ async function startServer() {
         return res.status(404).json({ error: "Endpoint not found" });
       }
       
+      // Serve index.html for all other unrecognized routes to support SPA routing
       if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
       } else {

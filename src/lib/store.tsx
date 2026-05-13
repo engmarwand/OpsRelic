@@ -122,36 +122,58 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const portalIdParam = params.get('portal');
+    const campaignIdParam = params.get('c') || params.get('campaignId');
     let portalId = portalIdParam;
+    let campaignId = campaignIdParam;
     
-    if (window.location.pathname.startsWith('/portal')) {
+    if (!portalId && window.location.pathname.startsWith('/portal')) {
       const parts = window.location.pathname.split('/');
       // Path is /portal/TOKEN or /portal/TOKEN/
       // parts would be ['', 'portal', 'TOKEN'] or ['', 'portal', 'TOKEN', '']
       portalId = parts.filter(p => !!p && p !== 'portal').pop() || null;
     }
 
-    if (portalId) {
-      setPortalContext(prev => ({ ...prev, active: true, campaignId: portalId, loading: true }));
+    const idToLookup = portalId || campaignId;
+
+    if (idToLookup) {
+      setPortalContext(prev => ({ ...prev, active: true, campaignId: idToLookup, loading: true }));
       
-      const q = query(collection(db, 'campaigns'), where('portalToken', '==', portalId), where('portalEnabled', '==', true));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
+      // Try looking up by portalToken OR campaign ID (if enabled)
+      const qToken = query(collection(db, 'campaigns'), where('portalToken', '==', idToLookup), where('portalEnabled', '==', true));
+      
+      const unsubscribe = onSnapshot(qToken, async (snapshot) => {
         if (!snapshot.empty) {
           const campSnap = snapshot.docs[0];
           const data = campSnap.data();
-          if (data.portalEnabled) {
-            setPortalContext(prev => ({ 
-              ...prev, 
-              authorized: !data.portalPassword, 
-              ownerId: data.userId, 
-              campaignId: campSnap.id, 
-              loading: false,
-              _expectedPassword: data.portalPassword
-            } as any));
-          } else {
-            setPortalContext(prev => ({ ...prev, loading: false }));
-          }
+          setPortalContext(prev => ({ 
+            ...prev, 
+            authorized: !data.portalPassword, 
+            ownerId: data.userId, 
+            campaignId: campSnap.id, 
+            loading: false,
+            _expectedPassword: data.portalPassword
+          } as any));
         } else {
+          // Try looking up by exact campaign ID if possible
+          try {
+            const campDoc = await getDocFromServer(doc(db, 'campaigns', idToLookup));
+            if (campDoc.exists()) {
+              const data = campDoc.data();
+              if (data.portalEnabled) {
+                setPortalContext(prev => ({ 
+                  ...prev, 
+                  authorized: !data.portalPassword, 
+                  ownerId: data.userId, 
+                  campaignId: campDoc.id, 
+                  loading: false,
+                  _expectedPassword: data.portalPassword
+                } as any));
+                return;
+              }
+            }
+          } catch (err) {
+            console.warn("Direct campaign ID lookup failed:", err);
+          }
           setPortalContext(prev => ({ ...prev, loading: false }));
         }
       }, (error) => {
