@@ -9,12 +9,15 @@ import {
   Eye,
   Filter,
   DollarSign,
-  Zap
+  Zap,
+  Loader2
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { useToast } from '../../lib/toast';
 import Chart from 'chart.js/auto';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 export default function ReportsPage() {
   const { addToast } = useToast();
@@ -22,6 +25,8 @@ export default function ReportsPage() {
   const [selectedClientId, setSelectedClientId] = useState<string>('All');
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('All');
   const [timeframe, setTimeframe] = useState<'30' | '90' | 'all'>('30');
+  const [isExporting, setIsExporting] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const filteredClients = clients || [];
   const filteredCampaigns = useMemo(() => {
@@ -139,6 +144,39 @@ export default function ReportsPage() {
     })).sort((a, b) => b.val - a.val).slice(0, 5);
   }, [reportData]);
 
+  const handleExportPDF = async () => {
+    if (!reportRef.current) return;
+    setIsExporting(true);
+    addToast('Generating PDF report...', 'info');
+    
+    try {
+      const element = reportRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#050505'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [canvas.width, canvas.height]
+      });
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      const fileName = `OpsRelic-Report-${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
+      addToast('Report downloaded successfully', 'success');
+    } catch (err) {
+      console.error('PDF export error:', err);
+      addToast('Failed to export PDF. Please try again.', 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="page active p-6 md:p-8 min-h-[calc(100vh-var(--topbar-h))]">
       <div className="flex items-start justify-between gap-4 mb-6">
@@ -147,15 +185,21 @@ export default function ReportsPage() {
           <p className="text-sm text-muted mt-[3px]">Performance intelligence and distribution tracking</p>
         </div>
         <div className="flex gap-2">
-           <button onClick={() => addToast('Exporting PDF...', 'info')} className="btn btn-ghost hover:bg-[var(--color-surface2)] px-4">
-             <Download className="w-[14px] h-[14px]" /> Export PDF
+           <button 
+             onClick={handleExportPDF} 
+             disabled={isExporting}
+             className="btn btn-ghost hover:bg-[var(--color-surface2)] px-4"
+           >
+             {isExporting ? <Loader2 className="w-[14px] h-[14px] animate-spin" /> : <Download className="w-[14px] h-[14px]" />}
+             {isExporting ? 'Exporting...' : 'Export PDF'}
            </button>
         </div>
       </div>
 
-      {/* Filters Bar */}
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-4 lg:p-6 mb-6 flex flex-col md:flex-row items-center gap-4 lg:gap-6 shadow-sm">
-         <div className="flex items-center gap-4 w-full md:w-auto flex-1">
+      <div ref={reportRef} className="space-y-6">
+        {/* Filters Bar */}
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-4 lg:p-6 mb-6 flex flex-col md:flex-row items-center gap-4 lg:gap-6 shadow-sm">
+           <div className="flex items-center gap-4 w-full md:w-auto flex-1">
             <div className="w-10 h-10 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] flex items-center justify-center shrink-0">
                <Filter className="w-4 h-4 text-muted" />
             </div>
@@ -297,6 +341,7 @@ export default function ReportsPage() {
             </table>
          </div>
       </div>
+     </div>
     </div>
   );
 }

@@ -424,6 +424,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           Shares: row.shares || 0,
           "Submission URL": row.url || "",
           _campaignId: row.campaignId || "",
+          createdAt: row.createdAt
         });
       });
       setState(prev => ({ ...prev, data }));

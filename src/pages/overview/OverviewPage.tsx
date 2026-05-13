@@ -36,7 +36,13 @@ export default function OverviewPage() {
   const chartInstance = useRef<any>(null);
 
   const stats = useMemo(() => {
-    const totalViews = clipMetrics.reduce((sum, item) => sum + (item.views || 0), 0);
+    const csvUrls = new Set(data.map(r => r["Submission URL"]).filter(Boolean));
+    const csvViews = data.reduce((sum, item) => sum + (item.Views || 0), 0);
+    const liveViews = clipMetrics
+      .filter(m => !m.url || !csvUrls.has(m.url))
+      .reduce((sum, item) => sum + (item.views || 0), 0);
+    
+    const totalViews = csvViews + liveViews;
     
     let totalProfit = 0;
     campaignsList.forEach(camp => {
@@ -107,16 +113,35 @@ export default function OverviewPage() {
       });
     }
 
-    // Uploads
-    for (const u of data) {
-      const ts = u.createdAt ? new Date((u.createdAt.toMillis ? u.createdAt.toMillis() : u.createdAt)) : (u["Submission Date"] ? new Date(u["Submission Date"]) : new Date());
+    // Uploads - grouped by proximity (same upload session)
+    const groupedUploads: any[] = [];
+    data.forEach(u => {
+      const ts = u.createdAt 
+        ? new Date((u.createdAt.toMillis ? u.createdAt.toMillis() : u.createdAt)) 
+        : (u["Submission Date"] ? new Date(u["Submission Date"]) : new Date());
+      
+      const time = ts.getTime();
+      const existing = groupedUploads.find(g => Math.abs(g.timestamp - time) < 60000); // 1 minute window
+      
+      if (existing) {
+        existing.count = (existing.count || 1) + 1;
+      } else {
+        groupedUploads.push({
+          type: 'upload',
+          title: 'CSV uploaded',
+          detail: 'Performance data sync', // More generic when multiple
+          timestamp: time,
+          dateStr: formatDistanceToNow(ts, { addSuffix: true }),
+          rawDate: ts,
+          count: 1
+        });
+      }
+    });
+
+    for (const u of groupedUploads) {
       activity.push({
-        type: 'upload',
-        title: 'CSV uploaded',
-        detail: u["Content Title"] || 'Performance Data',
-        timestamp: ts.getTime(),
-        dateStr: formatDistanceToNow(ts, { addSuffix: true }),
-        rawDate: ts
+        ...u,
+        detail: u.count > 1 ? `${u.count} assets updated` : u.detail
       });
     }
 
@@ -147,26 +172,22 @@ export default function OverviewPage() {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       labels.push(d.toLocaleDateString('en-US', { month: 'short' }));
       
-      // Calculate views for this month
-      let monthViews = 0;
-      
-      // From CSV data
-      data.forEach(r => {
+      // Calculate views for this month with deduplication
+      const monthCsv = data.filter(r => {
         const rowDate = r["Submission Date"] ? new Date(r["Submission Date"]) : null;
-        if (rowDate && rowDate.getMonth() === d.getMonth() && rowDate.getFullYear() === d.getFullYear()) {
-          monthViews += (r.Views || 0);
-        }
+        return rowDate && rowDate.getMonth() === d.getMonth() && rowDate.getFullYear() === d.getFullYear();
       });
+      const csvUrls = new Set(monthCsv.map(r => r["Submission URL"]).filter(Boolean));
       
-      // From Clip Metrics
-      clipMetrics.forEach(m => {
-        const mDate = m.createdAt ? new Date(m.createdAt) : null;
-        if (mDate && mDate.getMonth() === d.getMonth() && mDate.getFullYear() === d.getFullYear()) {
-          monthViews += (m.views || 0);
-        }
-      });
+      const csvViews = monthCsv.reduce((sum, r) => sum + (r.Views || 0), 0);
+      const liveViews = clipMetrics
+        .filter(m => {
+          const mDate = m.createdAt ? new Date(m.createdAt) : null;
+          return mDate && mDate.getMonth() === d.getMonth() && mDate.getFullYear() === d.getFullYear() && (!m.url || !csvUrls.has(m.url));
+        })
+        .reduce((sum, m) => sum + (m.views || 0), 0);
       
-      counts.push(monthViews);
+      counts.push(csvViews + liveViews);
     }
     
     return { labels, counts };
@@ -327,8 +348,14 @@ export default function OverviewPage() {
                 const clientObj = clients.find(c => c.id === camp.clientId);
                 const campColor = idx % 3 === 0 ? 'var(--color-green)' : idx % 3 === 1 ? 'var(--color-yellow)' : 'var(--color-blue)';
                 
-                const csvViews = data.filter(d => d._campaignId === camp.id).reduce((s, r) => s + (r.Views || 0), 0);
-                const liveViews = clipMetrics.filter(m => m.campaignId === camp.id).reduce((s, m) => s + (m.views || 0), 0);
+                const campCsvSubmissions = data.filter(d => d._campaignId === camp.id);
+                const csvUrls = new Set(campCsvSubmissions.map(r => r["Submission URL"]).filter(Boolean));
+                
+                const csvViews = campCsvSubmissions.reduce((s, r) => s + (r.Views || 0), 0);
+                const liveViews = clipMetrics
+                  .filter(m => m.campaignId === camp.id && (!m.url || !csvUrls.has(m.url)))
+                  .reduce((s, m) => s + (m.views || 0), 0);
+                
                 const campViews = csvViews + liveViews;
 
                 const formatViews = (val: number) => val >= 1000 ? (val / 1000).toFixed(0) + 'K' : val.toString();

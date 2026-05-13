@@ -256,7 +256,7 @@ export default function SettingsPage() {
                            Active Subscription
                          </div>
                          <h3 className="font-display text-2xl font-black text-[var(--color-text-main)] mb-1">
-                           {PLANS[currentTier || 'STARTER'].name}
+                           {PLANS[currentTier || 'starter'].name}
                          </h3>
                          <p className="text-sm text-muted">Billed Monthly through Whop</p>
                        </div>
@@ -266,31 +266,34 @@ export default function SettingsPage() {
                     <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
                        <div className="p-4 bg-[var(--color-surface2)] rounded-xl border border-[var(--color-border-subtle)]">
                           <div className="text-[10px] font-black uppercase text-muted tracking-widest mb-1">Renews On</div>
-                          <div className="text-sm font-bold text-[var(--color-text-main)]">Next billing cycle</div>
+                          <div className="text-sm font-bold text-[var(--color-text-main)]">
+                             {userDoc?.subscription?.nextPaymentDate ? new Date(userDoc.subscription.nextPaymentDate).toLocaleDateString() : "Next billing cycle"}
+                           </div>
                        </div>
                        <div className="p-4 bg-[var(--color-surface2)] rounded-xl border border-[var(--color-border-subtle)]">
                           <div className="text-[10px] font-black uppercase text-muted tracking-widest mb-1">Price</div>
                           <div className="text-sm font-bold text-[var(--color-green)]">
-                            ${PLANS[currentTier || 'STARTER'].price}/month
+                            ${PLANS[currentTier || 'starter'].price}/month
                           </div>
                        </div>
                     </div>
 
                     <div className="mt-8 flex gap-3">
                        <button onClick={() => setShowPricing(true)} className="btn btn-primary flex-1">Upgrade Tier</button>
-                       <button className="btn btn-ghost flex-1 border border-[var(--color-border-subtle)]">Manage on Whop</button>
                     </div>
                   </div>
 
-                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 flex items-start gap-4">
-                     <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                     <div>
-                        <h4 className="text-sm font-bold text-amber-500 mb-1">Plan Limitations</h4>
-                        <p className="text-xs text-amber-500/80 leading-relaxed">
-                          Your current plan includes up to {PLANS[currentTier || 'STARTER'].maxClients} clients. To add more clients or unlock white-label portals, consider upgrading to the Agency tier.
-                        </p>
-                     </div>
-                  </div>
+                  {currentTier !== 'agency' && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 flex items-start gap-4">
+                       <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                       <div>
+                          <h4 className="text-sm font-bold text-amber-500 mb-1">Plan Limitations</h4>
+                          <p className="text-xs text-amber-500/80 leading-relaxed">
+                            Your current plan includes up to {PLANS[currentTier || 'starter'].limits.campaigns === Infinity ? 'unlimited' : PLANS[currentTier || 'starter'].limits.campaigns} campaigns. To add more campaigns or unlock white-label portals, consider upgrading to the Agency tier.
+                          </p>
+                       </div>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

@@ -156,23 +156,19 @@ export default function ClientsPage() {
     let totalClips = 0;
     let totalProfit = 0;
     campaigns.forEach(camp => {
-      let campTotalViews = 0;
-
       const campCsv = data.filter(d => d._campaignId === camp.id);
-      campCsv.forEach(r => {
-        campTotalViews += (r.Views || 0);
-      });
-
-      const campLive = clipMetrics.filter(m => m.campaignId === camp.id);
-      campLive.forEach(c => {
-        campTotalViews += (c.views || 0);
-      });
+      const csvUrls = new Set(campCsv.map(r => r["Submission URL"]).filter(Boolean));
       
-      const campCsvClipsCount = campCsv.length;
-      const campLiveClipsCount = campLive.length;
+      const csvViews = campCsv.reduce((sum, r) => sum + (r.Views || 0), 0);
+      const campLive = clipMetrics.filter(m => m.campaignId === camp.id);
+      const liveViews = campLive
+        .filter(m => !m.url || !csvUrls.has(m.url))
+        .reduce((sum, m) => sum + (m.views || 0), 0);
+      
+      const uniqueLiveClipsCount = campLive.filter(m => !m.url || !csvUrls.has(m.url)).length;
 
-      totalViews += campTotalViews;
-      totalClips += campCsvClipsCount + campLiveClipsCount;
+      totalViews += (csvViews + liveViews);
+      totalClips += (campCsv.length + uniqueLiveClipsCount);
       totalProfit += (camp.revenue || 0) - (camp.budget || 0);
     });
     return { views: totalViews, clips: totalClips, profit: totalProfit };
@@ -219,6 +215,7 @@ export default function ClientsPage() {
                 {filteredClients.map((client, idx) => {
                   const style = getClientColor(idx);
                   const clientCampaigns = campaignsList.filter(c => c.clientId === client.id);
+                  const activeCount = clientCampaigns.filter(c => c.status === 'Active').length;
                   const stats = getCampaignStats(clientCampaigns);
                   
                   return (
@@ -240,8 +237,8 @@ export default function ClientsPage() {
 
                       <div className="grid grid-cols-4 gap-2 mb-3">
                         <div className="bg-[var(--color-surface2)] rounded-[10px] p-[10px] text-center">
-                           <div className="text-[10px] uppercase text-muted font-black tracking-widest truncate">Campaigns</div>
-                           <div className="font-bold font-display mt-0.5">{clientCampaigns.length}</div>
+                           <div className="text-[10px] uppercase text-muted font-black tracking-widest truncate">Running</div>
+                           <div className="font-bold font-display mt-0.5">{activeCount}</div>
                         </div>
                         <div className="bg-[var(--color-surface2)] rounded-[10px] p-[10px] text-center">
                            <div className="text-[10px] uppercase text-muted font-black tracking-widest truncate">Views</div>
@@ -284,7 +281,7 @@ export default function ClientsPage() {
                      <span className="w-[5px] h-[5px] rounded-full bg-current animate-pulse opacity-100" /> Active
                    </span>
                    <span className="inline-flex items-center gap-[5px] text-xs font-bold px-[9px] py-[3px] rounded-full bg-[var(--color-cyan-dim)] text-[var(--color-cyan)] border border-[rgba(0,212,232,0.2)]">
-                     {selectedClientCampaigns.length} campaigns
+                     {selectedClientCampaigns.filter(c => c.status === 'Active').length} running
                    </span>
                    <span className="inline-flex items-center gap-[5px] text-xs font-bold px-[9px] py-[3px] rounded-full bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
                      ${getCampaignStats(selectedClientCampaigns).profit.toLocaleString()} Margin
