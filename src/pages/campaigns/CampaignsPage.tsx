@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useAppContext } from '../../lib/store';
 import { 
   FolderOpen, Plus, Search, ChevronRight, ChevronDown, BarChart2, Bell, ExternalLink, Settings, 
-  TrendingUp, Users, Target, Key, Lock, ArrowLeft, Copy, RefreshCw, AlertTriangle, Link2, FileText, Trash2, PlayCircle
+  TrendingUp, Users, Target, Key, Lock, ArrowLeft, Copy, RefreshCw, AlertTriangle, Link2, FileText, Trash2, PlayCircle, DollarSign, Shield
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Campaign, CampaignStatus } from '../../types';
@@ -324,6 +324,8 @@ export default function CampaignsPage() {
   const [isRefreshingAll, setIsRefreshingAll] = useState(false);
   const [refreshingClipId, setRefreshingClipId] = useState<string | null>(null);
   const [selectedAuthor, setSelectedAuthor] = useState<string>('All');
+  const [creatorSearch, setCreatorSearch] = useState('');
+  const [showAllPayouts, setShowAllPayouts] = useState(false);
   const [expandedAuthors, setExpandedAuthors] = useState<Set<string>>(new Set());
 
   const toggleAuthor = (author: string) => {
@@ -680,24 +682,28 @@ export default function CampaignsPage() {
 
                   {/* Assets List */}
                   <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-                      <div className="font-display text-md font-bold text-[var(--color-text-main)]">Campaign Content Assets</div>
-                      
-                      <div className="flex items-center gap-2">
-                        <label className="text-xs font-bold text-muted uppercase tracking-widest whitespace-nowrap">Filter Creator:</label>
-                        <select 
-                          value={selectedAuthor} 
-                          onChange={(e) => setSelectedAuthor(e.target.value)}
-                          className="bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg px-3 py-1.5 text-xs text-[var(--color-text-main)] outline-none focus:border-[var(--color-cyan)]"
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                      <div className="flex items-center gap-3">
+                         <h3 className="font-display text-md font-bold text-[var(--color-text-main)] italic uppercase flex items-center gap-2">
+                           <Shield className="w-4 h-4 text-faint" /> Verified Content Assets
+                         </h3>
+                      </div>
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <div className="relative flex-1 sm:w-64">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
+                          <input 
+                            value={creatorSearch}
+                            onChange={(e) => setCreatorSearch(e.target.value)}
+                            placeholder="Find creator..."
+                            className="w-full bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-xl pl-9 pr-4 py-2 text-xs focus:border-[var(--color-cyan)] outline-none transition-all"
+                          />
+                        </div>
+                        <button 
+                          onClick={() => setShowAllPayouts(!showAllPayouts)}
+                          className={cn("btn btn-sm flex items-center gap-2 h-9", showAllPayouts ? "btn-primary" : "btn-secondary")}
                         >
-                          <option value="All">All Creators</option>
-                          {Array.from(new Set([
-                            ...campaignClipMetrics.map(c => c.author),
-                            ...campaignData.map(r => r.Creator)
-                          ].filter(Boolean))).sort().map(author => (
-                            <option key={author} value={author}>{author}</option>
-                          ))}
-                        </select>
+                           <DollarSign className="w-3.5 h-3.5" /> {showAllPayouts ? "Hide Payouts" : "Show All Payouts"}
+                        </button>
                       </div>
                     </div>
 
@@ -729,7 +735,11 @@ export default function CampaignsPage() {
                             });
 
                             let filteredList = displayList;
-                            if (selectedAuthor !== 'All') {
+                            if (creatorSearch) {
+                              filteredList = displayList.filter(item => 
+                                (item.author || '').toLowerCase().includes(creatorSearch.toLowerCase())
+                              );
+                            } else if (selectedAuthor !== 'All') {
                               filteredList = displayList.filter(item => item.author === selectedAuthor);
                             }
 
@@ -741,8 +751,10 @@ export default function CampaignsPage() {
                               groups[author].push(item);
                             });
 
-                            return Object.entries(groups).sort((a, b) => b[1].length - a[1].length).map(([author, clips]) => {
-                              const isExpanded = expandedAuthors.has(author);
+                            const sortedGroups = Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
+
+                            return sortedGroups.map(([author, clips]) => {
+                              const isExpanded = expandedAuthors.has(author) || (creatorSearch.length > 0 && sortedGroups.length === 1);
                               const creatorViews = clips.reduce((sum, c) => sum + (c.views || 0), 0);
                               const creatorPayout = clips.reduce((sum, c) => {
                                 let p = ((c.views || 0) / 1000 * (selectedCampaign.cpm || 0));

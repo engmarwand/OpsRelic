@@ -40,7 +40,9 @@ export default function OverviewPage() {
     
     let totalProfit = 0;
     campaignsList.forEach(camp => {
-      totalProfit += (camp.revenue || 0) - (camp.budget || 0);
+      const client = clients.find(c => c.id === camp.clientId);
+      const retainer = client?.retainer || camp.revenue || 0;
+      totalProfit += retainer - (camp.budget || 0);
     });
 
     const formatViews = (val: number) => {

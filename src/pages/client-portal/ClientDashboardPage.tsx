@@ -3,7 +3,7 @@ import { useAppContext } from '../../lib/store';
 import { formatViews } from '../../lib/data';
 import { 
   TrendingUp, Users, PlayCircle, Zap, ExternalLink, Calendar,
-  BarChart2, Presentation, ShieldCheck, ChevronDown, ChevronRight
+  BarChart2, Presentation, ShieldCheck, ChevronDown, ChevronRight, DollarSign
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
@@ -255,7 +255,25 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
            ) : (
              <div className="space-y-4">
                 {(() => {
-                  let filteredList = [...campaignClipMetrics];
+                  const displayList: any[] = [...campaignClipMetrics];
+                  const clipUrls = new Set(campaignClipMetrics.map(c => c.url).filter(Boolean));
+                  campaignData.forEach(r => {
+                    if (r["Submission URL"] && !clipUrls.has(r["Submission URL"])) {
+                      displayList.push({
+                        id: `csv-${Math.random()}`,
+                        url: r["Submission URL"],
+                        title: r["Content Title"],
+                        author: r.Creator || 'Unknown',
+                        platform: r.Platform,
+                        views: r.Views || 0,
+                        likes: r.Likes || 0,
+                        isCSV: true,
+                        updatedAt: r.Date || r.Timestamp
+                      } as any);
+                    }
+                  });
+
+                  let filteredList = displayList;
                   if (selectedAuthor !== 'All') {
                     filteredList = filteredList.filter(item => item.author === selectedAuthor);
                   }
@@ -271,6 +289,11 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
                   return Object.entries(groups).sort((a, b) => b[1].length - a[1].length).map(([author, clips]) => {
                     const isExpanded = expandedAuthors.has(author);
                     const creatorViews = clips.reduce((sum, c) => sum + (c.views || 0), 0);
+                    const creatorPayout = clips.reduce((sum, c) => {
+                      let p = ((c.views || 0) / 1000 * (campaign?.cpm || 0));
+                      if (campaign?.maxPayout && p > campaign.maxPayout) p = campaign.maxPayout;
+                      return sum + p;
+                    }, 0);
                     
                     return (
                       <div key={author} className="border border-[var(--color-border-subtle)] rounded-xl overflow-hidden bg-[var(--color-surface)] shadow-sm">
@@ -289,8 +312,12 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
                           </div>
                           <div className="flex items-center gap-8">
                             <div className="text-right hidden sm:block">
-                              <div className="text-[10px] font-bold text-muted uppercase tracking-tighter">Total Reach</div>
+                              <div className="text-[10px] font-bold text-muted uppercase tracking-tighter text-right">Reach</div>
                               <div className="text-sm font-extrabold text-[var(--color-text-main)] tabular-nums">{formatViews(creatorViews)}</div>
+                            </div>
+                            <div className="text-right hidden sm:block">
+                              <div className="text-[10px] font-bold text-muted uppercase tracking-tighter text-right">Earnings</div>
+                              <div className="text-sm font-extrabold text-[var(--color-green)] tabular-nums">${creatorPayout.toFixed(2)}</div>
                             </div>
                             <div className={cn("p-2 rounded-lg bg-[var(--color-surface2)] text-muted transition-transform duration-300", isExpanded && "rotate-180")}>
                               <ChevronDown className="w-4 h-4" />
@@ -330,10 +357,16 @@ export default function ClientDashboardPage({ campaignId }: { campaignId?: strin
                                         <div className="font-display font-black text-sm tabular-nums text-[var(--color-text-main)]">{formatViews(clip.views || 0)}</div>
                                         <div className="text-[9px] text-muted font-bold uppercase tracking-widest">Views</div>
                                       </div>
-                                      <div className="text-left md:text-right">
-                                        <div className="font-display font-black text-sm tabular-nums text-[var(--color-text-main)]">{formatViews(clip.likes || 0)}</div>
-                                        <div className="text-[9px] text-muted font-bold uppercase tracking-widest">Likes</div>
-                                      </div>
+                                       <div className="text-left md:text-right">
+                                         <div className="font-display font-black text-sm tabular-nums text-[var(--color-green)]">
+                                           ${(() => {
+                                             let p = ((clip.views || 0) / 1000 * (campaign?.cpm || 0));
+                                             if (campaign?.maxPayout && p > campaign.maxPayout) p = campaign.maxPayout;
+                                             return p.toFixed(2);
+                                           })()}
+                                         </div>
+                                         <div className="text-[9px] text-[var(--color-green)] opacity-80 font-bold uppercase tracking-widest">Payout</div>
+                                       </div>
                                       <div className="text-left md:text-right hidden sm:block">
                                         <div className="font-display font-black text-sm tabular-nums text-[var(--color-cyan)]">{clip.engagementRate ? (clip.engagementRate * 100).toFixed(1) + '%' : '0%'}</div>
                                         <div className="text-[9px] text-[var(--color-cyan)] opacity-80 font-bold uppercase tracking-widest">Engagement</div>

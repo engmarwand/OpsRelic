@@ -125,7 +125,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     let portalId = portalIdParam;
     
     if (window.location.pathname.startsWith('/portal/')) {
-      portalId = window.location.pathname.split('/').pop() || null;
+      portalId = window.location.pathname.split('/').filter(Boolean).pop() || null;
     }
 
     if (portalId) {

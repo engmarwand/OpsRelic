@@ -279,12 +279,12 @@ export default function PortalPage() {
                               <div className="flex items-center gap-2 bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg p-2.5">
                                  <input 
                                    readOnly 
-                                   value={selectedCampaign.portalEnabled ? `opsrelic.com/portal/${selectedCampaign.portalToken}` : 'Portal Disabled'}
+                                   value={selectedCampaign.portalEnabled ? `${window.location.origin}/portal/${selectedCampaign.portalToken}` : 'Portal Disabled'}
                                    className="flex-1 bg-transparent border-none outline-none text-xs font-mono text-[var(--color-text-main)] truncate"
                                  />
                                  <button 
                                    onClick={() => {
-                                      navigator.clipboard.writeText(`https://opsrelic.com/portal/${selectedCampaign.portalToken}`);
+                                      navigator.clipboard.writeText(`${window.location.origin}/portal/${selectedCampaign.portalToken}`);
                                       addToast("Link copied!", "success");
                                    }}
                                    className="p-1.5 hover:bg-[var(--color-surface-hover)] rounded-md text-muted transition-colors"
@@ -295,7 +295,7 @@ export default function PortalPage() {
                            </div>
                            <div className="flex gap-3">
                               <button 
-                                onClick={() => window.open(`https://opsrelic.com/portal/${selectedCampaign.portalToken}`, '_blank')}
+                                onClick={() => window.open(`${window.location.origin}/portal/${selectedCampaign.portalToken}`, '_blank')}
                                 className="flex-1 btn btn-secondary btn-sm flex items-center justify-center gap-2"
                               >
                                  <ExternalLink className="w-3.5 h-3.5" /> Open in New Tab

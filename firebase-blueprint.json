@@ -84,7 +84,12 @@
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" },
         "budget": { "type": "number" },
-        "portalPassword": { "type": "string" }
+        "portalPassword": { "type": "string" },
+        "portalToken": { "type": "string" },
+        "portalEnabled": { "type": "boolean" },
+        "revenue": { "type": "number" },
+        "cpm": { "type": "number" },
+        "maxPayout": { "type": "number" }
       },
       "required": ["name", "userId", "status"]
     },
