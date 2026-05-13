@@ -290,19 +290,25 @@ export default function PortalPage() {
                                       navigator.clipboard.writeText(`https://opsrelic.com/portal/${selectedCampaign.portalToken}`);
                                       addToast("Link copied!", "success");
                                    }}
-                                   className="p-1.5 hover:bg-[var(--color-surface-hover)] rounded-md text-muted transition-colors"
-                                 >
-                                    <Copy className="w-3.5 h-3.5" />
-                                 </button>
-                              </div>
-                           </div>
-                           <div className="flex gap-3">
-                              <button 
-                                onClick={() => window.open(`https://opsrelic.com/portal/${selectedCampaign.portalToken}`, '_blank')}
-                                className="flex-1 btn btn-secondary btn-sm flex items-center justify-center gap-2"
-                              >
-                                 <ExternalLink className="w-3.5 h-3.5" /> Open in New Tab
-                              </button>
+                                    className="p-1.5 hover:bg-[var(--color-surface-hover)] rounded-md text-muted transition-colors"
+                                  >
+                                     <Copy className="w-3.5 h-3.5" />
+                                  </button>
+                               </div>
+                            </div>
+                            <div className="flex gap-3">
+                               <button 
+                                 onClick={() => {
+                                   const isProd = window.location.hostname === 'opsrelic.com';
+                                   const url = isProd 
+                                     ? `https://opsrelic.com/portal/${selectedCampaign.portalToken}`
+                                     : `${window.location.origin}/portal/${selectedCampaign.portalToken}`;
+                                   window.open(url, '_blank');
+                                 }}
+                                 className="flex-1 btn btn-secondary btn-sm flex items-center justify-center gap-2"
+                               >
+                                  <ExternalLink className="w-3.5 h-3.5" /> Open in New Tab
+                               </button>
                               <button 
                                 onClick={handleRotateToken}
                                 title="Rotate Link Token"

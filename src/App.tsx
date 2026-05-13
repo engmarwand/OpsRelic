@@ -183,14 +183,15 @@ function AppWrapper({ onLogout }: { onLogout: () => void }) {
         logout();
         setUser(null);
       } else {
-        setUser(currentUser);
+        setUser(null); // default
+        if (currentUser) setUser(currentUser);
       }
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  if (loading) {
+  if (loading || (isPortalPage && portalContext.loading)) {
     return <div className="min-h-screen bg-[#050505] flex items-center justify-center">
       <div className="w-8 h-8 border-4 border-[var(--color-brand-primary)]/20 border-t-[var(--color-brand-primary)] rounded-full animate-spin"></div>
     </div>;
@@ -200,8 +201,18 @@ function AppWrapper({ onLogout }: { onLogout: () => void }) {
     return <ClientIntakePage />;
   }
 
-  if (portalContext.active && !portalContext.authorized) {
-    return <PortalAuth />;
+  if (isPortalPage || portalContext.active) {
+    if (portalContext.active && !portalContext.authorized) {
+      return <PortalAuth />;
+    }
+    if (portalContext.authorized) {
+      return <AppContent user={user} onLogout={onLogout} />;
+    }
+    // If we're on a portal page but not active yet (still looking up token)
+    if (isPortalPage && !portalContext.active && !portalContext.loading) {
+       // This handles the case where the token lookup finished but found nothing
+       return <PortalAuth />; 
+    }
   }
 
   return user || portalContext.authorized ? (
