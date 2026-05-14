@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Users, FolderOpen, Upload, BarChart2, 
   ExternalLink, Settings, UserPlus, Plus, Moon, Sun, X, 
-  PanelLeftClose, PanelLeft, Kanban, FileText, Globe
+  PanelLeftClose, PanelLeft, Kanban, FileText, Globe, ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -31,7 +31,12 @@ export const systemNavItems = [
   { id: 'settings', label: 'Settings', icon: Settings, hash: '#settings' },
 ];
 
+export const adminNavItems = [
+  { id: 'admin', label: 'Admin Control', icon: ShieldCheck, hash: '#admin' },
+];
+
 export const AppLayout = ({ 
+
   children, 
   user,
   onLogout,
@@ -142,7 +147,7 @@ export const AppLayout = ({
   const pageNames: Record<string, string> = {
     overview: 'Overview', clients: 'Clients', campaigns: 'Campaigns', 
     uploads: 'Uploads', reports: 'Reports', portal: 'Client Portal', settings: 'Settings',
-    workspace: 'Agency Home', 'workspace-files': 'Brand Assets'
+    workspace: 'Agency Home', 'workspace-files': 'Brand Assets', admin: 'Admin Dashboard'
   };
 
   const sidebarWidth = collapsed ? '72px' : '260px';
@@ -189,6 +194,9 @@ export const AppLayout = ({
               <NavGroup title="Workflow" items={workflowNavItems} />
               <NavGroup title="Team Workspace" items={assetsNavItems} />
               <NavGroup title="System" items={systemNavItems} />
+              {user?.email === 'engmarwand@gmail.com' && (
+                <NavGroup title="Admin" items={adminNavItems} />
+              )}
             </>
           )}
         </nav>

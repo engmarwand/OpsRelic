@@ -16,7 +16,8 @@ import ReportsPage from './pages/reports/ReportsPage';
 import ClientsPage from './pages/clients/ClientsPage';
 import WorkspaceHomePage from './pages/workspace/WorkspaceHomePage';
 import WorkspaceFilesPage from './pages/workspace/WorkspaceFilesPage';
-import { AppLayout, managementNavItems, workflowNavItems, assetsNavItems, systemNavItems } from './layouts/AppLayout';
+import AdminPage from './pages/admin/AdminPage';
+import { AppLayout, managementNavItems, workflowNavItems, assetsNavItems, systemNavItems, adminNavItems } from './layouts/AppLayout';
 import { auth, logout, ALLOWED_EMAILS } from './lib/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 
@@ -87,7 +88,7 @@ function AppContent({ user, onLogout }: { user: FirebaseUser | null, onLogout: (
 
   const flaggedCount = data?.filter(r => r.Status === 'Flagged').length || 0;
 
-  const allNavItems = [...managementNavItems, ...workflowNavItems, ...assetsNavItems, ...systemNavItems];
+  const allNavItems = [...managementNavItems, ...workflowNavItems, ...assetsNavItems, ...systemNavItems, ...adminNavItems];
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -126,7 +127,8 @@ function AppContent({ user, onLogout }: { user: FirebaseUser | null, onLogout: (
           {activeTab === 'portal' && <PortalPage />}
           {activeTab === 'workspace' && <WorkspaceHomePage />}
           {activeTab === 'workspace-files' && <WorkspaceFilesPage />}
-          {![ 'overview', 'uploads', 'campaigns', 'clients', 'reports', 'settings', 'portal', 'workspace', 'workspace-files' ].includes(activeTab) && (
+          {activeTab === 'admin' && <AdminPage />}
+          {![ 'overview', 'uploads', 'campaigns', 'clients', 'reports', 'settings', 'portal', 'workspace', 'workspace-files', 'admin' ].includes(activeTab) && (
             <div className="flex flex-col items-center justify-center py-32 text-center">
               <div className="w-20 h-20 rounded-[32px] bg-white/5 border border-white/10 flex items-center justify-center mb-8">
               </div>

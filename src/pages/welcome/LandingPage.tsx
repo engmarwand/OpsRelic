@@ -89,47 +89,58 @@ export default function Landing() {
       <style dangerouslySetInnerHTML={{ __html: `
         :root {
           --color-bg: #f7f6f2;
-          --color-surface: #f9f8f5;
+          --color-surface: #ffffff;
           --color-surface-2: #fbfbf9;
           --color-surface-offset: #f0ede7;
-          --color-border: rgba(40,37,29,0.12);
-          --color-divider: #dcd9d5;
-          --color-text: #28251d;
-          --color-text-muted: #686660;
-          --color-text-faint: #9b988f;
-          --color-text-inverse: #f9f8f4;
-          --color-primary: #01696f;
-          --color-primary-hover: #0c4e54;
-          --color-primary-soft: rgba(1,105,111,0.08);
-          --color-primary-soft-2: rgba(1,105,111,0.15);
-          --color-success: #437a22;
-          --color-error: #a12c7b;
+          --color-border: rgba(0,0,0,0.08);
+          --color-divider: rgba(0,0,0,0.06);
+          --color-text: #1a1a1a;
+          --color-text-muted: #666666;
+          --color-text-faint: #999999;
+          --color-text-inverse: #ffffff;
+          --color-primary: #0077ff;
+          --color-primary-hover: #005ce6;
+          --color-primary-soft: rgba(0,119,255,0.08);
+          --color-primary-soft-2: rgba(0,119,255,0.15);
+          --color-success: #00c853;
+          --color-error: #ff3d00;
         }
         .dark {
-          --color-bg: #171614;
-          --color-surface: #1d1c1a;
-          --color-surface-2: #242320;
-          --color-surface-offset: #2a2825;
-          --color-border: rgba(255,255,255,0.1);
+          --color-bg: #09090b;
+          --color-surface: #121214;
+          --color-surface-2: #18181b;
+          --color-surface-offset: #27272a;
+          --color-border: rgba(255,255,255,0.08);
           --color-divider: #393836;
-          --color-text: #e5e1d9;
-          --color-text-muted: #b4b0a8;
-          --color-text-faint: #8e8a84;
-          --color-text-inverse: #171614;
-          --color-primary: #4f98a3;
-          --color-primary-hover: #6daeb8;
-          --color-primary-soft: rgba(79,152,163,0.12);
-          --color-primary-soft-2: rgba(79,152,163,0.18);
-          --color-success: #7ab356;
-          --color-error: #d163a7;
+          --color-text: #ffffff;
+          --color-text-muted: #a1a1aa;
+          --color-text-faint: #71717a;
+          --color-text-inverse: #09090b;
+          --color-primary: #00d4e8;
+          --color-primary-hover: #00e0f5;
+          --color-primary-soft: rgba(0,212,232,0.15);
+          --color-primary-soft-2: rgba(0,212,232,0.25);
+          --color-success: #00ff88;
+          --color-error: #ff2a5f;
         }
 
         .dashboard-shell {
-          transform: perspective(5000px) rotateY(-0.5deg) rotateX(0deg);
+          transform: perspective(2000px) rotateY(-8deg) rotateX(4deg);
           transition: transform 800ms cubic-bezier(0.16,1,0.3,1);
         }
         .dashboard-shell:hover {
-          transform: perspective(5000px) rotateY(0deg) rotateX(0deg) translateY(-4px) scale(1.005);
+          transform: perspective(2000px) rotateY(0deg) rotateX(0deg) translateY(-4px) scale(1.02);
+        }
+        
+        .gradient-text {
+          background: linear-gradient(to right, #00d4e8, #00ff88, #a020f0);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-size: 200% auto;
+          animation: shine 5s linear infinite;
+        }
+        @keyframes shine {
+          to { background-position: 200% center; }
         }
       `}} />
 
@@ -211,11 +222,105 @@ export default function Landing() {
             </motion.div>
           </div>
 
-          {/* ... (Visual Stratum) ... */}
-          <div className="relative w-full perspective-3000">
-            <div className="relative z-10 w-full aspect-[4/5] lg:aspect-square">
-              {/* ... (Layer 1, 2, 3) ... */}
-            </div>
+          <div className="relative w-full lg:h-[600px] flex items-center justify-center mt-12 lg:mt-0 perspective-3000">
+             {/* Complex UI Mockup reflecting actual app */}
+             <div className="dashboard-shell relative w-full h-auto min-h-[450px] aspect-video max-w-[800px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-[0_32px_64px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col pointer-events-none">
+                {/* Header */}
+                <div className="h-10 border-b border-[var(--color-border)] flex items-center px-4 gap-4 bg-[var(--color-surface-2)] shrink-0">
+                   <div className="flex gap-1.5">
+                     <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                     <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+                     <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                   </div>
+                   <div className="w-64 h-5 rounded-md bg-[var(--color-surface-offset)] mx-auto flex items-center justify-center text-[10px] text-[var(--color-text-muted)] tracking-widest font-mono">opsrelic.com/app</div>
+                </div>
+                {/* Body */}
+                <div className="flex flex-1 overflow-hidden">
+                   {/* Sidebar */}
+                   <div className="hidden sm:flex w-48 border-r border-[var(--color-border)] bg-[var(--color-surface)] p-4 flex-col gap-2 opacity-80">
+                     <div className="h-6 rounded bg-[var(--color-surface-offset)] w-full mb-4" />
+                     <div className="flex items-center gap-2 mb-2"><Layers className="w-4 h-4 text-muted" /><div className="h-4 rounded bg-[var(--color-surface-offset)] w-3/4" /></div>
+                     <div className="flex items-center gap-2 mb-2"><Users className="w-4 h-4 text-muted" /><div className="h-4 rounded bg-[var(--color-surface-offset)] w-5/6" /></div>
+                     <div className="flex items-center gap-2 mb-2"><Database className="w-4 h-4 text-muted" /><div className="h-4 rounded bg-[var(--color-surface-offset)] w-full" /></div>
+                     <div className="flex items-center gap-2 mb-2"><Globe className="w-4 h-4 text-[var(--color-primary)]" /><div className="h-4 rounded bg-[var(--color-primary-soft-2)] text-[var(--color-primary)] w-4/5" /></div>
+                   </div>
+                   {/* Main */}
+                   <div className="flex-1 p-4 sm:p-6 bg-[var(--color-bg)] flex flex-col gap-4 sm:gap-6 overflow-hidden relative">
+                      {/* Gradient ambient light */}
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#00d4e8]/20 to-[#a020f0]/20 blur-3xl rounded-full" />
+                      
+                      <div className="flex justify-between items-center relative z-10">
+                         <div className="space-y-1 sm:space-y-2">
+                           <div className="h-4 sm:h-6 rounded bg-[var(--color-text)] w-24 sm:w-40 opacity-90" />
+                           <div className="h-3 sm:h-4 rounded bg-[var(--color-text-muted)] w-16 sm:w-24 opacity-60" />
+                         </div>
+                         <div className="h-8 sm:h-10 rounded-lg bg-[var(--color-primary)] w-24 sm:w-32 opacity-90" />
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 relative z-10">
+                         <div className="h-20 sm:h-24 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)]/80 backdrop-blur-md p-3 sm:p-4 flex flex-col justify-between shadow-sm">
+                            <div className="text-[9px] sm:text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest">Total Views</div>
+                            <div className="text-xl sm:text-2xl font-black gradient-text">24.1M</div>
+                         </div>
+                         <div className="h-20 sm:h-24 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)]/80 backdrop-blur-md p-3 sm:p-4 flex flex-col justify-between shadow-sm">
+                            <div className="text-[9px] sm:text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest">Active Campaigns</div>
+                            <div className="text-xl sm:text-2xl font-black text-[#00ff88]">12</div>
+                         </div>
+                         <div className="h-20 sm:h-24 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)]/80 backdrop-blur-md p-3 sm:p-4 flex flex-col justify-between hidden md:flex shadow-sm">
+                            <div className="text-[9px] sm:text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest">Saved Time</div>
+                            <div className="text-xl sm:text-2xl font-black text-[#0077ff]">140+ hrs</div>
+                         </div>
+                      </div>
+                      <div className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)]/80 backdrop-blur-md relative z-10 p-4 opacity-70">
+                         <div className="flex items-center justify-between mb-4">
+                           <div className="h-4 w-1/4 rounded bg-[var(--color-text-muted)] opacity-50" />
+                           <div className="h-4 w-8 rounded bg-[var(--color-surface-offset)]" />
+                         </div>
+                         <div className="space-y-3">
+                           {[1,2,3].map(i => (
+                             <div key={i} className="flex justify-between items-center pb-3 border-b border-[var(--color-divider)]">
+                               <div className="flex gap-3 items-center">
+                                 <div className="w-8 h-8 rounded-full bg-[var(--color-surface-offset)]" />
+                                 <div className="space-y-1">
+                                   <div className="h-3 w-16 rounded bg-[var(--color-text)]" />
+                                   <div className="h-2 w-10 rounded bg-[var(--color-text-muted)]" />
+                                 </div>
+                               </div>
+                               <div className="h-4 w-12 rounded bg-[var(--color-primary-soft)] text-[var(--color-primary)] font-mono text-[10px] text-center flex items-center justify-center">+1{i}k</div>
+                             </div>
+                           ))}
+                         </div>
+                      </div>
+                   </div>
+                </div>
+             </div>
+             
+             {/* Floating Elements */}
+             <motion.div 
+               animate={{ y: [0, -10, 0] }} 
+               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+               className="absolute -right-4 sm:-right-8 bottom-8 sm:bottom-12 p-3 sm:p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-border)] shadow-xl flex items-center gap-3 sm:gap-4 z-20 backdrop-blur-xl"
+             >
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#00ff88]/10 text-[#00ff88] flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <div>
+                  <div className="text-[9px] sm:text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest">Live Campaign Update</div>
+                  <div className="text-lg sm:text-xl font-black">1.2M Views Data Sync</div>
+                </div>
+             </motion.div>
+             <motion.div 
+               animate={{ y: [0, 10, 0] }} 
+               transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+               className="absolute -left-4 sm:-left-8 top-12 sm:top-1/4 p-3 sm:p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-border)] shadow-xl z-20 backdrop-blur-xl"
+             >
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <Globe className="w-4 h-4 text-[var(--color-primary)] animate-pulse" />
+                  <span className="text-[10px] sm:text-xs font-bold text-[var(--color-text)]">Client Portal Synced</span>
+                </div>
+                <div className="w-24 sm:w-32 h-1.5 sm:h-2 rounded-full bg-[var(--color-primary)]/20 overflow-hidden">
+                   <div className="h-full bg-[var(--color-primary)] w-full" />
+                </div>
+             </motion.div>
           </div>
         </div>
       </section>
@@ -231,17 +336,17 @@ export default function Landing() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              { icon: Building, title: 'Agency Home & Operations', desc: 'A command center for your entire agency. Get real-time alerts, monitor team activity, and manage workspace settings all in one view.' },
-              { icon: Users, title: 'Client & Campaign Management', desc: 'Store campaign briefs, asset libraries, targets, and deliverable status. Keep everything related to a client organized.' },
-              { icon: BarChart3, title: 'Real-time Agency Analytics', desc: 'Automatically consolidate performance data across campaigns. Track views, engagement, and KPIs with enterprise precision.' },
-              { icon: Globe, title: 'Branded Client Portals', desc: 'Secure, client-facing workspaces. Deliver live-updated performance reports without ever sending another PDF deck.' },
-              { icon: Layers, title: 'Centralized Brand Assets', desc: 'A unified library for agency-wide brand assets, logos, and campaign templates for quick access.' },
-              { icon: MessageSquare, title: 'Streamlined Intake & Workflow', desc: 'Stop managing campaign updates via email. Use standardized intake and automated status updates to align the team.' }
+              { icon: Building, title: 'Agency Operations', desc: 'Manage your workspaces, team access, and subscription tiers cleanly.' },
+              { icon: Layers, title: 'Dedicated Campaign Instances', desc: 'No more scattered Google Sheets. Each campaign gets a structured hub with integrated clipping targets.' },
+              { icon: BarChart3, title: 'Link & Drop Analytics', desc: 'Just paste clip URLs (TikTok, Reels, Shorts) and OpsRelic auto-fetches LIVE views, likes, and engagement metrics.' },
+              { icon: RefreshCw, title: 'CSV Mass Injection', desc: 'Got a dump of 500 clips? Drop the CSV. We map it, sum it up, and instantly reflect performance against the campaign KPIs.' },
+              { icon: Globe, title: 'Whitelabel Client Portals', desc: 'Stop sending PDF updates. Give your clients a live, secure `opsrelic.com/portal/[token]` link with your branding.' },
+              { icon: Database, title: 'Universal Content Database', desc: 'Maintain complete history of every uploaded clip and tracking instance, fully searchable.' }
             ].map((cap, i) => (
               <motion.div 
                 key={i} 
                 whileHover={{ y: -10 }}
-                className="p-8 rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface-2)] hover:border-[var(--color-primary)] hover:shadow-lg transition-all cursor-pointer group"
+                className="p-8 rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface-2)] hover:border-[var(--color-primary)] hover:shadow-xl hover:shadow-[var(--color-primary-soft-2)] transition-all cursor-pointer group"
               >
                 <cap.icon className="w-10 h-10 text-[var(--color-primary)] mb-6 group-hover:scale-110 transition-transform" />
                 <h3 className="text-xl font-bold mb-3 tracking-tight group-hover:text-[var(--color-primary)] transition-colors">{cap.title}</h3>
@@ -306,35 +411,42 @@ export default function Landing() {
       </section>
 
       {/* Who it's for & Why OpsRelic */}
-      <section className="py-24 lg:py-40 bg-[var(--color-surface)] border-y border-[var(--color-border)]">
-        <div className="max-w-[1180px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-24">
+      <section className="py-24 lg:py-40 bg-[var(--color-surface)] border-y border-[var(--color-border)] relative overflow-hidden">
+        {/* Decorative Grid */}
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02]" />
+        
+        <div className="max-w-[1180px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-24 relative z-10">
           <div>
-            <span className="eyebrow">Who it's for</span>
-            <h2 className="text-4xl lg:text-6xl font-bold tracking-tight mb-10 mt-4 leading-none">Built for the next wave.</h2>
-            <div className="space-y-8">
-              {[
-                { t: "Clipping Agencies", d: "Running multi-client books across TikTok, Reels, Shorts and X." },
-                { t: "UGC Teams", d: "Creator-campaign agencies that need to show outcomes, not just deliverables." },
-                { t: "Platform Operators", d: "Teams that want to give their power users a serious agency-side workspace." }
-              ].map(item => (
-                <div key={item.t} className="p-6 rounded-3xl bg-[var(--color-bg)] border border-[var(--color-border)] shadow-sm">
-                  <h4 className="font-bold text-lg mb-2 text-[var(--color-primary)]">{item.t}</h4>
-                  <p className="text-[var(--color-text-muted)] text-sm leading-relaxed">{item.d}</p>
-                </div>
-              ))}
+            <span className="eyebrow text-[#00d4e8]">The Current State is Chaos</span>
+            <h2 className="text-4xl lg:text-6xl font-bold tracking-tight mb-10 mt-4 leading-none">Exhausted by <br/>the ops?</h2>
+            <div className="text-[var(--color-text-muted)] space-y-6 leading-relaxed text-lg">
+              <p>Most clipping agencies are incredible at driving virality, but terrible at the infrastructure.</p>
+              <p>The campaign works — clippers upload, views spike. <strong className="text-[var(--color-text)]">The nightmare is the reporting.</strong></p>
+              <p>Pulling numbers from five social platforms, managing unstructured CSV drops from clippers, stitching them into a Notion page, manually fixing sum totals, screen-recording a makeshift dashboard, and dealing with constant <code className="bg-[var(--color-surface-2)] px-2 py-1 rounded text-sm text-[var(--color-error)] border border-[var(--color-border)]">"hey, any update on my campaign?"</code> Pings.</p>
             </div>
-            <p className="mt-10 text-[var(--color-text-muted)] italic text-sm">
-              If your "ops stack" is currently four Google Sheets, two Notion docs, and a Slack channel called #client-please-stop-asking — you're our user.
+            <p className="mt-10 text-[var(--color-text-muted)] italic text-sm p-6 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-2xl">
+              If your "ops stack" is currently four Google Sheets, manual TikTok link scraping, and a Slack channel called #distro-urgent — <strong className="text-[var(--color-text)]">you need this.</strong>
             </p>
           </div>
 
-          <div className="lg:pt-20">
-            <span className="eyebrow">Why OpsRelic exists</span>
-            <h2 className="text-4xl font-bold tracking-tight mb-8 mt-4 leading-tight">Exhausted by the ops? We fixed it.</h2>
-            <div className="text-[var(--color-text-muted)] space-y-6 leading-relaxed">
-              <p>Most clipping and creator-campaign agencies are excellent at the work and exhausted by the ops.</p>
-              <p>The campaign happens fine — clippers post, views land, payouts go out. The problem is what comes after: pulling the numbers from five places, stitching them into a deck, screen-recording a dashboard, sending a screenshot, and waiting for the next "any update?" Slack ping.</p>
-              <p className="font-bold text-[var(--color-text)]">OpsRelic exists to give that whole layer back to you. One workspace. One report. One portal. Built by someone who lived the chaos at clipping and UGC agencies and finally decided to fix it instead of working around it.</p>
+          <div className="lg:pt-0 flex flex-col justify-center">
+            <span className="eyebrow text-[#00ff88]">The OpsRelic Solution</span>
+            <h2 className="text-4xl font-bold tracking-tight mb-8 mt-4 leading-tight">We built the <br/>Clipping Agency OS.</h2>
+            <div className="space-y-6 lg:space-y-8">
+              {[
+                { t: "1-Click Metrics Collection", d: "Drop clip links or CSV bundles. We scrape or parse the results natively. No more copy-pasting views.", c: "#00d4e8" },
+                { t: "Agency-wide Workspaces", d: "Manage your clients, client limits, billing plans, and data completely isolated in secure workspaces.", c: "#00ff88" },
+                { t: "Hands-free Client Portals", d: "Every campaign generates a secure portal. Clients see their live metrics on your branded page. Zero manual deck-building.", c: "#a020f0" }
+              ].map(item => (
+                <div key={item.t} className="p-8 rounded-[32px] bg-[var(--color-surface-2)] border border-[var(--color-border)] relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 blur-[50px] opacity-20 group-hover:opacity-40 transition-opacity" style={{ backgroundColor: item.c }} />
+                  <h4 className="font-bold text-xl mb-3 flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.c }} />
+                    {item.t}
+                  </h4>
+                  <p className="text-[var(--color-text-muted)] leading-relaxed relative z-10">{item.d}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
