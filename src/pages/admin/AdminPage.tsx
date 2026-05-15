@@ -3,7 +3,6 @@ import { Bot, Users, Database, Clock, TrendingUp, Filter, BarChart, ShieldCheck 
 import { useAppContext } from '../../lib/store';
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
-import { collection, onSnapshot } from 'firebase/auth'; // Wait, should import from firestore
 import { db } from '../../lib/firebase';
 import { collection as fCollection, onSnapshot as fOnSnapshot } from 'firebase/firestore';
 

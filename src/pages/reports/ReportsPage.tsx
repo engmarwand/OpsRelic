@@ -59,6 +59,8 @@ export default function ReportsPage() {
 
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<any>(null);
+  const pieChartRef = useRef<HTMLCanvasElement>(null);
+  const pieChartInstance = useRef<any>(null);
 
   const chartData = useMemo(() => {
     const viewsByDate: Record<string, number> = {};
@@ -144,31 +146,91 @@ export default function ReportsPage() {
     })).sort((a, b) => b.val - a.val).slice(0, 5);
   }, [reportData]);
 
+  useEffect(() => {
+    if (pieChartRef.current) {
+      if (pieChartInstance.current) {
+        pieChartInstance.current.destroy();
+      }
+      const ctx = pieChartRef.current.getContext('2d');
+      if (ctx) {
+        pieChartInstance.current = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: platformStats.map(p => p.name),
+            datasets: [{
+              data: platformStats.map(p => p.val),
+              backgroundColor: ['#00d4e8', '#a020f0', '#00ff88', '#ff3d00', '#ffc107', '#2563eb'],
+              borderWidth: 0,
+              hoverOffset: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return ` ${context.label}: ${context.raw}%`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+  }, [platformStats]);
+
   const handleExportPDF = async () => {
     if (!reportRef.current) return;
     setIsExporting(true);
-    addToast('Generating PDF report...', 'info');
+    addToast('Generating multipage PDF report...', 'info');
     
     try {
       const element = reportRef.current;
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#050505'
-      });
+      const pages = Array.from(element.querySelectorAll<HTMLElement>('[data-pdf-page="true"]'));
+      const targetElements = pages.length > 0 ? pages : [element];
       
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'px',
-        format: [canvas.width, canvas.height]
-      });
+      let pdf: jsPDF | null = null;
       
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < targetElements.length; i++) {
+        const targetEl = targetElements[i];
+        const canvas = await html2canvas(targetEl, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#050505',
+          windowWidth: document.documentElement.scrollWidth,
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        // Adding a little bit of margin inside the canvas might be hard, but we can scale it to fit standard format,
+        // or we just output the canvas size directly to maintain sharpness without standard format restrictions.
+        // Let's ensure format is always portrait or landscape depending on the element.
+        const format: [number, number] = [canvas.width, canvas.height];
+        const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait';
+
+        if (i === 0) {
+          pdf = new jsPDF({
+            orientation,
+            unit: 'px',
+            format
+          });
+          pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        } else {
+          pdf!.addPage(format, orientation);
+          pdf!.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        }
+      }
+      
       const fileName = `OpsRelic-Report-${new Date().toISOString().split('T')[0]}.pdf`;
-      pdf.save(fileName);
-      addToast('Report downloaded successfully', 'success');
+      pdf!.save(fileName);
+      addToast('Multipaged Report downloaded successfully', 'success');
     } catch (err) {
       console.error('PDF export error:', err);
       addToast('Failed to export PDF. Please try again.', 'error');
@@ -197,119 +259,132 @@ export default function ReportsPage() {
       </div>
 
       <div ref={reportRef} className="space-y-6">
-        {/* Filters Bar */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-4 lg:p-6 mb-6 flex flex-col md:flex-row items-center gap-4 lg:gap-6 shadow-sm">
-           <div className="flex items-center gap-4 w-full md:w-auto flex-1">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] flex items-center justify-center shrink-0">
-               <Filter className="w-4 h-4 text-muted" />
+        {/* Filters Bar & Stats - Page 1 */}
+        <div data-pdf-page="true" className="space-y-6 bg-[#050505] pb-2">
+           <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-4 lg:p-6 mb-2 flex flex-col md:flex-row items-center gap-4 lg:gap-6 shadow-sm">
+              <div className="flex items-center gap-4 w-full md:w-auto flex-1">
+               <div className="w-10 h-10 rounded-xl bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] flex items-center justify-center shrink-0">
+                  <Filter className="w-4 h-4 text-muted" />
+               </div>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+                 <div className="flex flex-col gap-[5px]">
+                    <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted">Client Filter</label>
+                    <select 
+                      value={selectedClientId} 
+                      onChange={e => {
+                          setSelectedClientId(e.target.value);
+                          setSelectedCampaignId('All');
+                      }}
+                      className="w-full bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-cyan)] shadow-sm cursor-pointer"
+                    >
+                      <option value="All">All Clients</option>
+                      {filteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                 </div>
+
+                 <div className="flex flex-col gap-[5px]">
+                    <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted">Campaign Filter</label>
+                    <select 
+                      value={selectedCampaignId} 
+                      onChange={e => setSelectedCampaignId(e.target.value)}
+                      className="w-full bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-cyan)] shadow-sm cursor-pointer"
+                    >
+                      <option value="All">All Campaigns</option>
+                      {filteredCampaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                 </div>
+               </div>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-              <div className="flex flex-col gap-[5px]">
-                 <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted">Client Filter</label>
-                 <select 
-                   value={selectedClientId} 
-                   onChange={e => {
-                       setSelectedClientId(e.target.value);
-                       setSelectedCampaignId('All');
-                   }}
-                   className="w-full bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-cyan)] shadow-sm cursor-pointer"
-                 >
-                   <option value="All">All Clients</option>
-                   {filteredClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                 </select>
-              </div>
 
-              <div className="flex flex-col gap-[5px]">
-                 <label className="text-[10px] font-bold uppercase tracking-[0.07em] text-muted">Campaign Filter</label>
-                 <select 
-                   value={selectedCampaignId} 
-                   onChange={e => setSelectedCampaignId(e.target.value)}
-                   className="w-full bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-md px-3 py-2 text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-cyan)] shadow-sm cursor-pointer"
-                 >
-                   <option value="All">All Campaigns</option>
-                   {filteredCampaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                 </select>
-              </div>
+            <div className="flex bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg p-1 shrink-0 self-start md:self-auto mt-2 md:mt-0">
+               {['30', '90', 'all'].map(t => (
+                  <button 
+                    key={t}
+                    onClick={() => setTimeframe(t as any)}
+                    className={cn(
+                       "px-4 py-[6px] rounded-md text-[11px] font-semibold transition-colors",
+                       timeframe === t ? "bg-[var(--color-surface)] text-[var(--color-text-main)] shadow-sm" : "text-muted hover:text-[var(--color-text-main)]"
+                    )}
+                  >
+                    {t === '30' ? 'Last 30d' : t === '90' ? 'Last 90d' : 'Lifetime'}
+                  </button>
+               ))}
             </div>
-         </div>
-
-         <div className="flex bg-[var(--color-surface2)] border border-[var(--color-border-subtle)] rounded-lg p-1 shrink-0 self-start md:self-auto mt-2 md:mt-0">
-            {['30', '90', 'all'].map(t => (
-               <button 
-                 key={t}
-                 onClick={() => setTimeframe(t as any)}
-                 className={cn(
-                    "px-4 py-[6px] rounded-md text-[11px] font-semibold transition-colors",
-                    timeframe === t ? "bg-[var(--color-surface)] text-[var(--color-text-main)] shadow-sm" : "text-muted hover:text-[var(--color-text-main)]"
-                 )}
-               >
-                 {t === '30' ? 'Last 30d' : t === '90' ? 'Last 90d' : 'Lifetime'}
-               </button>
-            ))}
-         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
-           <div className="flex items-center gap-3 mb-2">
-             <div className="w-8 h-8 rounded-lg bg-[var(--color-cyan-dim)] text-[var(--color-cyan)] flex items-center justify-center"><Eye className="w-4 h-4"/></div>
-             <div className="text-xs font-bold text-muted uppercase tracking-[0.07em]">Total Views</div>
            </div>
-           <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)]">{stats.views}</div>
-        </div>
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
-           <div className="flex items-center gap-3 mb-2">
-             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><DollarSign className="w-4 h-4"/></div>
-             <div className="text-xs font-bold text-muted uppercase tracking-[0.07em]">Total Spent</div>
-           </div>
-           <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)]">{stats.cost}</div>
-        </div>
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
-           <div className="flex items-center gap-3 mb-2">
-             <div className="w-8 h-8 rounded-lg bg-[var(--color-purple-dim)] text-[var(--color-purple)] flex items-center justify-center"><Users className="w-4 h-4"/></div>
-             <div className="text-xs font-bold text-muted uppercase tracking-[0.07em]">Active Creators</div>
-           </div>
-           <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)]">{stats.creators}</div>
-        </div>
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
-           <div className="flex items-center gap-3 mb-2">
-             <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center"><Zap className="w-4 h-4"/></div>
-             <div className="text-xs font-bold text-muted uppercase tracking-[0.07em]">Efficiency (eCPM)</div>
-           </div>
-           <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)]">{stats.ecpm}</div>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 mb-6">
-         <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm min-h-[400px] flex flex-col">
-            <h3 className="font-display text-md font-bold text-[var(--color-text-main)] mb-6">Performance Evolution</h3>
-            <div className="relative flex-1">
-               <canvas ref={chartRef}></canvas>
-            </div>
-         </div>
-
-         <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm flex flex-col">
-            <h3 className="font-display text-md font-bold text-[var(--color-text-main)] mb-6">Platform Mix</h3>
-            <div className="flex-1 flex flex-col justify-center gap-4">
-              {platformStats.length > 0 ? platformStats.map(p => (
-                <div key={p.name} className="flex flex-col gap-2">
-                   <div className="flex justify-between items-center text-sm font-semibold">
-                     <span className="text-[var(--color-text-main)]">{p.name} <span className="text-muted font-normal text-xs ml-1">({p.count})</span></span>
-                     <span className="text-[var(--color-cyan)]">{p.val}%</span>
-                   </div>
-                   <div className="h-2 w-full bg-[var(--color-surface2)] rounded-full overflow-hidden">
-                      <div className="h-full bg-[var(--color-cyan)] rounded-full" style={{ width: `${p.val}%` }}></div>
-                   </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+             <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--color-cyan-dim)] text-[var(--color-cyan)] flex items-center justify-center"><Eye className="w-4 h-4"/></div>
+                  <div className="text-xs font-bold text-muted uppercase tracking-[0.07em]">Total Views</div>
                 </div>
-              )) : (
-                <div className="text-center text-muted text-sm py-10">No platform data available for the selected filters.</div>
-              )}
-            </div>
-         </div>
-      </div>
+                <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)]">{stats.views}</div>
+             </div>
+             <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><DollarSign className="w-4 h-4"/></div>
+                  <div className="text-xs font-bold text-muted uppercase tracking-[0.07em]">Total Spent</div>
+                </div>
+                <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)]">{stats.cost}</div>
+             </div>
+             <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--color-purple-dim)] text-[var(--color-purple)] flex items-center justify-center"><Users className="w-4 h-4"/></div>
+                  <div className="text-xs font-bold text-muted uppercase tracking-[0.07em]">Active Creators</div>
+                </div>
+                <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)]">{stats.creators}</div>
+             </div>
+             <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-sm">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center"><Zap className="w-4 h-4"/></div>
+                  <div className="text-xs font-bold text-muted uppercase tracking-[0.07em]">Efficiency (eCPM)</div>
+                </div>
+                <div className="font-display text-2xl font-extrabold text-[var(--color-text-main)]">{stats.ecpm}</div>
+             </div>
+           </div>
+        </div>
 
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        {/* Charts - Page 2 */}
+        <div data-pdf-page="true" className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 bg-[#050505] pb-2">
+           <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm min-h-[400px] flex flex-col">
+              <h3 className="font-display text-md font-bold text-[var(--color-text-main)] mb-6">Performance Evolution</h3>
+              <div className="relative flex-1">
+                 <canvas ref={chartRef}></canvas>
+              </div>
+           </div>
+
+           <div className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl p-6 shadow-sm flex flex-col">
+              <h3 className="font-display text-md font-bold text-[var(--color-text-main)] mb-6">Platform Mix</h3>
+              <div className="flex-1 flex flex-col gap-6">
+                <div className="relative h-40 w-full flex items-center justify-center">
+                   <canvas ref={pieChartRef}></canvas>
+                   {platformStats.length === 0 && (
+                     <div className="absolute inset-0 flex items-center justify-center text-muted text-sm pb-8">No data</div>
+                   )}
+                </div>
+                <div className="flex flex-col gap-3">
+                  {platformStats.length > 0 ? platformStats.map((p, i) => {
+                    const colors = ['#00d4e8', '#a020f0', '#00ff88', '#ff3d00', '#ffc107', '#2563eb'];
+                    return (
+                      <div key={p.name} className="flex justify-between items-center text-sm">
+                         <div className="flex items-center gap-2">
+                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colors[i % colors.length] }}></div>
+                           <span className="text-[var(--color-text-main)] font-semibold">{p.name} <span className="text-muted font-normal text-xs ml-1">({p.count})</span></span>
+                         </div>
+                         <span className="text-[var(--color-text-main)] font-bold">{p.val}%</span>
+                      </div>
+                    );
+                  }) : (
+                    <div className="text-center text-muted text-sm">No platform data available for the selected filters.</div>
+                  )}
+                </div>
+              </div>
+           </div>
+        </div>
+
+        {/* Table - Page 3 */}
+        <div data-pdf-page="true" className="bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl shadow-sm overflow-hidden flex flex-col">
          <div className="p-6 border-b border-[var(--color-border-subtle)] bg-[var(--color-surface2)]">
             <h3 className="font-display text-md font-bold text-[var(--color-text-main)]">Data Breakdown</h3>
          </div>

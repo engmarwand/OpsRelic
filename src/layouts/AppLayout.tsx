@@ -7,6 +7,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import Pricing from '../components/Pricing';
+import AppWalkthrough from '../components/AppWalkthrough';
 import { useAppContext } from '../lib/store';
 import { User as FirebaseUser } from 'firebase/auth';
 
@@ -73,6 +74,7 @@ export const AppLayout = ({
 
     return (
       <a
+        id={`tour-${item.id}`}
         href={item.hash}
         className={cn(
           "flex items-center gap-[12px] px-3 py-[10px] rounded-xl text-sm font-medium transition-all relative select-none mb-[4px] group",
@@ -263,7 +265,7 @@ export const AppLayout = ({
               <button onClick={() => window.location.hash = '#clients?new=true'} className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border border-[var(--color-border-subtle)] bg-[var(--color-surface)] text-muted hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-main)] shadow-sm">
                 <UserPlus className="w-4 h-4" /> New Client
               </button>
-              <button onClick={() => window.location.hash = '#campaigns?new=true'} className="inline-flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-black transition-all bg-gradient-to-r from-[var(--color-cyan)] to-[#0099ff] text-[var(--color-cyan-on)] hover:shadow-[0_8px_24px_rgba(0,212,232,0.3)] shadow-md transform hover:-translate-y-0.5 active:translate-y-0">
+              <button id="tour-new-campaign" onClick={() => window.location.hash = '#campaigns?new=true'} className="inline-flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-black transition-all bg-gradient-to-r from-[var(--color-cyan)] to-[#0099ff] text-[var(--color-cyan-on)] hover:shadow-[0_8px_24px_rgba(0,212,232,0.3)] shadow-md transform hover:-translate-y-0.5 active:translate-y-0">
                 <Plus className="w-4 h-4" /> New Campaign
               </button>
               <div className="w-px h-6 bg-[var(--color-divider)] mx-2 hidden sm:block"></div>
@@ -310,6 +312,7 @@ export const AppLayout = ({
           </div>
         )}
       </AnimatePresence>
+      <AppWalkthrough />
     </div>
   );
 };
